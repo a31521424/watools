@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -14,16 +15,20 @@ func NewApp() *App {
 	return &App{}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
+func initWindowSize(ctx context.Context) {
+	screen, err := runtime.ScreenGetAll(ctx)
+	if err != nil {
+		println(err.Error())
+	}
+	width := 800
+	height := 56
+	if len(screen) > 0 {
+		width = screen[0].Size.Width / 3
+	}
+	runtime.WindowSetSize(ctx, width, height)
+}
+
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-}
-
-func (a *App) onFileOpen() {
-	println("onFileOpen")
-}
-
-func (a *App) onUrlOpen() {
-	println("onUrlOpen")
+	initWindowSize(ctx)
 }
