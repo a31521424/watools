@@ -1,5 +1,3 @@
-const {fontFamily} = require("tailwindcss/defaultTheme")
-
 const config = {
     darkMode: ["class"],
     content: [
@@ -13,9 +11,15 @@ const config = {
         extends: {
             fontFamily: {
                 sans: [
-                    "Inter",
-                    "Noto Sans SC",
-                    ...fontFamily.sans
+                    'system-ui',
+                    '-apple-system',
+                    'BlinkMacSystemFont',
+                    '"Segoe UI"',
+                    'Roboto',
+                    '"Helvetica Neue"',
+                    '"PingFang SC"',
+                    '"Microsoft YaHei"',
+                    'sans-serif',
                 ]
             }
         }
