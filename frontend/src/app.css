@@ -1,3 +1,10 @@
 html, head, body, #root {
     background-color: transparent;
 }
+
+/* Remove accessibility focus outline */
+input:focus,
+input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}

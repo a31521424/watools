@@ -1,3 +1,5 @@
+const {fontFamily} = require("tailwindcss/defaultTheme")
+
 const config = {
     darkMode: ["class"],
     content: [
@@ -8,7 +10,15 @@ const config = {
     ],
     prefix: "",
     theme: {
-        // ... (您的 theme 設定，如果有的話)
+        extends: {
+            fontFamily: {
+                sans: [
+                    "Inter",
+                    "Noto Sans SC",
+                    ...fontFamily.sans
+                ]
+            }
+        }
     },
     plugins: [
         require("tailwindcss-animate"),
