@@ -19,3 +19,11 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
+
+func (a *App) onFileOpen() {
+	println("onFileOpen")
+}
+
+func (a *App) onUrlOpen() {
+	println("onUrlOpen")
+}
