@@ -3,6 +3,7 @@ package apps
 import (
 	"context"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"watools/schemas"
 )
 
 type WaApp struct {
@@ -29,4 +30,16 @@ func (a *WaApp) InitWindowSize(ctx context.Context) {
 func (a *WaApp) Startup(ctx context.Context) {
 	a.ctx = ctx
 	a.InitWindowSize(ctx)
+}
+
+func (a *WaApp) GetSystemApplication() schemas.CommandGroup {
+	platform, err := NewPlatform(a.ctx)
+	if err != nil {
+		return schemas.CommandGroup{}
+	}
+	if application, err := platform.GetApplication(); err == nil {
+		return application
+	}
+
+	return schemas.CommandGroup{}
 }

@@ -4,6 +4,7 @@ import useResizeWindow from "@/hooks/useResizeWindow";
 import {useState} from "react";
 import {CommandGroupType, mockCommandGroups} from "@/schemas/command";
 import {WaIcon} from "@/components/watools/wa-icon";
+import {GetSystemApplication} from "../../../wailsjs/go/apps/WaApp";
 
 const Main = () => {
     const windowRef = useResizeWindow<HTMLDivElement>()
@@ -18,6 +19,10 @@ const Main = () => {
             setSearchResult([])
             return
         }
+        // TODO: search system
+        GetSystemApplication().then(res => {
+            console.log(`res: ${JSON.stringify(res)}`)
+        })
         setSearchResult(mockCommandGroups)
     }
 

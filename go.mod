@@ -4,7 +4,10 @@ go 1.23.0
 
 toolchain go1.24.3
 
-require github.com/wailsapp/wails/v2 v2.10.1
+require (
+	github.com/wailsapp/wails/v2 v2.10.1
+	howett.net/plist v1.0.1
+)
 
 require (
 	github.com/bep/debounce v1.2.1 // indirect
