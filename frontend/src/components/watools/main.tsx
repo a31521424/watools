@@ -1,8 +1,8 @@
 import {Command, CommandEmpty, CommandGroup, CommandItem, CommandList} from "../ui/command";
 import {WaComplexInput} from "./wa-complex-input";
 import useResizeWindow from "@/hooks/useResizeWindow";
-import {useState} from "react";
-import {CommandGroupType, mockCommandGroups} from "@/schemas/command";
+import {useEffect, useState} from "react";
+import {CommandCategoryType, CommandGroupType} from "@/schemas/command";
 import {WaIcon} from "@/components/watools/wa-icon";
 import {GetSystemApplication} from "../../../wailsjs/go/apps/WaApp";
 
@@ -10,26 +10,32 @@ const Main = () => {
     const windowRef = useResizeWindow<HTMLDivElement>()
     const [input, setInput] = useState<string>('')
     const [searchResult, setSearchResult] = useState<CommandGroupType[]>([])
-    const onInputUpdate = (value: string) => {
-        setInput(value)
-        onSearch(value)
-    }
-    const onSearch = (keyword?: string) => {
-        if (!keyword) {
-            setSearchResult([])
-            return
-        }
-        // TODO: search system
+
+    const initApplication = () => {
+        // TODO: Optimize
         GetSystemApplication().then(res => {
-            console.log(`res: ${JSON.stringify(res)}`)
+            setSearchResult([{
+                category: res.Category as CommandCategoryType,
+                commands: res.Commands.map(command => ({
+                    name: command.Name,
+                    category: command.Category as CommandCategoryType,
+                    description: command.Description,
+                    path: command.Path,
+                    iconFilePath: command.IconPath
+                    //     TODO: show icon
+                }))
+            }])
         })
-        setSearchResult(mockCommandGroups)
     }
+
+    useEffect(() => {
+        initApplication()
+    }, [])
 
     return <div ref={windowRef} className="bg-white w-full rounded-xl overflow-x-hidden scrollbar-hide">
         <Command className="rounded-lg border shadow-md md:min-w-[450px] p-2">
             <WaComplexInput
-                onValueChange={onInputUpdate}
+                onValueChange={setInput}
                 classNames={{wrapper: !!input ? undefined : "!border-none"}}
             />
             <CommandList className={!!input ? undefined : "hidden"}>

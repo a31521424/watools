@@ -3,6 +3,8 @@
 import {schemas} from '../models';
 import {context} from '../models';
 
+export function GetIconBase64(arg1:string):Promise<string>;
+
 export function GetSystemApplication():Promise<schemas.CommandGroup>;
 
 export function InitWindowSize(arg1:context.Context):Promise<void>;

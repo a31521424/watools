@@ -1,8 +1,13 @@
 package apps
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"github.com/jackmordaunt/icns"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"image/png"
+	"os"
 	"watools/schemas"
 )
 
@@ -42,4 +47,26 @@ func (a *WaApp) GetSystemApplication() schemas.CommandGroup {
 	}
 
 	return schemas.CommandGroup{}
+}
+
+func (a *WaApp) GetIconBase64(iconPath string) string {
+	if iconPath == "" {
+		return ""
+	}
+	file, err := os.Open(iconPath)
+	if err != nil {
+		return ""
+	}
+	defer file.Close()
+	img, err := icns.Decode(file)
+	if err != nil {
+		return ""
+	}
+	var pngBuffer bytes.Buffer
+	err = png.Encode(&pngBuffer, img)
+	if err != nil {
+		return ""
+	}
+	base64String := base64.StdEncoding.EncodeToString(pngBuffer.Bytes())
+	return "data:image/png;base64," + base64String
 }
