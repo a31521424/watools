@@ -68,5 +68,5 @@ func (a *WaApp) GetIconBase64(iconPath string) string {
 		return ""
 	}
 	base64String := base64.StdEncoding.EncodeToString(pngBuffer.Bytes())
-	return "data:image/png;base64," + base64String
+	return base64String
 }

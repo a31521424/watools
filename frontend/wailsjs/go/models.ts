@@ -1,11 +1,11 @@
 export namespace schemas {
 	
 	export class Command {
-	    Name: string;
-	    Description: string;
-	    Category: string;
-	    Path: string;
-	    IconPath: string;
+	    name: string;
+	    description: string;
+	    category: string;
+	    path: string;
+	    iconPath: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Command(source);
@@ -13,16 +13,16 @@ export namespace schemas {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.Name = source["Name"];
-	        this.Description = source["Description"];
-	        this.Category = source["Category"];
-	        this.Path = source["Path"];
-	        this.IconPath = source["IconPath"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.category = source["category"];
+	        this.path = source["path"];
+	        this.iconPath = source["iconPath"];
 	    }
 	}
 	export class CommandGroup {
-	    Category: string;
-	    Commands: Command[];
+	    category: string;
+	    commands: Command[];
 	
 	    static createFrom(source: any = {}) {
 	        return new CommandGroup(source);
@@ -30,8 +30,8 @@ export namespace schemas {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.Category = source["Category"];
-	        this.Commands = this.convertValues(source["Commands"], Command);
+	        this.category = source["category"];
+	        this.commands = this.convertValues(source["commands"], Command);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

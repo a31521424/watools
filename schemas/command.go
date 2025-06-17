@@ -8,14 +8,14 @@ const (
 )
 
 type Command struct {
-	Name        string
-	Description string
-	Category    CommandCategory
-	Path        string
-	IconPath    string
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Category    CommandCategory `json:"category"`
+	Path        string          `json:"path"`
+	IconPath    string          `json:"iconPath"`
 }
 
 type CommandGroup struct {
-	Category CommandCategory
-	Commands []Command
+	Category CommandCategory `json:"category"`
+	Commands []Command       `json:"commands"`
 }
