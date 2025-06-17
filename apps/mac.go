@@ -51,6 +51,9 @@ func parseAppBundleInfoPlist(appPath string) *schemas.Command {
 	}
 	if infoPlist.BundleIconFile != "" {
 		iconName := infoPlist.BundleIconFile
+		if !strings.HasSuffix(iconName, ".icns") {
+			iconName += ".icns"
+		}
 		command.IconPath = filepath.Join(appPath, "Contents", "Resources", iconName)
 	}
 	command.Description = infoPlist.HumanReadableCopyright
@@ -63,16 +66,18 @@ func getMacApplicationPath() []string {
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		appFolderDirs = append(appFolderDirs, filepath.Join(homeDir, "Applications"))
 	}
+	seen := make(map[string]bool)
 	for _, appFolderDir := range appFolderDirs {
 		apps, err := os.ReadDir(appFolderDir)
 		if err != nil {
 			continue
 		}
 		for _, app := range apps {
-			if app.IsDir() {
-				appPath := filepath.Join(appFolderDir, app.Name())
+			appPath := filepath.Join(appFolderDir, app.Name())
+			if app.IsDir() && !seen[appPath] {
 				if _, err := os.Stat(filepath.Join(appPath, "Contents", "Info.plist")); err == nil {
 					appPaths = append(appPaths, appPath)
+					seen[appPath] = true
 				}
 			}
 			//	TODO: Safari is a special case

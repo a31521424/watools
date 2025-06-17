@@ -28,7 +28,7 @@ export const WaIcon = (props: WaIconProps) => {
         return <>{props.value}</>
     }
     if (props.iconPath && iconData) {
-        return <img src={iconData} alt=""/>
+        return <img className="w-6 h-6" src={iconData} alt=""/>
     }
     return <></>
 

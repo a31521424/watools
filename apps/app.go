@@ -50,6 +50,7 @@ func (a *WaApp) GetSystemApplication() schemas.CommandGroup {
 }
 
 func (a *WaApp) GetIconBase64(iconPath string) string {
+	// TODO: clash verge rev icon 错误
 	if iconPath == "" {
 		return ""
 	}
