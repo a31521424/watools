@@ -1,6 +1,6 @@
 import {ReactNode, useEffect, useState} from "react";
 import {DynamicIcon, IconName} from "lucide-react/dynamic";
-import {GetIconBase64} from "../../../wailsjs/go/apps/WaApp";
+import {GetIconBase64} from "../../../wailsjs/go/launch/WaLaunchApp";
 
 type WaIconProps = {
     value?: IconName | ReactNode | null

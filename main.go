@@ -1,19 +1,25 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
-	"watools/apps"
+	"watools/internal"
+	"watools/internal/app"
+	"watools/internal/launch"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
-	app := apps.NewWaApp()
+	waApps := []interface{}{
+		app.NewWaApp(),
+		launch.NewWaLaunchApp(),
+	}
 
 	err := wails.Run(&options.App{
 		Title:     "watools",
@@ -24,10 +30,13 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
-		OnStartup:        app.Startup,
-		Bind: []interface{}{
-			app,
+		OnStartup: func(ctx context.Context) {
+			for _, waApp := range waApps {
+				baseApp := waApp.(internal.BaseApp)
+				baseApp.Startup(ctx)
+			}
 		},
+		Bind: waApps,
 		Mac: &mac.Options{
 			TitleBar:             mac.TitleBarHidden(),
 			WebviewIsTransparent: true,

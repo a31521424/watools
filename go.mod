@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.3
 
 require (
-	github.com/jackmordaunt/icns v1.0.0
+	github.com/jackmordaunt/icns/v3 v3.0.1
 	github.com/wailsapp/wails/v2 v2.10.1
 	howett.net/plist v1.0.1
 )

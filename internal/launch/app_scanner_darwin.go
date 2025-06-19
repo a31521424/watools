@@ -1,4 +1,6 @@
-package apps
+//go:build darwin
+
+package launch
 
 import (
 	"bytes"
@@ -7,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"watools/schemas"
+	"watools/pkg/models"
 )
 
 type InfoPList struct {
@@ -18,7 +20,7 @@ type InfoPList struct {
 	HumanReadableCopyright string `plist:"NSHumanReadableCopyright"`
 }
 
-func parseAppBundleInfoPlist(appPath string) *schemas.Command {
+func parseAppBundleInfoPlist(appPath string) *models.Command {
 	plistPath := filepath.Join(appPath, "Contents", "Info.plist")
 	plistFile, err := os.Open(plistPath)
 	if err != nil {
@@ -37,8 +39,8 @@ func parseAppBundleInfoPlist(appPath string) *schemas.Command {
 	if err := decoder.Decode(&infoPlist); err != nil {
 		return nil
 	}
-	command := schemas.Command{
-		Category: schemas.CategoryApplication,
+	command := models.Command{
+		Category: models.CategoryApplication,
 		Path:     appPath,
 	}
 	if infoPlist.BundleDisplayName != "" {
@@ -86,13 +88,21 @@ func getMacApplicationPath() []string {
 	return appPaths
 }
 
-func GetMacApplication() []schemas.Command {
-	var commands []schemas.Command
+type macAppScanner struct {
+	AppScanner
+}
+
+func NewAppScanner() AppScanner {
+	return &macAppScanner{}
+}
+
+func (*macAppScanner) GetApplication() ([]models.Command, error) {
+	var commands []models.Command
 
 	for _, appPath := range getMacApplicationPath() {
 		if command := parseAppBundleInfoPlist(appPath); command != nil {
 			commands = append(commands, *command)
 		}
 	}
-	return commands
+	return commands, nil
 }

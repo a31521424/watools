@@ -1,6 +1,6 @@
 import {CommandGroup, CommandItem} from "@/components/ui/command";
-import {WaIcon} from "@/components/watools/wa-icon";
 import {CommandGroupType} from "@/schemas/command";
+import {WaIcon} from "@/components/watools/wa-icon";
 
 type WaBaseCommandGroupProps = {
     commandGroup: CommandGroupType
@@ -12,7 +12,9 @@ export const WaBaseCommandGroup = (props: WaBaseCommandGroupProps) => {
         category: props.commandGroup.category,
         commands: props.commandGroup.commands.filter(command => command.name.toLowerCase().includes(props.searchKey.toLowerCase()))
     }
-    console.log('filterCommandGroup', filterCommandGroup)
+    if (filterCommandGroup.commands.length === 0) {
+        return null
+    }
 
     return <CommandGroup key={filterCommandGroup.category} heading={filterCommandGroup.category}>
         {filterCommandGroup.commands.map(command => (
