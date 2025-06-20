@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"embed"
+	"fmt"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"watools/config"
 	"watools/internal"
 	"watools/internal/app"
 	"watools/internal/launch"
@@ -15,7 +17,12 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+//go:embed wails.json
+var wailsJson []byte
+
 func main() {
+	config.ParseProject(wailsJson)
+
 	waApps := []interface{}{
 		app.NewWaApp(),
 		launch.NewWaLaunchApp(),
@@ -41,8 +48,8 @@ func main() {
 			TitleBar:             mac.TitleBarHidden(),
 			WebviewIsTransparent: true,
 			About: &mac.AboutInfo{
-				Title:   "WaTools",
-				Message: "© 2025 Banbxio",
+				Title:   config.ProjectName(),
+				Message: fmt.Sprintf("Version: %s\nAuthor: %s", config.ProjectVersion(), config.ProjectAuthor()),
 			},
 		},
 	})
