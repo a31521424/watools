@@ -1,6 +1,5 @@
-import {ReactNode, useEffect, useState} from "react";
+import {ReactNode} from "react";
 import {DynamicIcon, IconName} from "lucide-react/dynamic";
-import {GetIconBase64} from "../../../wailsjs/go/launch/WaLaunchApp";
 
 type WaIconProps = {
     value?: IconName | ReactNode | null
@@ -12,14 +11,10 @@ type WaIconProps = {
 
 
 export const WaIcon = (props: WaIconProps) => {
-    const [iconData, setIconData] = useState<string | null>(null)
-    useEffect(() => {
-        if (props.iconPath) {
-            GetIconBase64(props.iconPath).then(res => {
-                setIconData(`data:image/png;base64,${res}`)
-            })
-        }
-    }, [props.iconPath])
+    let iconUrl = ''
+    if (props.iconPath) {
+        iconUrl = `/api/application-icon?path=${props.iconPath}`
+    }
 
     if (typeof props.value === 'string') {
         return <DynamicIcon name={props.value as IconName} color={props.color} size={props.size}/>
@@ -27,8 +22,8 @@ export const WaIcon = (props: WaIconProps) => {
     if (props.value) {
         return <>{props.value}</>
     }
-    if (props.iconPath && iconData) {
-        return <img className="w-6 h-6" src={iconData} alt=""/>
+    if (iconUrl) {
+        return <img className="w-6 h-6" src={iconUrl} alt=""/>
     }
     return <></>
 

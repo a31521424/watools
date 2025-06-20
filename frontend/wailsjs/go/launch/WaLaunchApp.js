@@ -6,10 +6,6 @@ export function GetApplication() {
   return window['go']['launch']['WaLaunchApp']['GetApplication']();
 }
 
-export function GetIconBase64(arg1) {
-  return window['go']['launch']['WaLaunchApp']['GetIconBase64'](arg1);
-}
-
 export function Startup(arg1) {
   return window['go']['launch']['WaLaunchApp']['Startup'](arg1);
 }

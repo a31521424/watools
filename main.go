@@ -11,6 +11,7 @@ import (
 	"watools/config"
 	"watools/internal"
 	"watools/internal/app"
+	"watools/internal/handler"
 	"watools/internal/launch"
 )
 
@@ -34,7 +35,8 @@ func main() {
 		Height:    58,
 		Frameless: true,
 		AssetServer: &assetserver.Options{
-			Assets: assets,
+			Assets:  assets,
+			Handler: handler.NewWaHandler(),
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
 		OnStartup: func(ctx context.Context) {

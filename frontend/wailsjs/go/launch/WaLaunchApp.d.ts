@@ -5,6 +5,4 @@ import {context} from '../models';
 
 export function GetApplication():Promise<Array<models.Command>>;
 
-export function GetIconBase64(arg1:string):Promise<string>;
-
 export function Startup(arg1:context.Context):Promise<void>;
