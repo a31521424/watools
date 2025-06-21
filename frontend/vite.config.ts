@@ -22,6 +22,24 @@ export default defineConfig({
                     return false
                 }
             }
-        }
+        },
+        watch: {
+            ignored: [
+                '**/node_modules/**',
+                '**/dist/**',
+                '**/build/**',
+                '**/.git/**',
+                '**/.DS_Store',
+                '**/*.log',
+                '**/*.log.*',
+                '../app.go',
+                '../main.go',
+                '../go.mod',
+                '../go.sum',
+                '../wails.json',
+                '../internal/**',
+                '../pkg/**',
+            ],
+        },
     }
 })
