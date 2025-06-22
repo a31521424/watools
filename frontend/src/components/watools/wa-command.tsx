@@ -2,6 +2,7 @@ import {WaComplexInput} from "@/components/watools/wa-complex-input";
 import {Command, CommandEmpty, CommandList} from "@/components/ui/command";
 import {useState} from "react";
 import {WaApplicationCommandGroup} from "@/components/watools/wa-application-command-group";
+import {cn} from "@/lib/utils";
 
 
 export const WaCommand = () => {
@@ -15,7 +16,7 @@ export const WaCommand = () => {
             onValueChange={setInput}
             classNames={{wrapper: !!input ? undefined : "!border-none"}}
         />
-        <CommandList className={!!input ? undefined : "hidden"}>
+        <CommandList className={cn("scrollbar-hide", !!input ? undefined : "hidden")}>
             <CommandEmpty>No results found.</CommandEmpty>
             <WaApplicationCommandGroup searchKey={input}/>
         </CommandList>
