@@ -4,9 +4,11 @@ package launch
 
 import (
 	"bytes"
+	"fmt"
 	"howett.net/plist"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"watools/pkg/models"
@@ -105,4 +107,15 @@ func (*macAppScanner) GetApplication() ([]models.Command, error) {
 		}
 	}
 	return commands, nil
+}
+
+func (*macAppScanner) RunApplication(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("failed to find application file '%s': %w", path, err)
+	}
+	cmd := exec.Command("open", path)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to run application: %w\n%s", err, output)
+	}
+	return nil
 }

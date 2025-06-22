@@ -6,6 +6,10 @@ export function GetApplication() {
   return window['go']['launch']['WaLaunchApp']['GetApplication']();
 }
 
+export function RunApplication(arg1) {
+  return window['go']['launch']['WaLaunchApp']['RunApplication'](arg1);
+}
+
 export function Startup(arg1) {
   return window['go']['launch']['WaLaunchApp']['Startup'](arg1);
 }

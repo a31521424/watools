@@ -1,10 +1,11 @@
 import {CommandGroup, CommandItem} from "@/components/ui/command";
-import {CommandGroupType} from "@/schemas/command";
+import {CommandGroupType, CommandType} from "@/schemas/command";
 import {WaIcon} from "@/components/watools/wa-icon";
 
 type WaBaseCommandGroupProps = {
     commandGroup: CommandGroupType
     searchKey: string
+    onTriggerCommand: (command: CommandType) => void
 }
 
 export const WaBaseCommandGroup = (props: WaBaseCommandGroupProps) => {
@@ -21,6 +22,9 @@ export const WaBaseCommandGroup = (props: WaBaseCommandGroupProps) => {
             <CommandItem
                 key={command.name}
                 className='gap-x-4'
+                onSelect={() => {
+                    props.onTriggerCommand(command)
+                }}
             >
                 <WaIcon key={command.iconPath} value={command.icon} iconPath={command.iconPath}/>
                 <span>{command.name}</span>
