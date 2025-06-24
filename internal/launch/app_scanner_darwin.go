@@ -66,7 +66,13 @@ func parseAppBundleInfoPlist(appPath string) *models.Command {
 
 func getMacApplicationPath() []string {
 	var appPaths []string
-	appFolderDirs := []string{"/Applications", "/System/Applications"}
+	appFolderDirs := []string{
+		"/Applications",
+		"/System/Applications",
+		"/System/Applications/Utilities",
+		"/System/Library/CoreServices",
+		"/Developer/Applications",
+	}
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		appFolderDirs = append(appFolderDirs, filepath.Join(homeDir, "Applications"))
 	}
