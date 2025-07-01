@@ -20,7 +20,7 @@ export const WaBaseCommandGroup = (props: WaBaseCommandGroupProps) => {
     return <CommandGroup key={filterCommandGroup.category} heading={filterCommandGroup.category}>
         {filterCommandGroup.commands.map(command => (
             <CommandItem
-                key={command.name}
+                key={command.path}
                 className='gap-x-4'
                 onSelect={() => {
                     props.onTriggerCommand(command)
