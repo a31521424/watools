@@ -17,7 +17,7 @@ func NewWaApp() *WaApp {
 	return &WaApp{}
 }
 
-func (a *WaApp) InitWindowSize() {
+func (a *WaApp) initWindowSize() {
 	screen, err := runtime.ScreenGetAll(a.ctx)
 	if err != nil {
 		return
@@ -32,12 +32,12 @@ func (a *WaApp) InitWindowSize() {
 
 func (a *WaApp) Startup(ctx context.Context) {
 	a.ctx = ctx
-	a.InitWindowSize()
+	a.initWindowSize()
 	a.RegisterHotkeys()
-	a.ListenHotkeys()
+	a.listenHotkeys()
 }
 
-func (a *WaApp) ListenHotkeys() {
+func (a *WaApp) listenHotkeys() {
 	if a.hk == nil {
 		runtime.LogErrorf(a.ctx, "Hotkey is not registered")
 		return
@@ -47,7 +47,7 @@ func (a *WaApp) ListenHotkeys() {
 			select {
 			case <-a.hk.Keydown():
 				fmt.Println("Global Hotkey pressed")
-				a.HideOrShow()
+				a.HideOrShowApp()
 			case <-a.ctx.Done():
 				return
 			}
@@ -55,13 +55,25 @@ func (a *WaApp) ListenHotkeys() {
 	}()
 }
 
-func (a *WaApp) HideOrShow() {
+func (a *WaApp) HideApp() {
+	if !a.isHidden {
+		runtime.WindowHide(a.ctx)
+		a.isHidden = true
+	}
+}
+
+func (a *WaApp) ShowApp() {
 	if a.isHidden {
 		runtime.WindowShow(a.ctx)
 		a.isHidden = false
+	}
+}
+
+func (a *WaApp) HideOrShowApp() {
+	if a.isHidden {
+		a.ShowApp()
 	} else {
-		runtime.WindowHide(a.ctx)
-		a.isHidden = true
+		a.HideApp()
 	}
 }
 

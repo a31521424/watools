@@ -3,7 +3,7 @@ import {Command, CommandEmpty, CommandList} from "@/components/ui/command";
 import {useCallback, useEffect, useState} from "react";
 import {WaApplicationCommandGroup} from "@/components/watools/wa-application-command-group";
 import {cn} from "@/lib/utils";
-import {HideOrShow} from "../../../wailsjs/go/app/WaApp";
+import {HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
 
 
 export const WaCommand = () => {
@@ -19,7 +19,7 @@ export const WaCommand = () => {
         if (isPanelOpen) {
             clearInput()
         } else {
-            HideOrShow().then(_ => _)
+            HideOrShowApp().then(_ => _)
         }
     }
 
