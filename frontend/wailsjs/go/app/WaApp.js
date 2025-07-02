@@ -6,6 +6,10 @@ export function InitWindowSize(arg1) {
   return window['go']['app']['WaApp']['InitWindowSize'](arg1);
 }
 
+export function RegisterHotkeys(arg1) {
+  return window['go']['app']['WaApp']['RegisterHotkeys'](arg1);
+}
+
 export function Startup(arg1) {
   return window['go']['app']['WaApp']['Startup'](arg1);
 }

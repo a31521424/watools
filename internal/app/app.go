@@ -3,10 +3,13 @@ package app
 import (
 	"context"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"golang.design/x/hotkey"
 )
 
 type WaApp struct {
-	ctx context.Context
+	ctx      context.Context
+	hk       *hotkey.Hotkey
+	isHidden bool
 }
 
 func NewWaApp() *WaApp {
@@ -29,4 +32,38 @@ func (a *WaApp) InitWindowSize(ctx context.Context) {
 func (a *WaApp) Startup(ctx context.Context) {
 	a.ctx = ctx
 	a.InitWindowSize(ctx)
+	a.RegisterHotkeys(ctx)
+}
+
+func (a *WaApp) RegisterHotkeys(ctx context.Context) {
+	if a.hk == nil {
+		a.hk = hotkey.New([]hotkey.Modifier{hotkey.ModCmd, hotkey.ModShift}, hotkey.KeySpace)
+	} else {
+		err := a.hk.Unregister()
+		if err != nil {
+			runtime.LogErrorf(ctx, "Failed to unregister hotkey: %s", err.Error())
+			return
+		}
+	}
+
+	err := a.hk.Register()
+	if err != nil {
+		return
+	}
+	go func() {
+		for {
+			select {
+			case <-a.hk.Keydown():
+				if a.isHidden {
+					runtime.WindowShow(ctx)
+					a.isHidden = false
+				} else {
+					runtime.WindowHide(ctx)
+					a.isHidden = true
+				}
+			case <-a.ctx.Done():
+				return
+			}
+		}
+	}()
 }

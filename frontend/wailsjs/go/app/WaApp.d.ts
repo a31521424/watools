@@ -4,4 +4,6 @@ import {context} from '../models';
 
 export function InitWindowSize(arg1:context.Context):Promise<void>;
 
+export function RegisterHotkeys(arg1:context.Context):Promise<void>;
+
 export function Startup(arg1:context.Context):Promise<void>;

@@ -6,6 +6,7 @@ toolchain go1.24.3
 
 require (
 	github.com/wailsapp/wails/v2 v2.10.1
+	golang.design/x/hotkey v0.4.1
 	howett.net/plist v1.0.1
 )
 
