@@ -1,10 +1,11 @@
 import {useEffect, useState} from "react";
 import {CommandGroupType, CommandType} from "@/schemas/command";
 import {WaBaseCommandGroup} from "@/components/watools/wa-base-command-group";
-import {GetApplication, RunApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
+import {GetApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
 
 type WaApplicationCommandGroupProps = {
     searchKey: string
+    onTriggerCommand: (command: CommandType) => void
 }
 
 
@@ -31,14 +32,10 @@ export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps)
     if (!applicationCommandGroup) {
         return null
     }
-    const onTriggerCommand = (command: CommandType) => {
-        RunApplication(command.path).then(res => {
-            console.log(res)
-        })
-    }
+
     return <WaBaseCommandGroup
         searchKey={props.searchKey}
         commandGroup={applicationCommandGroup}
-        onTriggerCommand={onTriggerCommand}
+        onTriggerCommand={props.onTriggerCommand}
     />
 }

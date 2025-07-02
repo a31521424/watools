@@ -3,7 +3,9 @@ import {Command, CommandEmpty, CommandList} from "@/components/ui/command";
 import {useCallback, useEffect, useState} from "react";
 import {WaApplicationCommandGroup} from "@/components/watools/wa-application-command-group";
 import {cn} from "@/lib/utils";
-import {HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
+import {HideApp, HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
+import {CommandType} from "@/schemas/command";
+import {RunApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
 
 
 export const WaCommand = () => {
@@ -39,6 +41,13 @@ export const WaCommand = () => {
         }
     }, [handleHotkey])
 
+    const onTriggerCommand = (command: CommandType) => {
+        clearInput()
+        HideApp().then(_ => _)
+        RunApplication(command.path).then(res => {
+            console.log(res)
+        })
+    }
 
     return <Command
         shouldFilter={false}
@@ -51,7 +60,7 @@ export const WaCommand = () => {
         />
         <CommandList className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}>
             <CommandEmpty>No results found.</CommandEmpty>
-            <WaApplicationCommandGroup searchKey={input}/>
+            <WaApplicationCommandGroup searchKey={input} onTriggerCommand={onTriggerCommand}/>
         </CommandList>
     </Command>
 }
