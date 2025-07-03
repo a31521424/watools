@@ -59,8 +59,21 @@ func parseAppBundleInfoPlist(appPath string) *models.Command {
 			iconName += ".icns"
 		}
 		command.IconPath = filepath.Join(appPath, "Contents", "Resources", iconName)
+		if _, err := os.Stat(command.IconPath); os.IsNotExist(err) {
+			command.IconPath = ""
+		}
 	}
 	command.Description = infoPlist.HumanReadableCopyright
+	if _, err := exec.LookPath("mdls"); err == nil {
+		cmd := exec.Command("mdls", "-name", "kMDItemDisplayName", "-raw", appPath)
+		output, err := cmd.Output()
+		if err == nil {
+			displayName := strings.TrimSpace(string(output))
+			if displayName != "" && displayName != "(null)" {
+				command.Name = strings.TrimSuffix(displayName, ".app")
+			}
+		}
+	}
 	return &command
 }
 
