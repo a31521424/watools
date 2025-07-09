@@ -19,7 +19,7 @@ func getPngIconCachePath(iconPath string) string {
 	if err != nil {
 		return ""
 	}
-	cacheDir := filepath.Join(userCacheDir, config.ProjectName(), "icons")
+	cacheDir := filepath.Join(userCacheDir, projectName, "icons")
 
 	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
 		err = os.MkdirAll(cacheDir, 0755)
