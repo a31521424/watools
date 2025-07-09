@@ -1,5 +1,3 @@
-//go:build darwin
-
 package launch
 
 import (
