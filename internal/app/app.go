@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.design/x/hotkey"
+	"watools/pkg/logger"
 )
 
 type WaApp struct {
@@ -32,9 +33,14 @@ func (a *WaApp) initWindowSize() {
 
 func (a *WaApp) Startup(ctx context.Context) {
 	a.ctx = ctx
+	a.initLogger()
 	a.initWindowSize()
 	a.RegisterHotkeys()
 	a.listenHotkeys()
+}
+
+func (a *WaApp) initLogger() {
+	logger.InitWaLogger()
 }
 
 func (a *WaApp) listenHotkeys() {

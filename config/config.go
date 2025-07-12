@@ -3,6 +3,9 @@ package config
 import (
 	_ "embed"
 	"encoding/json"
+	"log"
+	"os"
+	"path/filepath"
 )
 
 type Project struct {
@@ -22,6 +25,9 @@ func ParseProject(jsonFile []byte) {
 	if err != nil {
 		panic(err)
 	}
+	if ProjectInfo.Name == "" {
+		panic("project name is empty")
+	}
 }
 
 func ProjectName() string {
@@ -34,4 +40,19 @@ func ProjectAuthor() string {
 
 func ProjectVersion() string {
 	return ProjectInfo.Version
+}
+
+func ProjectCacheDir() string {
+	userCacheDir, err := os.UserCacheDir()
+	if err != nil {
+		log.Printf("Failed to get user cache dir: %v", err)
+		panic(err)
+	}
+	cacheDir := filepath.Join(userCacheDir, ProjectName())
+	err = os.MkdirAll(cacheDir, 0755)
+	if err != nil {
+		log.Printf("Failed to get user cache dir: %v", err)
+		panic(err)
+	}
+	return cacheDir
 }

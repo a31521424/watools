@@ -16,17 +16,9 @@ type Database struct {
 }
 
 func New() (*Database, error) {
-	projectName := config.ProjectName()
-	if config.ProjectName() == "" {
-		return nil, fmt.Errorf("project name is empty")
-	}
-	userCacheDir, err := os.UserCacheDir()
-	if err != nil {
-		return nil, err
-	}
-	sqliteFolderPath := filepath.Join(userCacheDir, projectName, "data")
-	sqliteFilePath := filepath.Join(sqliteFolderPath, config.ProjectName()+".db")
-	err = os.MkdirAll(sqliteFolderPath, 0755)
+	sqliteFolderPath := filepath.Join(config.ProjectCacheDir(), "data")
+	sqliteFilePath := filepath.Join(sqliteFolderPath, fmt.Sprintf("%s.db", config.ProjectName()))
+	err := os.MkdirAll(sqliteFolderPath, 0755)
 	if err != nil {
 		return nil, err
 	}
