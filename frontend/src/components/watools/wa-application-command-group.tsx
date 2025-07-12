@@ -13,6 +13,7 @@ export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps)
     const [applicationCommandGroup, setApplicationCommandGroup] = useState<CommandGroupType | null>(null)
     const initApplication = () => {
         GetApplication().then(res => {
+            console.log('fetch application', res)
             if (res == null) {
                 return
             }

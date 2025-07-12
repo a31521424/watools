@@ -13,6 +13,7 @@ import (
 	"watools/internal/app"
 	"watools/internal/handler"
 	"watools/internal/launch"
+	"watools/pkg/logger"
 )
 
 //go:embed all:frontend/dist
@@ -23,6 +24,7 @@ var wailsJson []byte
 
 func main() {
 	config.ParseProject(wailsJson)
+	logger.InitWaLogger()
 
 	waApps := []interface{}{
 		app.NewWaApp(),
@@ -54,9 +56,10 @@ func main() {
 				Message: fmt.Sprintf("Version: %s\nAuthor: %s", config.ProjectVersion(), config.ProjectAuthor()),
 			},
 		},
+		Logger: logger.NewAdapter(),
 	})
 
 	if err != nil {
-		println("Error:", err.Error())
+		logger.Error(err)
 	}
 }

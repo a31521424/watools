@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 	"watools/config"
+	"watools/pkg/logger"
 
 	_ "modernc.org/sqlite"
 )
@@ -20,11 +21,11 @@ func New() (*Database, error) {
 	sqliteFilePath := filepath.Join(sqliteFolderPath, fmt.Sprintf("%s.db", config.ProjectName()))
 	err := os.MkdirAll(sqliteFolderPath, 0755)
 	if err != nil {
-		return nil, err
+		logger.Error(err, "Failed to create sqlite folder")
 	}
 	db, err := sql.Open("sqlite", sqliteFilePath)
 	if err != nil {
-		return nil, err
+		logger.Error(err, "Failed to open sqlite file")
 	}
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)

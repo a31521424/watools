@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"watools/pkg/logger"
 	"watools/pkg/models"
 )
 
@@ -87,10 +88,12 @@ func getMacApplicationPath() []string {
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		appFolderDirs = append(appFolderDirs, filepath.Join(homeDir, "Applications"))
 	}
+	logger.Info(fmt.Sprintf("Scanning app folders: %v", appFolderDirs))
 	seen := make(map[string]bool)
 	for _, appFolderDir := range appFolderDirs {
 		apps, err := os.ReadDir(appFolderDir)
 		if err != nil {
+			logger.Error(err, "Failed to read app folder dir")
 			continue
 		}
 		for _, app := range apps {
@@ -121,6 +124,8 @@ func (*macAppScanner) GetApplication() ([]models.Command, error) {
 	for _, appPath := range getMacApplicationPath() {
 		if command := parseAppBundleInfoPlist(appPath); command != nil {
 			commands = append(commands, *command)
+		} else {
+			logger.Info(fmt.Sprintf("Failed to parse Info.plist for '%s'", appPath))
 		}
 	}
 	return commands, nil

@@ -51,5 +51,8 @@ func InitWaLogger() {
 		WaLogger = WaLogger.Level(zerolog.ErrorLevel)
 		logStr = "WaLogger Init for file (production mode)"
 	}
-	WaLogger.Log().Msg(logStr)
+	Info(logStr)
+	// Redirects Log to Zero log
+	log.SetFlags(0)
+	log.SetOutput(multipleWriter)
 }

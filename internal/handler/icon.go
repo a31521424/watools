@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"watools/config"
+	"watools/pkg/logger"
 )
 
 func getPngIconCachePath(iconPath string) string {
@@ -16,7 +17,7 @@ func getPngIconCachePath(iconPath string) string {
 	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
 		err = os.MkdirAll(cacheDir, 0755)
 		if err != nil {
-			fmt.Println(err)
+			logger.Error(err, "Failed to create icon cache dir")
 			return ""
 		}
 	}
@@ -33,7 +34,7 @@ func HandleApplicationIcon(res http.ResponseWriter, req *http.Request) {
 	if _, err := os.Stat(pngIconPath); os.IsNotExist(err) {
 		err := icon2Png(IconPath, pngIconPath)
 		if err != nil {
-			fmt.Println(err)
+			logger.Error(err, "Failed to convert icon to png")
 			return
 		}
 	}

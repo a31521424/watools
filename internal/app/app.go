@@ -21,6 +21,7 @@ func NewWaApp() *WaApp {
 func (a *WaApp) initWindowSize() {
 	screen, err := runtime.ScreenGetAll(a.ctx)
 	if err != nil {
+		logger.Error(err, "Failed to get screen when init window size")
 		return
 	}
 	width := 800
@@ -33,14 +34,9 @@ func (a *WaApp) initWindowSize() {
 
 func (a *WaApp) Startup(ctx context.Context) {
 	a.ctx = ctx
-	a.initLogger()
 	a.initWindowSize()
 	a.RegisterHotkeys()
 	a.listenHotkeys()
-}
-
-func (a *WaApp) initLogger() {
-	logger.InitWaLogger()
 }
 
 func (a *WaApp) listenHotkeys() {
@@ -89,14 +85,14 @@ func (a *WaApp) RegisterHotkeys() {
 	} else {
 		err := a.hk.Unregister()
 		if err != nil {
-			runtime.LogErrorf(a.ctx, "Failed to unregister hotkey: %s", err.Error())
+			logger.Error(err, "Failed to unregister hotkey")
 			return
 		}
 	}
 
 	err := a.hk.Register()
 	if err != nil {
-		runtime.LogErrorf(a.ctx, "Failed to register hotkey: %s", err.Error())
+		logger.Error(err, "Failed to register hotkey")
 		return
 	}
 }
