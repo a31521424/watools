@@ -22,7 +22,7 @@ type InfoPList struct {
 }
 
 func parseAppBundleInfoPlist(appPath string) *models.Command {
-	plistPath := filepath.Join(appPath, "Contents", "Info.plist")
+	plistPath := filepath.Join(strings.TrimSpace(appPath), "Contents", "Info.plist")
 	plistFile, err := os.Open(plistPath)
 	if err != nil {
 		return nil
