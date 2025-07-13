@@ -72,6 +72,11 @@ func (w *WaLaunchApp) GetApplications() []*models.Command {
 			logger.Error(err, "Failed to batch insert commands")
 		}
 	}
+	for _, command := range commands {
+		if command.IconPath == "" {
+			command.IconPath = w.scanner.GetDefaultIconPath()
+		}
+	}
 	return commands
 }
 

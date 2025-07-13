@@ -148,3 +148,7 @@ func (*macAppScanner) ParseApplication(appPath string) (*models.Command, error) 
 	}
 	return nil, fmt.Errorf("failed to parse Info.plist for '%s'", appPath)
 }
+
+func (*macAppScanner) GetDefaultIconPath() string {
+	return "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericApplicationIcon.icns"
+}
