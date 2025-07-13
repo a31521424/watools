@@ -36,5 +36,5 @@ SET name        = COALESCE(sqlc.narg(name), name),
     path        = COALESCE(sqlc.narg(path), path),
     icon_path   = COALESCE(sqlc.narg(icon_path), icon_path),
     is_deleted  = COALESCE(sqlc.narg(is_deleted), is_deleted),
-    updated_at  = datetime('now')
+    updated_at  = datetime('now', 'localtime')
 WHERE id = @id;

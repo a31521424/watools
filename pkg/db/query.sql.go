@@ -190,7 +190,7 @@ SET name        = COALESCE(?1, name),
     path        = COALESCE(?4, path),
     icon_path   = COALESCE(?5, icon_path),
     is_deleted  = COALESCE(?6, is_deleted),
-    updated_at  = datetime('now')
+    updated_at  = datetime('now', 'localtime')
 WHERE id = ?7
 `
 

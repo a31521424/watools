@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 	"watools/pkg/db"
-	"watools/pkg/generics"
 	"watools/pkg/logger"
 	"watools/pkg/models"
 )
@@ -30,17 +29,19 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 	go func() {
 		dbInstance := db.GetWaDB()
 		for {
-			time.Sleep(time.Minute * 5)
+
 			commands := dbInstance.FindExpiredCommands(w.ctx)
-			logger.Info(fmt.Sprintf("Found %d expired commands %v", len(commands), generics.Map(commands, func(command *models.Command) string { return command.Path })))
+			logger.Info(fmt.Sprintf("Found %d expired commands", len(commands)))
 			if len(commands) > 0 {
 				var updateCommands []*models.Command
 				for _, command := range commands {
+					id := command.ID
 					command, err := w.scanner.ParseApplication(command.Path)
 					if err != nil {
 						logger.Error(err, "Failed to parse application")
 						continue
 					}
+					command.ID = id
 					updateCommands = append(updateCommands, command)
 				}
 				err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
@@ -48,6 +49,7 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 					logger.Error(err, "Failed to batch update commands")
 				}
 			}
+			time.Sleep(time.Minute * 5)
 		}
 	}()
 }

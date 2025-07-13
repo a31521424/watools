@@ -26,6 +26,7 @@ func TimeToDBTime(t *time.Time) *string {
 		return nil
 	}
 	result := t.Format(time.DateTime)
+	logger.Info(fmt.Sprintf("Converting time %s to %s", t, result))
 	return &result
 }
 

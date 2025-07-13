@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS commands
     category    VARCHAR(255) NOT NULL,
     path        VARCHAR(255) NOT NULL UNIQUE,
     icon_path   VARCHAR(255) NOT NULL,
-    created_at  TEXT         NOT NULL DEFAULT (datetime('now')),
-    updated_at  TEXT         NOT NULL DEFAULT (datetime('now')),
+    created_at  TEXT         NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at  TEXT         NOT NULL DEFAULT (datetime('now', 'localtime')),
     is_deleted  BOOLEAN      NOT NULL DEFAULT 0
 );
 
