@@ -118,7 +118,7 @@ func NewAppScanner() AppScanner {
 	return &macAppScanner{}
 }
 
-func (*macAppScanner) GetApplication() ([]*models.Command, error) {
+func (*macAppScanner) GetApplications() ([]*models.Command, error) {
 	var commands []*models.Command
 
 	for _, appPath := range getMacApplicationPath() {

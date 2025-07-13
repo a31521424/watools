@@ -56,13 +56,13 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 
 var ApiMutex sync.Mutex
 
-func (w *WaLaunchApp) GetApplication() []*models.Command {
+func (w *WaLaunchApp) GetApplications() []*models.Command {
 	ApiMutex.Lock()
 	defer ApiMutex.Unlock()
 	dbInstance := db.GetWaDB()
 	commands := dbInstance.GetCommands(w.ctx)
 	if len(commands) == 0 {
-		commands, err := w.scanner.GetApplication()
+		commands, err := w.scanner.GetApplications()
 		if err != nil {
 			logger.Error(err, "Failed to get application")
 			return []*models.Command{}
