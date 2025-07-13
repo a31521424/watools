@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.design/x/hotkey"
 	"watools/pkg/logger"
@@ -48,7 +47,7 @@ func (a *WaApp) listenHotkeys() {
 		for {
 			select {
 			case <-a.hk.Keydown():
-				fmt.Println("Global Hotkey pressed")
+				logger.Info("Hotkey pressed")
 				a.HideOrShowApp()
 			case <-a.ctx.Done():
 				return
