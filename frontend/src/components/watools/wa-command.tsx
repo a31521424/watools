@@ -26,7 +26,6 @@ export const WaCommand = () => {
     }
 
     const handleHotkey = useCallback((e: KeyboardEvent) => {
-        console.log('onHotkey', e.key)
         if (e.key === "Escape") {
             e.preventDefault()
             e.stopPropagation()

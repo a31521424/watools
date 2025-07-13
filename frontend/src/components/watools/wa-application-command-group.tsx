@@ -2,6 +2,7 @@ import {useEffect, useState} from "react";
 import {CommandGroupType, CommandType} from "@/schemas/command";
 import {WaBaseCommandGroup} from "@/components/watools/wa-base-command-group";
 import {GetApplications} from "../../../wailsjs/go/launch/WaLaunchApp";
+import {isContainNonAscii, toPinyinInitial} from "@/lib/search";
 
 type WaApplicationCommandGroupProps = {
     searchKey: string
@@ -19,8 +20,11 @@ export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps)
             }
             setApplicationCommandGroup({
                 category: 'Application',
-                // @ts-ignore
-                commands: res
+                commands: res.map(command => ({
+                    ...command,
+                    category: 'Application',
+                    nameInitial: isContainNonAscii(command.name) ? toPinyinInitial(command.name) : undefined
+                }))
             })
         })
     }

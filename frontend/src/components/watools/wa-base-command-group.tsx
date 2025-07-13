@@ -1,6 +1,8 @@
 import {CommandGroup, CommandItem} from "@/components/ui/command";
 import {CommandGroupType, CommandType} from "@/schemas/command";
 import {WaIcon} from "@/components/watools/wa-icon";
+import Fuse from "fuse.js";
+import {useMemo} from "react";
 
 type WaBaseCommandGroupProps = {
     commandGroup: CommandGroupType
@@ -8,11 +10,27 @@ type WaBaseCommandGroupProps = {
     onTriggerCommand: (command: CommandType) => void
 }
 
+const WaBaseCommandFuseConfig = {
+    keys: [{
+        name: 'name',
+        weight: 1
+    }, {
+        name: 'nameInitial',
+        weight: 0.5
+    }]
+}
+
 export const WaBaseCommandGroup = (props: WaBaseCommandGroupProps) => {
-    const filterCommandGroup = {
-        category: props.commandGroup.category,
-        commands: props.commandGroup.commands.filter(command => command.name.toLowerCase().includes(props.searchKey.toLowerCase()))
-    }
+    const fuseCommand = useMemo(() => {
+        console.log('commandGroup', props.commandGroup)
+        return new Fuse(props.commandGroup.commands, WaBaseCommandFuseConfig)
+    }, [props.commandGroup])
+    const filterCommandGroup = useMemo(() => {
+        return {
+            category: props.commandGroup.category,
+            commands: fuseCommand.search(props.searchKey).map(command => command.item)
+        }
+    }, [props.commandGroup, props.searchKey])
     if (filterCommandGroup.commands.length === 0) {
         return null
     }
