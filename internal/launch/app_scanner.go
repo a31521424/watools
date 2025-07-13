@@ -3,6 +3,7 @@ package launch
 import "watools/pkg/models"
 
 type AppScanner interface {
-	GetApplication() ([]models.Command, error)
+	GetApplication() ([]*models.Command, error)
 	RunApplication(path string) error
+	ParseApplication(appPath string) (*models.Command, error)
 }

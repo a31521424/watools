@@ -34,7 +34,7 @@ func HandleApplicationIcon(res http.ResponseWriter, req *http.Request) {
 	if _, err := os.Stat(pngIconPath); os.IsNotExist(err) {
 		err := icon2Png(IconPath, pngIconPath)
 		if err != nil {
-			logger.Error(err, "Failed to convert icon to png")
+			logger.Error(err, fmt.Sprintf("Failed to convert icon to png %v", IconPath))
 			return
 		}
 	}

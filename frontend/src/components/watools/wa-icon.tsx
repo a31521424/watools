@@ -13,7 +13,7 @@ type WaIconProps = {
 export const WaIcon = (props: WaIconProps) => {
     let iconUrl = ''
     if (props.iconPath) {
-        iconUrl = `/api/application-icon?path=${props.iconPath}`
+        iconUrl = `/api/application-icon?path=${encodeURIComponent(props.iconPath)}`
     }
 
     if (typeof props.value === 'string') {

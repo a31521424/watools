@@ -118,12 +118,12 @@ func NewAppScanner() AppScanner {
 	return &macAppScanner{}
 }
 
-func (*macAppScanner) GetApplication() ([]models.Command, error) {
-	var commands []models.Command
+func (*macAppScanner) GetApplication() ([]*models.Command, error) {
+	var commands []*models.Command
 
 	for _, appPath := range getMacApplicationPath() {
 		if command := parseAppBundleInfoPlist(appPath); command != nil {
-			commands = append(commands, *command)
+			commands = append(commands, command)
 		} else {
 			logger.Info(fmt.Sprintf("Failed to parse Info.plist for '%s'", appPath))
 		}
@@ -140,4 +140,11 @@ func (*macAppScanner) RunApplication(path string) error {
 		return fmt.Errorf("failed to run application: %w\n%s", err, output)
 	}
 	return nil
+}
+
+func (*macAppScanner) ParseApplication(appPath string) (*models.Command, error) {
+	if command := parseAppBundleInfoPlist(appPath); command != nil {
+		return command, nil
+	}
+	return nil, fmt.Errorf("failed to parse Info.plist for '%s'", appPath)
 }

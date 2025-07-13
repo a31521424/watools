@@ -13,6 +13,7 @@ type Command struct {
 	Category    CommandCategory `json:"category"`
 	Path        string          `json:"path"`
 	IconPath    string          `json:"iconPath"`
+	ID          int64           `json:"id"`
 }
 
 type CommandGroup struct {

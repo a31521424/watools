@@ -6,6 +6,7 @@ export namespace models {
 	    category: string;
 	    path: string;
 	    iconPath: string;
+	    id: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Command(source);
@@ -18,6 +19,7 @@ export namespace models {
 	        this.category = source["category"];
 	        this.path = source["path"];
 	        this.iconPath = source["iconPath"];
+	        this.id = source["id"];
 	    }
 	}
 
