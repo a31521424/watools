@@ -153,7 +153,7 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Comma
 }
 
 func (d *WaDB) FindExpiredCommands(ctx context.Context) []*models.Command {
-	expiredTime := time.Now().Add(-time.Minute * time.Duration(30))
+	expiredTime := time.Now().Add(-time.Hour * 24)
 	dbCommands, err := d.query.FindExpiredCommands(ctx, *TimeToDBTime(&expiredTime))
 	if err != nil {
 		logger.Error(err, "Failed to get expired commands")
