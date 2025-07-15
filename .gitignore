@@ -2,18 +2,6 @@ build/bin
 node_modules
 frontend/dist
 
-# Yarn 4 PnP files (frontend)
-frontend/.pnp.*
-frontend/.yarn/*
-!frontend/.yarn/patches
-!frontend/.yarn/plugins
-!frontend/.yarn/releases
-!frontend/.yarn/sdks
-!frontend/.yarn/versions
-
-# Yarn install state
-frontend/.yarn/install-state.gz
-
 .vscode
 .idea
 
