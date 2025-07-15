@@ -6,18 +6,10 @@ import {cn} from "@/lib/utils";
 import {HideApp, HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
 import {CommandType} from "@/schemas/command";
 import {RunApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
-import {useElementResize} from "@/hooks/useElementResize";
 
 
 export const WaCommand = () => {
     const [input, setInput] = useState<string>('')
-    const listContainerRef = useElementResize<HTMLDivElement>({
-        onResize: _ => {
-            if (listContainerRef.current) {
-                listContainerRef.current.scrollTop = 0
-            }
-        }
-    })
 
     const isPanelOpen = input.length > 0
     const clearInput = () => {
@@ -55,7 +47,7 @@ export const WaCommand = () => {
             console.log(res)
         })
     }
-
+    // TODO: add auto scrollToTop
     return <Command
         shouldFilter={false}
         className="rounded-lg border shadow-md w-full p-2"
@@ -65,7 +57,9 @@ export const WaCommand = () => {
             classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}
             value={input}
         />
-        <CommandList ref={listContainerRef} className={cn("", isPanelOpen ? undefined : "hidden")}>
+        <CommandList
+            className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}
+        >
             <CommandEmpty>No results found.</CommandEmpty>
             <WaApplicationCommandGroup searchKey={input} onTriggerCommand={onTriggerCommand}/>
         </CommandList>

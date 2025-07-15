@@ -18,7 +18,7 @@ export const useElementResize = <T extends HTMLElement>(
         return () => {
             observer.unobserve(node)
         }
-    }, [elementRef])
+    }, [elementRef.current])
     return elementRef
 }
 
