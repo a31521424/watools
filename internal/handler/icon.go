@@ -14,13 +14,12 @@ import (
 func getPngIconCachePath(iconPath string) string {
 	cacheDir := filepath.Join(config.ProjectCacheDir(), "icons")
 
-	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
-		err = os.MkdirAll(cacheDir, 0755)
-		if err != nil {
-			logger.Error(err, "Failed to create icon cache dir")
-			return ""
-		}
+	err := os.MkdirAll(cacheDir, 0755)
+	if err != nil {
+		logger.Error(err, "Failed to create icon cache dir")
+		return ""
 	}
+
 	hasher := fnv.New64a()
 	hasher.Write([]byte(iconPath))
 	iconFileName := fmt.Sprintf("%x.png", hex.EncodeToString(hasher.Sum(nil)))
