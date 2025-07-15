@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"watools/config"
 	"watools/pkg/logger"
 	"watools/pkg/models"
 )
@@ -17,6 +18,7 @@ type InfoPList struct {
 	BundleName             string `plist:"CFBundleName"`
 	BundleDisplayName      string `plist:"CFBundleDisplayName"`
 	BundleIconFile         string `plist:"CFBundleIconFile"`
+	BundleIconName         string `plist:"CFBundleIconName"`
 	BundleVersion          string `plist:"CFBundleShortVersionString"`
 	HumanReadableCopyright string `plist:"NSHumanReadableCopyright"`
 }
@@ -60,6 +62,22 @@ func parseAppBundleInfoPlist(appPath string) *models.Command {
 		command.IconPath = filepath.Join(appPath, "Contents", "Resources", iconName)
 		if _, err := os.Stat(command.IconPath); os.IsNotExist(err) {
 			command.IconPath = ""
+		}
+	}
+	if infoPlist.BundleIconName != "" && command.IconPath == "" {
+		assetsCarPath := filepath.Join(appPath, "Contents", "Resources", "Assets.car")
+		outputIcnsFolder := filepath.Join(config.ProjectCacheDir(), "icns")
+		if err := os.MkdirAll(outputIcnsFolder, 0755); err != nil {
+			logger.Error(err, fmt.Sprintf("Failed to create icns folder: %s", outputIcnsFolder))
+		}
+		outputIcnsPath := filepath.Join(outputIcnsFolder, fmt.Sprintf("%s-%s.icns", command.Name, infoPlist.BundleName))
+		if _, err := os.Stat(assetsCarPath); err == nil {
+			cmd := exec.Command("iconutil", "-c", "icns", assetsCarPath, infoPlist.BundleIconName, "-o", outputIcnsPath)
+			if _, err := cmd.CombinedOutput(); err != nil {
+				logger.Error(err, fmt.Sprintf("Failed to generate icns for app: %s", command.Name))
+			} else {
+				command.IconPath = outputIcnsPath
+			}
 		}
 	}
 	command.Description = infoPlist.HumanReadableCopyright
