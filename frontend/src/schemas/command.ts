@@ -16,6 +16,7 @@ export type CommandType = {
     icon?: ReactNode | string | null
     iconPath?: string
     nameInitial?: string
+    pathName?: string
 }
 
 

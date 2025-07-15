@@ -1,8 +1,10 @@
-import useResizeWindow from "@/hooks/useResizeWindow";
 import {WaCommand} from "./wa-command";
+import {resizeWindowHeight, useElementResize} from "@/hooks/useElementResize";
 
 const Main = () => {
-    const windowRef = useResizeWindow<HTMLDivElement>()
+    const windowRef = useElementResize<HTMLDivElement>({
+        onResize: resizeWindowHeight
+    })
 
     return <div ref={windowRef} className="bg-white w-full rounded-xl overflow-x-hidden scrollbar-hide">
         <WaCommand/>

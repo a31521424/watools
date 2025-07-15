@@ -23,7 +23,8 @@ export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps)
                 commands: res.map(command => ({
                     ...command,
                     category: 'Application',
-                    nameInitial: isContainNonAscii(command.name) ? toPinyinInitial(command.name) : undefined
+                    nameInitial: isContainNonAscii(command.name) ? toPinyinInitial(command.name) : undefined,
+                    pathName: command.path.split('/').pop()
                 }))
             })
         })

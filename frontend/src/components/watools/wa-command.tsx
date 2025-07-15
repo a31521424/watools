@@ -6,12 +6,20 @@ import {cn} from "@/lib/utils";
 import {HideApp, HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
 import {CommandType} from "@/schemas/command";
 import {RunApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
+import {useElementResize} from "@/hooks/useElementResize";
 
 
 export const WaCommand = () => {
     const [input, setInput] = useState<string>('')
-    const isPanelOpen = input.length > 0
+    const listContainerRef = useElementResize<HTMLDivElement>({
+        onResize: _ => {
+            if (listContainerRef.current) {
+                listContainerRef.current.scrollTop = 0
+            }
+        }
+    })
 
+    const isPanelOpen = input.length > 0
     const clearInput = () => {
         setInput('')
     }
@@ -57,7 +65,7 @@ export const WaCommand = () => {
             classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}
             value={input}
         />
-        <CommandList className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}>
+        <CommandList ref={listContainerRef} className={cn("", isPanelOpen ? undefined : "hidden")}>
             <CommandEmpty>No results found.</CommandEmpty>
             <WaApplicationCommandGroup searchKey={input} onTriggerCommand={onTriggerCommand}/>
         </CommandList>

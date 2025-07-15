@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.design/x/hotkey"
+	"watools/config"
 	"watools/pkg/logger"
 )
 
@@ -29,6 +30,12 @@ func (a *WaApp) initWindowSize() {
 		width = screen[0].Size.Width / 3
 	}
 	runtime.WindowSetSize(a.ctx, width, height)
+	if config.IsDevMode() {
+		// for fronted debug
+		runtime.WindowSetPosition(a.ctx, width, 0)
+		return
+	}
+	runtime.WindowCenter(a.ctx)
 }
 
 func (a *WaApp) Startup(ctx context.Context) {

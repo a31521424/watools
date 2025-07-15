@@ -17,6 +17,9 @@ const WaBaseCommandFuseConfig = {
     }, {
         name: 'nameInitial',
         weight: 0.5
+    }, {
+        name: 'pathName',
+        weight: 0.5
     }]
 }
 

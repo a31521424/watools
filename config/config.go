@@ -1,11 +1,14 @@
 package config
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 type Project struct {
@@ -19,6 +22,10 @@ type Project struct {
 }
 
 var ProjectInfo Project
+var (
+	isDevMode bool
+	devOnce   sync.Once
+)
 
 func ParseProject(jsonFile []byte) {
 	err := json.Unmarshal(jsonFile, &ProjectInfo)
@@ -55,4 +62,15 @@ func ProjectCacheDir() string {
 		panic(err)
 	}
 	return cacheDir
+}
+
+func InitDevMode(ctx context.Context) {
+	devOnce.Do(func() {
+		info := runtime.Environment(ctx)
+		isDevMode = info.BuildType == "dev"
+	})
+}
+
+func IsDevMode() bool {
+	return isDevMode
 }
