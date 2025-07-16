@@ -6,6 +6,7 @@ import {cn} from "@/lib/utils";
 import {HideApp, HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
 import {CommandType} from "@/schemas/command";
 import {RunApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
+import {useWindowFocus} from "@/hooks/useWindowFocus";
 
 
 export const WaCommand = () => {
@@ -23,6 +24,14 @@ export const WaCommand = () => {
         }
     }, [input]);
 
+
+    useWindowFocus((focus) => {
+        console.log('window onFocusChange', focus)
+        if (!focus) {
+            HideApp()
+        }
+    })
+
     const isPanelOpen = input.length > 0
     const clearInput = () => {
         setInput('')
@@ -33,7 +42,7 @@ export const WaCommand = () => {
         if (isPanelOpen) {
             clearInput()
         } else {
-            HideOrShowApp().then(_ => _)
+            HideOrShowApp()
         }
     }
 
@@ -54,8 +63,10 @@ export const WaCommand = () => {
 
     const onTriggerCommand = (command: CommandType) => {
         clearInput()
-        HideApp().then(_ => _)
-        RunApplication(command.path).then(_ => _)
+        HideApp()
+        HideOrShowApp()
+        RunApplication(command.path)
+        HideOrShowApp()
     }
     return <Command
         shouldFilter={false}
