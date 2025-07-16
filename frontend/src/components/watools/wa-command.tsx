@@ -1,6 +1,6 @@
 import {WaComplexInput} from "@/components/watools/wa-complex-input";
 import {Command, CommandEmpty, CommandList} from "@/components/ui/command";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {WaApplicationCommandGroup} from "@/components/watools/wa-application-command-group";
 import {cn} from "@/lib/utils";
 import {HideApp, HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
@@ -10,6 +10,18 @@ import {RunApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
 
 export const WaCommand = () => {
     const [input, setInput] = useState<string>('')
+    const commandListRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (commandListRef) {
+            const commandList = commandListRef.current
+            if (commandList) {
+                commandList.scrollTo({
+                    top: 0
+                })
+            }
+        }
+    }, [input]);
 
     const isPanelOpen = input.length > 0
     const clearInput = () => {
@@ -43,9 +55,7 @@ export const WaCommand = () => {
     const onTriggerCommand = (command: CommandType) => {
         clearInput()
         HideApp().then(_ => _)
-        RunApplication(command.path).then(res => {
-            console.log(res)
-        })
+        RunApplication(command.path).then(_ => _)
     }
     return <Command
         shouldFilter={false}
@@ -57,6 +67,7 @@ export const WaCommand = () => {
             value={input}
         />
         <CommandList
+            ref={commandListRef}
             className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}
         >
             <CommandEmpty>No results found.</CommandEmpty>
