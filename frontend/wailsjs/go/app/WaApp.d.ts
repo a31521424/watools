@@ -12,4 +12,6 @@ export function ReloadAPP():Promise<void>;
 
 export function ShowApp():Promise<void>;
 
+export function Shutdown(arg1:context.Context):Promise<void>;
+
 export function Startup(arg1:context.Context):Promise<void>;

@@ -33,6 +33,8 @@ func (w *WaLaunchApp) Startup(ctx context.Context) {
 	w.initCommandsUpdater()
 }
 
+func (w *WaLaunchApp) Shutdown(ctx context.Context) {}
+
 func (w *WaLaunchApp) initCommandsUpdater() {
 	go func() {
 		dbInstance := db.GetWaDB()

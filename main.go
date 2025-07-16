@@ -37,6 +37,13 @@ func initApp(ctx context.Context, apps []interface{}) {
 	}
 }
 
+func shutdownApp(ctx context.Context, apps []interface{}) {
+	for _, waApp := range apps {
+		baseApp := waApp.(internal.BaseApp)
+		baseApp.Shutdown(ctx)
+	}
+}
+
 func main() {
 	waApps := []interface{}{
 		app.GetWaApp(),
@@ -55,6 +62,9 @@ func main() {
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
 		OnStartup: func(ctx context.Context) {
 			initApp(ctx, waApps)
+		},
+		OnShutdown: func(ctx context.Context) {
+			shutdownApp(ctx, waApps)
 		},
 		Bind: waApps,
 		Mac: &mac.Options{

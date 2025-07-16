@@ -22,6 +22,10 @@ export function ShowApp() {
   return window['go']['app']['WaApp']['ShowApp']();
 }
 
+export function Shutdown(arg1) {
+  return window['go']['app']['WaApp']['Shutdown'](arg1);
+}
+
 export function Startup(arg1) {
   return window['go']['app']['WaApp']['Startup'](arg1);
 }

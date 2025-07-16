@@ -52,6 +52,10 @@ func (a *WaApp) Startup(ctx context.Context) {
 	a.registerHotkeys()
 }
 
+func (a *WaApp) Shutdown(ctx context.Context) {
+	a.unregisterHotkeys()
+}
+
 func (a *WaApp) HideApp() {
 	if !a.isHidden {
 		runtime.WindowHide(a.ctx)

@@ -7,4 +7,6 @@ export function GetApplications():Promise<Array<models.Command>>;
 
 export function RunApplication(arg1:string):Promise<void>;
 
+export function Shutdown(arg1:context.Context):Promise<void>;
+
 export function Startup(arg1:context.Context):Promise<void>;

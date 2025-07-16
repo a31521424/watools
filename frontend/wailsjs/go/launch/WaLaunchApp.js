@@ -10,6 +10,10 @@ export function RunApplication(arg1) {
   return window['go']['launch']['WaLaunchApp']['RunApplication'](arg1);
 }
 
+export function Shutdown(arg1) {
+  return window['go']['launch']['WaLaunchApp']['Shutdown'](arg1);
+}
+
 export function Startup(arg1) {
   return window['go']['launch']['WaLaunchApp']['Startup'](arg1);
 }
