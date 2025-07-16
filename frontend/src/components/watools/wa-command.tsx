@@ -7,6 +7,7 @@ import {HideApp, HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
 import {CommandType} from "@/schemas/command";
 import {RunApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
+import {isDevMode} from "@/lib/env";
 
 
 export const WaCommand = () => {
@@ -27,6 +28,9 @@ export const WaCommand = () => {
 
     useWindowFocus((focus) => {
         console.log('window onFocusChange', focus)
+        if (isDevMode()) {
+            return
+        }
         if (!focus) {
             HideApp()
         }
