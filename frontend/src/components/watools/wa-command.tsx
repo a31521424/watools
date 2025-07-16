@@ -77,6 +77,7 @@ export const WaCommand = () => {
         className="rounded-lg border shadow-md w-full p-2"
     >
         <WaComplexInput
+            autoFocus
             onValueChange={setInput}
             classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}
             value={input}
