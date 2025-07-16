@@ -47,7 +47,6 @@ export const WaCommand = () => {
             console.log(res)
         })
     }
-    // TODO: add auto scrollToTop
     return <Command
         shouldFilter={false}
         className="rounded-lg border shadow-md w-full p-2"
