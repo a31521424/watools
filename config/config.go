@@ -27,6 +27,11 @@ var (
 	devOnce   sync.Once
 )
 
+var (
+	wailsCtx context.Context
+	ctxOnce  sync.Once
+)
+
 func ParseProject(jsonFile []byte) {
 	err := json.Unmarshal(jsonFile, &ProjectInfo)
 	if err != nil {
@@ -64,9 +69,23 @@ func ProjectCacheDir() string {
 	return cacheDir
 }
 
-func InitDevMode(ctx context.Context) {
+func InitWailsContext(ctx context.Context) {
+	ctxOnce.Do(func() {
+		wailsCtx = ctx
+	})
+}
+
+func GetWailsContext() context.Context {
+	return wailsCtx
+}
+
+func InitDevMode() {
+	if wailsCtx == nil {
+		log.Println("wails context is nil")
+		return
+	}
 	devOnce.Do(func() {
-		info := runtime.Environment(ctx)
+		info := runtime.Environment(wailsCtx)
 		isDevMode = info.BuildType == "dev"
 	})
 }

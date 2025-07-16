@@ -22,13 +22,25 @@ var assets embed.FS
 //go:embed wails.json
 var wailsJson []byte
 
-func main() {
+func init() {
 	config.ParseProject(wailsJson)
 	logger.InitWaLogger()
+}
 
+func initApp(ctx context.Context, apps []interface{}) {
+	config.InitWailsContext(ctx)
+	config.InitDevMode()
+
+	for _, waApp := range apps {
+		baseApp := waApp.(internal.BaseApp)
+		baseApp.Startup(ctx)
+	}
+}
+
+func main() {
 	waApps := []interface{}{
-		app.NewWaApp(),
-		launch.NewWaLaunchApp(),
+		app.GetWaApp(),
+		launch.GetWaLaunch(),
 	}
 
 	err := wails.Run(&options.App{
@@ -42,11 +54,7 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
 		OnStartup: func(ctx context.Context) {
-			config.InitDevMode(ctx)
-			for _, waApp := range waApps {
-				baseApp := waApp.(internal.BaseApp)
-				baseApp.Startup(ctx)
-			}
+			initApp(ctx, waApps)
 		},
 		Bind: waApps,
 		Mac: &mac.Options{

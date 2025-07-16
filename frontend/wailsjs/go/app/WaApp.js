@@ -10,8 +10,12 @@ export function HideOrShowApp() {
   return window['go']['app']['WaApp']['HideOrShowApp']();
 }
 
-export function RegisterHotkeys() {
-  return window['go']['app']['WaApp']['RegisterHotkeys']();
+export function Reload() {
+  return window['go']['app']['WaApp']['Reload']();
+}
+
+export function ReloadAPP() {
+  return window['go']['app']['WaApp']['ReloadAPP']();
 }
 
 export function ShowApp() {

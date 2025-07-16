@@ -10,13 +10,21 @@ import (
 	"watools/pkg/models"
 )
 
+var (
+	launchAppInstance *WaLaunchApp
+	launchAppOnce     sync.Once
+)
+
 type WaLaunchApp struct {
 	ctx     context.Context
 	scanner AppScanner
 }
 
-func NewWaLaunchApp() *WaLaunchApp {
-	return &WaLaunchApp{}
+func GetWaLaunch() *WaLaunchApp {
+	launchAppOnce.Do(func() {
+		launchAppInstance = &WaLaunchApp{}
+	})
+	return launchAppInstance
 }
 
 func (w *WaLaunchApp) Startup(ctx context.Context) {

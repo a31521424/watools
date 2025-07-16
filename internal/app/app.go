@@ -3,19 +3,27 @@ package app
 import (
 	"context"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"golang.design/x/hotkey"
+	"sync"
 	"watools/config"
 	"watools/pkg/logger"
 )
 
+var (
+	waAppInstance *WaApp
+	waAppOnce     sync.Once
+)
+
 type WaApp struct {
-	ctx      context.Context
-	hk       *hotkey.Hotkey
-	isHidden bool
+	ctx            context.Context
+	isHidden       bool
+	hotkeyListener []*HotkeyListener
 }
 
-func NewWaApp() *WaApp {
-	return &WaApp{}
+func GetWaApp() *WaApp {
+	waAppOnce.Do(func() {
+		waAppInstance = &WaApp{}
+	})
+	return waAppInstance
 }
 
 func (a *WaApp) initWindowSize() {
@@ -41,26 +49,7 @@ func (a *WaApp) initWindowSize() {
 func (a *WaApp) Startup(ctx context.Context) {
 	a.ctx = ctx
 	a.initWindowSize()
-	a.RegisterHotkeys()
-	a.listenHotkeys()
-}
-
-func (a *WaApp) listenHotkeys() {
-	if a.hk == nil {
-		runtime.LogErrorf(a.ctx, "Hotkey is not registered")
-		return
-	}
-	go func() {
-		for {
-			select {
-			case <-a.hk.Keydown():
-				logger.Info("Hotkey pressed")
-				a.HideOrShowApp()
-			case <-a.ctx.Done():
-				return
-			}
-		}
-	}()
+	a.registerHotkeys()
 }
 
 func (a *WaApp) HideApp() {
@@ -85,20 +74,35 @@ func (a *WaApp) HideOrShowApp() {
 	}
 }
 
-func (a *WaApp) RegisterHotkeys() {
-	if a.hk == nil {
-		a.hk = hotkey.New([]hotkey.Modifier{hotkey.ModCmd, hotkey.ModShift}, hotkey.KeySpace)
-	} else {
-		err := a.hk.Unregister()
+func (a *WaApp) Reload() {
+	runtime.WindowReload(a.ctx)
+}
+
+func (a *WaApp) ReloadAPP() {
+	runtime.WindowReloadApp(a.ctx)
+}
+
+func (a *WaApp) registerHotkeys() {
+	if a.hotkeyListener != nil {
+		return
+	}
+	a.hotkeyListener = GetHotkeyListeners()
+	for _, l := range a.hotkeyListener {
+		err := l.Register()
 		if err != nil {
-			logger.Error(err, "Failed to unregister hotkey")
-			return
+			logger.Error(err, "Failed to register hotkey")
 		}
 	}
+}
 
-	err := a.hk.Register()
-	if err != nil {
-		logger.Error(err, "Failed to register hotkey")
+func (a *WaApp) unregisterHotkeys() {
+	if a.hotkeyListener == nil {
 		return
+	}
+	for _, l := range a.hotkeyListener {
+		err := l.Unregister()
+		if err != nil {
+			logger.Error(err, "Failed to unregister hotkey")
+		}
 	}
 }

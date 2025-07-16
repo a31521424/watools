@@ -6,7 +6,9 @@ export function HideApp():Promise<void>;
 
 export function HideOrShowApp():Promise<void>;
 
-export function RegisterHotkeys():Promise<void>;
+export function Reload():Promise<void>;
+
+export function ReloadAPP():Promise<void>;
 
 export function ShowApp():Promise<void>;
 
