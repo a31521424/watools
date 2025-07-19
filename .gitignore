@@ -6,3 +6,4 @@ frontend/dist
 .idea
 
 .DS_Store
+.cache/
