@@ -21,7 +21,7 @@ export const WaBaseCommandGroup = <T extends CommandType>(props: WaBaseCommandGr
     const filterCommandGroup = useMemo(() => {
         return {
             category: props.commandGroup.category,
-            commands: fuseCommand.search(props.searchKey, {limit: 10}).map(command => command.item)
+            commands: fuseCommand.search(props.searchKey, {limit: 5}).map(command => command.item)
         }
     }, [props.commandGroup, props.searchKey])
     useEffect(() => {
@@ -38,13 +38,14 @@ export const WaBaseCommandGroup = <T extends CommandType>(props: WaBaseCommandGr
     return <CommandGroup key={filterCommandGroup.category} heading={filterCommandGroup.category}>
         {filterCommandGroup.commands.map(command => (
             <CommandItem
-                key={command.path}
+                key={command.id}
+                value={`${command.id}-${command.name}`}
                 className='gap-x-4'
                 onSelect={() => {
                     props.onTriggerCommand(command)
                 }}
             >
-                <WaIcon key={command.iconPath} value={command.icon} iconPath={command.iconPath}/>
+                <WaIcon key={command.iconPath} iconPath={command.iconPath}/>
                 <span>{command.name}</span>
             </CommandItem>
         ))}

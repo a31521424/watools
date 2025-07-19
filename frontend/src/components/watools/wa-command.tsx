@@ -69,6 +69,7 @@ export const WaCommand = () => {
     }
     return <Command
         shouldFilter={false}
+        loop
         className="rounded-lg border shadow-md w-full p-2"
     >
         <WaComplexInput
