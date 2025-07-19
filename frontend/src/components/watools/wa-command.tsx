@@ -8,23 +8,13 @@ import {CommandType} from "@/schemas/command";
 import {RunApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {isDevMode} from "@/lib/env";
+import {useDebounce} from "@uidotdev/usehooks";
 
 
 export const WaCommand = () => {
     const [input, setInput] = useState<string>('')
     const commandListRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        if (commandListRef) {
-            const commandList = commandListRef.current
-            if (commandList) {
-                commandList.scrollTo({
-                    top: 0
-                })
-            }
-        }
-    }, [input]);
-
+    const debounceInput = useDebounce(input, 50)
 
     useWindowFocus((focus) => {
         console.log('window onFocusChange', focus)
@@ -72,6 +62,11 @@ export const WaCommand = () => {
         RunApplication(command.path)
         HideOrShowApp()
     }
+    const scrollToTop = () => {
+        if (commandListRef.current) {
+            commandListRef.current.scrollTo({top: 0})
+        }
+    }
     return <Command
         shouldFilter={false}
         className="rounded-lg border shadow-md w-full p-2"
@@ -87,7 +82,11 @@ export const WaCommand = () => {
             className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}
         >
             <CommandEmpty>No results found.</CommandEmpty>
-            <WaApplicationCommandGroup searchKey={input} onTriggerCommand={onTriggerCommand}/>
+            <WaApplicationCommandGroup
+                searchKey={debounceInput}
+                onTriggerCommand={onTriggerCommand}
+                onSearchSuccess={scrollToTop}
+            />
         </CommandList>
     </Command>
 }

@@ -7,6 +7,7 @@ import {isContainNonAscii, toPinyinInitial} from "@/lib/search";
 type WaApplicationCommandGroupProps = {
     searchKey: string
     onTriggerCommand: (command: CommandType) => void
+    onSearchSuccess: () => void
 }
 
 
@@ -43,5 +44,6 @@ export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps)
         searchKey={props.searchKey}
         commandGroup={applicationCommandGroup}
         onTriggerCommand={props.onTriggerCommand}
+        onSearchSuccess={props.onSearchSuccess}
     />
 }

@@ -2,12 +2,13 @@ import {CommandGroup, CommandItem} from "@/components/ui/command";
 import {CommandGroupType, CommandType} from "@/schemas/command";
 import {WaIcon} from "@/components/watools/wa-icon";
 import Fuse from "fuse.js";
-import {useMemo} from "react";
+import {useEffect, useMemo} from "react";
 
 type WaBaseCommandGroupProps = {
     commandGroup: CommandGroupType
     searchKey: string
     onTriggerCommand: (command: CommandType) => void
+    onSearchSuccess: () => void
 }
 
 const WaBaseCommandFuseConfig = {
@@ -34,6 +35,13 @@ export const WaBaseCommandGroup = (props: WaBaseCommandGroupProps) => {
             commands: fuseCommand.search(props.searchKey).map(command => command.item)
         }
     }, [props.commandGroup, props.searchKey])
+    useEffect(() => {
+        console.log('on Search Success', filterCommandGroup.commands.length)
+        setTimeout(() => {
+            props.onSearchSuccess()
+        }, 0)
+    }, [filterCommandGroup.commands]);
+
     if (filterCommandGroup.commands.length === 0) {
         return null
     }
