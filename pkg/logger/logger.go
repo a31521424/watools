@@ -38,7 +38,6 @@ func InitWaLogger() {
 	if err != nil {
 		log.Printf("CRITICAL: Failed to open log file %s, error: %v", logFilePath, err)
 		panic(err)
-		return
 	}
 	writers = append(writers, logFile)
 	multipleWriter := io.MultiWriter(writers...)
