@@ -1,38 +1,27 @@
 import {CommandGroup, CommandItem} from "@/components/ui/command";
 import {CommandGroupType, CommandType} from "@/schemas/command";
 import {WaIcon} from "@/components/watools/wa-icon";
-import Fuse from "fuse.js";
+import Fuse, {IFuseOptions} from "fuse.js";
 import {useEffect, useMemo} from "react";
 
-type WaBaseCommandGroupProps = {
-    commandGroup: CommandGroupType
+type WaBaseCommandGroupProps<T extends CommandType> = {
+    commandGroup: CommandGroupType<T>
     searchKey: string
-    onTriggerCommand: (command: CommandType) => void
+    onTriggerCommand: (command: T) => void
     onSearchSuccess: () => void
+    fuseOptions: IFuseOptions<T>
 }
 
-const WaBaseCommandFuseConfig = {
-    keys: [{
-        name: 'name',
-        weight: 1
-    }, {
-        name: 'nameInitial',
-        weight: 0.5
-    }, {
-        name: 'pathName',
-        weight: 0.5
-    }]
-}
 
-export const WaBaseCommandGroup = (props: WaBaseCommandGroupProps) => {
+export const WaBaseCommandGroup = <T extends CommandType>(props: WaBaseCommandGroupProps<T>) => {
     const fuseCommand = useMemo(() => {
         console.log('commandGroup', props.commandGroup)
-        return new Fuse(props.commandGroup.commands, WaBaseCommandFuseConfig)
+        return new Fuse(props.commandGroup.commands, props.fuseOptions)
     }, [props.commandGroup])
     const filterCommandGroup = useMemo(() => {
         return {
             category: props.commandGroup.category,
-            commands: fuseCommand.search(props.searchKey).map(command => command.item)
+            commands: fuseCommand.search(props.searchKey, {limit: 10}).map(command => command.item)
         }
     }, [props.commandGroup, props.searchKey])
     useEffect(() => {

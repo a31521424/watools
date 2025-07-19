@@ -15,12 +15,15 @@ export type CommandType = {
     path: string
     icon?: ReactNode | string | null
     iconPath?: string
-    nameInitial?: string
-    pathName?: string
+}
+
+export type ApplicationCommandType = CommandType & {
+    nameInitial: string | null
+    pathName: string
 }
 
 
-export type CommandGroupType = {
+export type CommandGroupType<T extends CommandType> = {
     category: CommandCategoryType,
-    commands: CommandType[]
+    commands: T[]
 }
