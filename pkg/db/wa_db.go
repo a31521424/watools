@@ -136,8 +136,10 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Appli
 		return err
 	}
 	defer tx.Rollback()
+
+	txQuery := d.query.WithTx(tx)
 	for _, command := range commands {
-		if _, err := d.query.CreateCommand(ctx, CreateCommandParams{
+		if _, err := txQuery.CreateCommand(ctx, CreateCommandParams{
 			ID:          command.ID,
 			Name:        command.Name,
 			Description: command.Description,
@@ -172,8 +174,9 @@ func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.Appli
 		return err
 	}
 	defer tx.Rollback()
+	txQuery := d.query.WithTx(tx)
 	for _, command := range commands {
-		if err := d.query.UpdateCommandPartial(ctx, UpdateCommandPartialParams{
+		if err := txQuery.UpdateCommandPartial(ctx, UpdateCommandPartialParams{
 			ID:          command.ID,
 			Name:        nullString(command.Name),
 			Path:        nullString(command.Path),
