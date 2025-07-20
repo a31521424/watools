@@ -30,9 +30,7 @@ type InfoPList struct {
 }
 
 func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
-	var commandName, commandDescription, commandPath, commandIconPath string
-	var commandID int64
-	var commandCategory models.CommandCategory
+	var commandName, commandDescription, commandIconPath, commandID string
 
 	plistPath := filepath.Join(strings.TrimSpace(appPath), "Contents", "Info.plist")
 	plistFile, err := os.Open(plistPath)
@@ -97,7 +95,7 @@ func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
 			}
 		}
 	}
-	return models.NewApplicationCommand(commandName, commandDescription, commandCategory, commandPath, commandIconPath, commandID)
+	return models.NewApplicationCommand(commandName, commandDescription, appPath, commandIconPath, commandID)
 }
 
 func getMacApplicationPath() []string {

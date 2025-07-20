@@ -9,7 +9,7 @@ import (
 )
 
 type Command struct {
-	ID          int64
+	ID          string
 	Name        string
 	Description string
 	Category    string

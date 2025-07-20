@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"os/exec"
 )
@@ -30,7 +31,7 @@ type ApplicationCommand struct {
 	Command
 	IconPath string `json:"iconPath,omitempty"`
 	Path     string `json:"path"`
-	ID       int64  `json:"id"`
+	ID       string `json:"id"`
 }
 
 func (a *ApplicationCommand) GetTriggerID() string {
@@ -53,7 +54,11 @@ func (a *ApplicationCommand) GetMetadata() *Command {
 	return &a.Command
 }
 
-func NewApplicationCommand(name string, description string, category CommandCategory, path string, iconPath string, id int64) *ApplicationCommand {
+func NewApplicationCommand(name string, description string, path string, iconPath string, id string) *ApplicationCommand {
+	category := CategoryApplication
+	if id == "" {
+		id = uuid.New().String()
+	}
 	return &ApplicationCommand{
 		Command: Command{
 			TriggerID:   fmt.Sprintf("%s-%s-%d", category, name, id),

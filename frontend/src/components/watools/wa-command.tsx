@@ -93,7 +93,7 @@ export const WaCommand = () => {
                 onTriggerCommand={onTriggerCommand}
                 onSearchSuccess={(currentSelectedKey) => {
                     scrollToTop()
-                    setSelectedKey(currentSelectedKey)
+                    currentSelectedKey && setSelectedKey(currentSelectedKey)
                 }}
             />
         </CommandList>

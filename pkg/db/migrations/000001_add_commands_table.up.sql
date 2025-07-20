@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS commands
 (
-    id          integer      NOT NULL PRIMARY KEY AUTOINCREMENT,
+    id          VARCHAR(36)  NOT NULL PRIMARY KEY,
     name        VARCHAR(255) NOT NULL,
     description VARCHAR(255) NOT NULL,
     category    VARCHAR(255) NOT NULL,
-    path        VARCHAR(255) NOT NULL UNIQUE,
-    icon_path   VARCHAR(255) NOT NULL,
+    path        TEXT         NOT NULL UNIQUE,
+    icon_path   TEXT         NOT NULL,
     created_at  TEXT         NOT NULL DEFAULT (datetime('now', 'localtime')),
     updated_at  TEXT         NOT NULL DEFAULT (datetime('now', 'localtime')),
     is_deleted  BOOLEAN      NOT NULL DEFAULT 0

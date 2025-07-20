@@ -1,6 +1,6 @@
 -- name: CreateCommand :one
-INSERT INTO commands (name, description, category, path, icon_path)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO commands (id, name, description, category, path, icon_path)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetCommands :many

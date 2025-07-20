@@ -138,6 +138,7 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Appli
 	defer tx.Rollback()
 	for _, command := range commands {
 		if _, err := d.query.CreateCommand(ctx, CreateCommandParams{
+			ID:          command.ID,
 			Name:        command.Name,
 			Description: command.Description,
 			Category:    string(command.Category),

@@ -11,12 +11,13 @@ import (
 )
 
 const createCommand = `-- name: CreateCommand :one
-INSERT INTO commands (name, description, category, path, icon_path)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO commands (id, name, description, category, path, icon_path)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING id, name, description, category, path, icon_path, created_at, updated_at, is_deleted
 `
 
 type CreateCommandParams struct {
+	ID          string
 	Name        string
 	Description string
 	Category    string
@@ -26,6 +27,7 @@ type CreateCommandParams struct {
 
 func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (Command, error) {
 	row := q.db.QueryRowContext(ctx, createCommand,
+		arg.ID,
 		arg.Name,
 		arg.Description,
 		arg.Category,
@@ -53,7 +55,7 @@ FROM commands
 WHERE id = ?
 `
 
-func (q *Queries) DeleteCommand(ctx context.Context, id int64) error {
+func (q *Queries) DeleteCommand(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, deleteCommand, id)
 	return err
 }
@@ -127,7 +129,7 @@ FROM commands
 WHERE id = ?
 `
 
-func (q *Queries) GetCommand(ctx context.Context, id int64) (Command, error) {
+func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 	row := q.db.QueryRowContext(ctx, getCommand, id)
 	var i Command
 	err := row.Scan(
@@ -201,7 +203,7 @@ type UpdateCommandPartialParams struct {
 	Path        sql.NullString
 	IconPath    sql.NullString
 	IsDeleted   sql.NullBool
-	ID          int64
+	ID          string
 }
 
 func (q *Queries) UpdateCommandPartial(ctx context.Context, arg UpdateCommandPartialParams) error {

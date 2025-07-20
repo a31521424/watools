@@ -15,8 +15,8 @@ export type CommandType = {
 export type ApplicationCommandType = CommandType & {
     path: string
     iconPath: string
-    id: number
-    
+    id: string
+
     // calculated
     nameInitial: string | null
     pathName: string
