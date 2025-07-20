@@ -79,7 +79,6 @@ func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
 			logger.Error(err, "Failed to get application")
 			return []*models.ApplicationCommand{}
 		}
-		// TODO: fix not id in first
 		err = dbInstance.BatchInsertCommands(w.ctx, commands)
 		if err != nil {
 			logger.Error(err, "Failed to batch insert commands")
