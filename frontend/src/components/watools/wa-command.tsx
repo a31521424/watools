@@ -5,10 +5,10 @@ import {WaApplicationCommandGroup} from "@/components/watools/wa-application-com
 import {cn} from "@/lib/utils";
 import {HideApp, HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
 import {CommandType} from "@/schemas/command";
-import {RunApplication} from "../../../wailsjs/go/launch/WaLaunchApp";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {isDevMode} from "@/lib/env";
 import {useDebounce} from "@uidotdev/usehooks";
+import {TriggerCommand} from "../../../wailsjs/go/command/WaLaunchApp";
 
 
 export const WaCommand = () => {
@@ -59,7 +59,7 @@ export const WaCommand = () => {
         clearInput()
         HideApp()
         HideOrShowApp()
-        RunApplication(command.path)
+        TriggerCommand(command.triggerId)
         HideOrShowApp()
     }
     const scrollToTop = () => {
@@ -71,6 +71,7 @@ export const WaCommand = () => {
         shouldFilter={false}
         loop
         className="rounded-lg border shadow-md w-full p-2"
+
     >
         <WaComplexInput
             autoFocus

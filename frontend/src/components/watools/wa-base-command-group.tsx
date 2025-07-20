@@ -1,8 +1,7 @@
 import {CommandGroup, CommandItem} from "@/components/ui/command";
 import {CommandGroupType, CommandType} from "@/schemas/command";
-import {WaIcon} from "@/components/watools/wa-icon";
 import Fuse, {IFuseOptions} from "fuse.js";
-import {useEffect, useMemo} from "react";
+import {ReactNode, useEffect, useMemo} from "react";
 
 type WaBaseCommandGroupProps<T extends CommandType> = {
     commandGroup: CommandGroupType<T>
@@ -10,12 +9,12 @@ type WaBaseCommandGroupProps<T extends CommandType> = {
     onTriggerCommand: (command: T) => void
     onSearchSuccess: () => void
     fuseOptions: IFuseOptions<T>
+    renderItemIcon: (command: T) => ReactNode
 }
 
 
 export const WaBaseCommandGroup = <T extends CommandType>(props: WaBaseCommandGroupProps<T>) => {
     const fuseCommand = useMemo(() => {
-        console.log('commandGroup', props.commandGroup)
         return new Fuse(props.commandGroup.commands, props.fuseOptions)
     }, [props.commandGroup])
     const filterCommandGroup = useMemo(() => {
@@ -38,14 +37,14 @@ export const WaBaseCommandGroup = <T extends CommandType>(props: WaBaseCommandGr
     return <CommandGroup key={filterCommandGroup.category} heading={filterCommandGroup.category}>
         {filterCommandGroup.commands.map(command => (
             <CommandItem
-                key={command.id}
-                value={`${command.id}-${command.name}`}
+                key={command.triggerId}
+                value={command.triggerId}
                 className='gap-x-4'
                 onSelect={() => {
                     props.onTriggerCommand(command)
                 }}
             >
-                <WaIcon key={command.iconPath} iconPath={command.iconPath}/>
+                {props.renderItemIcon(command)}
                 <span>{command.name}</span>
             </CommandItem>
         ))}

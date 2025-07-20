@@ -1,9 +1,9 @@
 import {useEffect, useState} from "react";
 import {ApplicationCommandType, CommandGroupType, CommandType} from "@/schemas/command";
 import {WaBaseCommandGroup} from "@/components/watools/wa-base-command-group";
-import {GetApplications} from "../../../wailsjs/go/launch/WaLaunchApp";
-import {isContainNonAscii, toPinyinInitial} from "@/lib/search";
 import {IFuseOptions} from "fuse.js";
+import {getApplicationCommands} from "@/api/command";
+import {WaIcon} from "@/components/watools/wa-icon";
 
 type WaApplicationCommandGroupProps = {
     searchKey: string
@@ -34,21 +34,7 @@ const WaBaseCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {
 export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps) => {
     const [applicationCommandGroup, setApplicationCommandGroup] = useState<CommandGroupType<ApplicationCommandType> | null>(null)
     const initApplication = () => {
-        GetApplications().then(res => {
-            console.log('fetch application', res)
-            if (res == null) {
-                return
-            }
-            setApplicationCommandGroup({
-                category: 'Application',
-                commands: res.map(command => ({
-                    ...command,
-                    category: 'Application',
-                    nameInitial: isContainNonAscii(command.name) ? toPinyinInitial(command.name) : null,
-                    pathName: command.path.split('/').pop() || ''
-                }))
-            })
-        })
+        getApplicationCommands().then(setApplicationCommandGroup)
     }
     useEffect(() => {
         initApplication()
@@ -60,11 +46,12 @@ export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps)
         return null
     }
 
-    return <WaBaseCommandGroup
+    return <WaBaseCommandGroup<ApplicationCommandType>
         searchKey={props.searchKey}
         commandGroup={applicationCommandGroup}
         onTriggerCommand={props.onTriggerCommand}
         onSearchSuccess={props.onSearchSuccess}
         fuseOptions={WaBaseCommandFuseConfig}
+        renderItemIcon={command => <WaIcon iconPath={command.iconPath} size={16}/>}
     />
 }

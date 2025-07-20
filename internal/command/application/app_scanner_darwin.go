@@ -1,4 +1,4 @@
-package launch
+package application
 
 import (
 	"bytes"
@@ -13,6 +13,12 @@ import (
 	"watools/pkg/logger"
 	"watools/pkg/models"
 )
+
+var Scanner *macAppScanner
+
+func init() {
+	Scanner = &macAppScanner{}
+}
 
 type InfoPList struct {
 	BundleName             string `plist:"CFBundleName"`
@@ -132,10 +138,6 @@ type macAppScanner struct {
 	AppScanner
 }
 
-func NewAppScanner() AppScanner {
-	return &macAppScanner{}
-}
-
 func (*macAppScanner) GetApplications() ([]*models.ApplicationCommand, error) {
 	var commands []*models.ApplicationCommand
 
@@ -147,17 +149,6 @@ func (*macAppScanner) GetApplications() ([]*models.ApplicationCommand, error) {
 		}
 	}
 	return commands, nil
-}
-
-func (*macAppScanner) RunApplication(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return fmt.Errorf("failed to find application file '%s': %w", path, err)
-	}
-	cmd := exec.Command("open", path)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to run application: %w\n%s", err, output)
-	}
-	return nil
 }
 
 func (*macAppScanner) ParseApplication(appPath string) (*models.ApplicationCommand, error) {

@@ -1,6 +1,3 @@
-import {ReactNode} from "react";
-
-
 export const COMMAND_CATEGORY = {
     Application: "Application",
     SystemOperation: "SystemOperation"
@@ -9,16 +6,18 @@ export const COMMAND_CATEGORY = {
 export type CommandCategoryType = typeof COMMAND_CATEGORY[keyof typeof COMMAND_CATEGORY]
 
 export type CommandType = {
+    triggerId: string
     name: string,
-    category: CommandCategoryType,
     description: string
-    path: string
-    icon?: ReactNode | string | null
-    iconPath?: string
-    id: number
+    category: CommandCategoryType,
 }
 
 export type ApplicationCommandType = CommandType & {
+    path: string
+    iconPath: string
+    id: number
+    
+    // calculated
     nameInitial: string | null
     pathName: string
 }

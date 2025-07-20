@@ -11,8 +11,8 @@ import (
 	"watools/config"
 	"watools/internal"
 	"watools/internal/app"
+	"watools/internal/command"
 	"watools/internal/handler"
-	"watools/internal/launch"
 	"watools/pkg/logger"
 )
 
@@ -47,7 +47,7 @@ func shutdownApp(ctx context.Context, apps []interface{}) {
 func main() {
 	waApps := []interface{}{
 		app.GetWaApp(),
-		launch.GetWaLaunch(),
+		command.GetWaLaunch(),
 	}
 
 	err := wails.Run(&options.App{

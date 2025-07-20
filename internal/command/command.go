@@ -1,11 +1,14 @@
-package launch
+package command
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
+	"watools/internal/command/application"
 	"watools/pkg/db"
+	"watools/pkg/generics"
 	"watools/pkg/logger"
 	"watools/pkg/models"
 )
@@ -17,7 +20,7 @@ var (
 
 type WaLaunchApp struct {
 	ctx     context.Context
-	scanner AppScanner
+	runners []models.CommandRunner
 }
 
 func GetWaLaunch() *WaLaunchApp {
@@ -29,7 +32,6 @@ func GetWaLaunch() *WaLaunchApp {
 
 func (w *WaLaunchApp) Startup(ctx context.Context) {
 	w.ctx = ctx
-	w.scanner = NewAppScanner()
 	w.initCommandsUpdater()
 }
 
@@ -46,7 +48,7 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 				var updateCommands []*models.ApplicationCommand
 				for _, command := range commands {
 					id := command.ID
-					command, err := w.scanner.ParseApplication(command.Path)
+					command, err := application.Scanner.ParseApplication(command.Path)
 					if err != nil {
 						logger.Error(err, "Failed to parse application")
 						continue
@@ -66,13 +68,13 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 
 var ApiMutex sync.Mutex
 
-func (w *WaLaunchApp) GetApplications() []*models.ApplicationCommand {
+func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
 	ApiMutex.Lock()
 	defer ApiMutex.Unlock()
 	dbInstance := db.GetWaDB()
 	commands := dbInstance.GetCommands(w.ctx)
 	if len(commands) == 0 {
-		commands, err := w.scanner.GetApplications()
+		commands, err := application.Scanner.GetApplications()
 		if err != nil {
 			logger.Error(err, "Failed to get application")
 			return []*models.ApplicationCommand{}
@@ -84,15 +86,35 @@ func (w *WaLaunchApp) GetApplications() []*models.ApplicationCommand {
 	}
 	for _, command := range commands {
 		if command.IconPath == "" {
-			command.IconPath = w.scanner.GetDefaultIconPath()
+			command.IconPath = application.Scanner.GetDefaultIconPath()
 		}
 	}
 	return commands
 }
 
-func (w *WaLaunchApp) RunApplication(path string) {
-	err := w.scanner.RunApplication(path)
-	if err != nil {
-		logger.Error(err, "Failed to run application")
+func (w *WaLaunchApp) GetAllCommands() []interface{} {
+	var commands []interface{}
+	w.runners = nil
+
+	apps := w.getApplicationCommands()
+	w.runners = append(w.runners, generics.Map(apps, func(app *models.ApplicationCommand) models.CommandRunner { return app })...)
+	commands = append(commands, generics.Map(apps, func(app *models.ApplicationCommand) interface{} {
+		var m map[string]interface{}
+		data, _ := json.Marshal(app)
+		_ = json.Unmarshal(data, &m)
+		return m
+	})...)
+
+	return commands
+}
+
+func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string) error {
+	for _, runner := range w.runners {
+		if runner.GetTriggerID() == uniqueTriggerID {
+			return runner.OnTrigger()
+		}
 	}
+	logger.Info(fmt.Sprintf("Command not found: %s", uniqueTriggerID))
+	return fmt.Errorf("command not found")
+
 }

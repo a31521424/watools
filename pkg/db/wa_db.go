@@ -124,7 +124,7 @@ func (d *WaDB) GetCommands(ctx context.Context) []*models.ApplicationCommand {
 		logger.Error(err, "Failed to get commands")
 		return nil
 	}
-	return generics.Map(dbCommands, ConvertCommand)
+	return generics.Map(dbCommands, ConvertApplicationCommand)
 }
 
 func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
@@ -159,7 +159,7 @@ func (d *WaDB) FindExpiredCommands(ctx context.Context) []*models.ApplicationCom
 		logger.Error(err, "Failed to get expired commands")
 		return nil
 	}
-	return generics.Map(dbCommands, ConvertCommand)
+	return generics.Map(dbCommands, ConvertApplicationCommand)
 }
 
 func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
