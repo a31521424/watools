@@ -8,7 +8,7 @@ import {WaIcon} from "@/components/watools/wa-icon";
 type WaApplicationCommandGroupProps = {
     searchKey: string
     onTriggerCommand: (command: CommandType) => void
-    onSearchSuccess: () => void
+    onSearchSuccess: (selectedKey?: string) => void
 }
 
 const WaBaseCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {

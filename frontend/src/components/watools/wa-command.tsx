@@ -13,6 +13,7 @@ import {TriggerCommand} from "../../../wailsjs/go/command/WaLaunchApp";
 
 export const WaCommand = () => {
     const [input, setInput] = useState<string>('')
+    const [selectedKey, setSelectedKey] = useState<string>('')
     const commandListRef = useRef<HTMLDivElement>(null)
     const debounceInput = useDebounce(input, 50)
 
@@ -68,10 +69,13 @@ export const WaCommand = () => {
         }
     }
     return <Command
+        value={selectedKey}
         shouldFilter={false}
         loop
         className="rounded-lg border shadow-md w-full p-2"
-
+        onValueChange={value => {
+            console.log('onValueChange', value)
+        }}
     >
         <WaComplexInput
             autoFocus
@@ -87,7 +91,10 @@ export const WaCommand = () => {
             <WaApplicationCommandGroup
                 searchKey={debounceInput}
                 onTriggerCommand={onTriggerCommand}
-                onSearchSuccess={scrollToTop}
+                onSearchSuccess={(currentSelectedKey) => {
+                    scrollToTop()
+                    setSelectedKey(currentSelectedKey)
+                }}
             />
         </CommandList>
     </Command>

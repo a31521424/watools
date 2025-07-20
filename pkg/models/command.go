@@ -56,7 +56,7 @@ func (a *ApplicationCommand) GetMetadata() *Command {
 func NewApplicationCommand(name string, description string, category CommandCategory, path string, iconPath string, id int64) *ApplicationCommand {
 	return &ApplicationCommand{
 		Command: Command{
-			TriggerID:   fmt.Sprintf("%s-%s-%s", category, name, description),
+			TriggerID:   fmt.Sprintf("%s-%s-%d", category, name, id),
 			Name:        name,
 			Description: description,
 			Category:    category,

@@ -7,7 +7,7 @@ type WaBaseCommandGroupProps<T extends CommandType> = {
     commandGroup: CommandGroupType<T>
     searchKey: string
     onTriggerCommand: (command: T) => void
-    onSearchSuccess: () => void
+    onSearchSuccess: (selectedKey?: string) => void
     fuseOptions: IFuseOptions<T>
     renderItemIcon: (command: T) => ReactNode
 }
@@ -26,7 +26,7 @@ export const WaBaseCommandGroup = <T extends CommandType>(props: WaBaseCommandGr
     useEffect(() => {
         console.log('on Search Success', filterCommandGroup.commands.length)
         setTimeout(() => {
-            props.onSearchSuccess()
+            props.onSearchSuccess(filterCommandGroup.commands.length > 0 ? filterCommandGroup.commands[0].triggerId : undefined)
         }, 0)
     }, [filterCommandGroup.commands]);
 
