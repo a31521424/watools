@@ -24,6 +24,10 @@ type InfoPList struct {
 }
 
 func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
+	var commandName, commandDescription, commandPath, commandIconPath string
+	var commandID int64
+	var commandCategory models.CommandCategory
+
 	plistPath := filepath.Join(strings.TrimSpace(appPath), "Contents", "Info.plist")
 	plistFile, err := os.Open(plistPath)
 	if err != nil {
@@ -42,58 +46,52 @@ func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
 	if err := decoder.Decode(&infoPlist); err != nil {
 		return nil
 	}
-	command := models.ApplicationCommand{
-		Command: models.Command{
-			Category: models.CategoryApplication,
-		},
-		Path: appPath,
-	}
 	if infoPlist.BundleDisplayName != "" {
-		command.Name = infoPlist.BundleDisplayName
+		commandName = infoPlist.BundleDisplayName
 	} else {
-		command.Name = infoPlist.BundleName
+		commandName = infoPlist.BundleName
 	}
-	if command.Name == "" {
-		command.Name = strings.TrimSuffix(filepath.Base(appPath), ".app")
+	if commandName == "" {
+		commandName = strings.TrimSuffix(filepath.Base(appPath), ".app")
 	}
 	if infoPlist.BundleIconFile != "" {
 		iconName := infoPlist.BundleIconFile
 		if !strings.HasSuffix(iconName, ".icns") {
 			iconName += ".icns"
 		}
-		command.IconPath = filepath.Join(appPath, "Contents", "Resources", iconName)
-		if _, err := os.Stat(command.IconPath); os.IsNotExist(err) {
-			command.IconPath = ""
+		commandIconPath = filepath.Join(appPath, "Contents", "Resources", iconName)
+		if _, err := os.Stat(commandIconPath); os.IsNotExist(err) {
+			commandIconPath = ""
 		}
 	}
-	if infoPlist.BundleIconName != "" && command.IconPath == "" {
+	if infoPlist.BundleIconName != "" && commandIconPath == "" {
 		assetsCarPath := filepath.Join(appPath, "Contents", "Resources", "Assets.car")
 		outputIcnsFolder := filepath.Join(config.ProjectCacheDir(), "icns")
 		if err := os.MkdirAll(outputIcnsFolder, 0755); err != nil {
 			logger.Error(err, fmt.Sprintf("Failed to create icns folder: %s", outputIcnsFolder))
 		}
-		outputIcnsPath := filepath.Join(outputIcnsFolder, fmt.Sprintf("%s-%s.icns", command.Name, infoPlist.BundleName))
+		outputIcnsPath := filepath.Join(outputIcnsFolder, fmt.Sprintf("%s-%s.icns", commandName, infoPlist.BundleName))
 		if _, err := os.Stat(assetsCarPath); err == nil {
 			cmd := exec.Command("iconutil", "-c", "icns", assetsCarPath, infoPlist.BundleIconName, "-o", outputIcnsPath)
 			if _, err := cmd.CombinedOutput(); err != nil {
-				logger.Error(err, fmt.Sprintf("Failed to generate icns for app: %s", command.Name))
+				logger.Error(err, fmt.Sprintf("Failed to generate icns for app: %s", commandName))
 			} else {
-				command.IconPath = outputIcnsPath
+				commandIconPath = outputIcnsPath
 			}
 		}
 	}
-	command.Description = infoPlist.HumanReadableCopyright
+	commandDescription = infoPlist.HumanReadableCopyright
 	if _, err := exec.LookPath("mdls"); err == nil {
 		cmd := exec.Command("mdls", "-name", "kMDItemDisplayName", "-raw", appPath)
 		output, err := cmd.Output()
 		if err == nil {
 			displayName := strings.TrimSpace(string(output))
 			if displayName != "" && displayName != "(null)" {
-				command.Name = strings.TrimSuffix(displayName, ".app")
+				commandName = strings.TrimSuffix(displayName, ".app")
 			}
 		}
 	}
-	return &command
+	return models.NewApplicationCommand(commandName, commandDescription, commandCategory, commandPath, commandIconPath, commandID)
 }
 
 func getMacApplicationPath() []string {

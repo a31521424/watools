@@ -19,3 +19,16 @@ type ApplicationCommand struct {
 	IconPath string `json:"iconPath"`
 	ID       int64  `json:"id"`
 }
+
+func NewApplicationCommand(name string, description string, category CommandCategory, path string, iconPath string, id int64) *ApplicationCommand {
+	return &ApplicationCommand{
+		Command: Command{
+			Name:        name,
+			Description: description,
+			Category:    category,
+		},
+		Path:     path,
+		IconPath: iconPath,
+		ID:       id,
+	}
+}

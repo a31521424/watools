@@ -37,14 +37,5 @@ func ConvertCommand(command Command) *models.ApplicationCommand {
 	case "SystemOperation":
 		category = models.CategorySystemOperation
 	}
-	return &models.ApplicationCommand{
-		Command: models.Command{
-			Name:        command.Name,
-			Description: command.Description,
-			Category:    category,
-		},
-		Path:     command.Path,
-		IconPath: command.IconPath,
-		ID:       command.ID,
-	}
+	return models.NewApplicationCommand(command.Name, command.Description, category, command.Path, command.IconPath, command.ID)
 }
