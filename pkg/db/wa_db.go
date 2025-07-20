@@ -118,7 +118,7 @@ func (d *WaDB) Close() error {
 	return d.db.Close()
 }
 
-func (d *WaDB) GetCommands(ctx context.Context) []*models.Command {
+func (d *WaDB) GetCommands(ctx context.Context) []*models.ApplicationCommand {
 	dbCommands, err := d.query.GetCommands(ctx)
 	if err != nil {
 		logger.Error(err, "Failed to get commands")
@@ -127,7 +127,7 @@ func (d *WaDB) GetCommands(ctx context.Context) []*models.Command {
 	return generics.Map(dbCommands, ConvertCommand)
 }
 
-func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Command) error {
+func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 	logger.Info(fmt.Sprintf("Starting to insert %d commands", len(commands)))
@@ -152,7 +152,7 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Comma
 	return tx.Commit()
 }
 
-func (d *WaDB) FindExpiredCommands(ctx context.Context) []*models.Command {
+func (d *WaDB) FindExpiredCommands(ctx context.Context) []*models.ApplicationCommand {
 	expiredTime := time.Now().Add(-time.Hour * 24)
 	dbCommands, err := d.query.FindExpiredCommands(ctx, *TimeToDBTime(&expiredTime))
 	if err != nil {
@@ -162,7 +162,7 @@ func (d *WaDB) FindExpiredCommands(ctx context.Context) []*models.Command {
 	return generics.Map(dbCommands, ConvertCommand)
 }
 
-func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.Command) error {
+func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 	logger.Info(fmt.Sprintf("Updating %d commands", len(commands)))

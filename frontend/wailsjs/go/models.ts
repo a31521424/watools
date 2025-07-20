@@ -1,6 +1,6 @@
 export namespace models {
 	
-	export class Command {
+	export class ApplicationCommand {
 	    name: string;
 	    description: string;
 	    category: string;
@@ -9,7 +9,7 @@ export namespace models {
 	    id: number;
 	
 	    static createFrom(source: any = {}) {
-	        return new Command(source);
+	        return new ApplicationCommand(source);
 	    }
 	
 	    constructor(source: any = {}) {

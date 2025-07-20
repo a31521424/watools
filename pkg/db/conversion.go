@@ -29,7 +29,7 @@ func TimeToDBTime(t *time.Time) *string {
 	return &result
 }
 
-func ConvertCommand(command Command) *models.Command {
+func ConvertCommand(command Command) *models.ApplicationCommand {
 	var category models.CommandCategory
 	switch command.Category {
 	case "Application":
@@ -37,12 +37,14 @@ func ConvertCommand(command Command) *models.Command {
 	case "SystemOperation":
 		category = models.CategorySystemOperation
 	}
-	return &models.Command{
-		Name:        command.Name,
-		Description: command.Description,
-		Category:    category,
-		Path:        command.Path,
-		IconPath:    command.IconPath,
-		ID:          command.ID,
+	return &models.ApplicationCommand{
+		Command: models.Command{
+			Name:        command.Name,
+			Description: command.Description,
+			Category:    category,
+		},
+		Path:     command.Path,
+		IconPath: command.IconPath,
+		ID:       command.ID,
 	}
 }

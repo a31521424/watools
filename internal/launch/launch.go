@@ -43,7 +43,7 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 			commands := dbInstance.FindExpiredCommands(w.ctx)
 			logger.Info(fmt.Sprintf("Found %d expired commands", len(commands)))
 			if len(commands) > 0 {
-				var updateCommands []*models.Command
+				var updateCommands []*models.ApplicationCommand
 				for _, command := range commands {
 					id := command.ID
 					command, err := w.scanner.ParseApplication(command.Path)
@@ -66,7 +66,7 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 
 var ApiMutex sync.Mutex
 
-func (w *WaLaunchApp) GetApplications() []*models.Command {
+func (w *WaLaunchApp) GetApplications() []*models.ApplicationCommand {
 	ApiMutex.Lock()
 	defer ApiMutex.Unlock()
 	dbInstance := db.GetWaDB()
@@ -75,7 +75,7 @@ func (w *WaLaunchApp) GetApplications() []*models.Command {
 		commands, err := w.scanner.GetApplications()
 		if err != nil {
 			logger.Error(err, "Failed to get application")
-			return []*models.Command{}
+			return []*models.ApplicationCommand{}
 		}
 		err = dbInstance.BatchInsertCommands(w.ctx, commands)
 		if err != nil {

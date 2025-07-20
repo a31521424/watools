@@ -3,7 +3,7 @@
 import {models} from '../models';
 import {context} from '../models';
 
-export function GetApplications():Promise<Array<models.Command>>;
+export function GetApplications():Promise<Array<models.ApplicationCommand>>;
 
 export function RunApplication(arg1:string):Promise<void>;
 

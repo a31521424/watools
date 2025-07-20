@@ -23,7 +23,7 @@ type InfoPList struct {
 	HumanReadableCopyright string `plist:"NSHumanReadableCopyright"`
 }
 
-func parseAppBundleInfoPlist(appPath string) *models.Command {
+func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
 	plistPath := filepath.Join(strings.TrimSpace(appPath), "Contents", "Info.plist")
 	plistFile, err := os.Open(plistPath)
 	if err != nil {
@@ -42,9 +42,11 @@ func parseAppBundleInfoPlist(appPath string) *models.Command {
 	if err := decoder.Decode(&infoPlist); err != nil {
 		return nil
 	}
-	command := models.Command{
-		Category: models.CategoryApplication,
-		Path:     appPath,
+	command := models.ApplicationCommand{
+		Command: models.Command{
+			Category: models.CategoryApplication,
+		},
+		Path: appPath,
 	}
 	if infoPlist.BundleDisplayName != "" {
 		command.Name = infoPlist.BundleDisplayName
@@ -136,8 +138,8 @@ func NewAppScanner() AppScanner {
 	return &macAppScanner{}
 }
 
-func (*macAppScanner) GetApplications() ([]*models.Command, error) {
-	var commands []*models.Command
+func (*macAppScanner) GetApplications() ([]*models.ApplicationCommand, error) {
+	var commands []*models.ApplicationCommand
 
 	for _, appPath := range getMacApplicationPath() {
 		if command := parseAppBundleInfoPlist(appPath); command != nil {
@@ -160,7 +162,7 @@ func (*macAppScanner) RunApplication(path string) error {
 	return nil
 }
 
-func (*macAppScanner) ParseApplication(appPath string) (*models.Command, error) {
+func (*macAppScanner) ParseApplication(appPath string) (*models.ApplicationCommand, error) {
 	if command := parseAppBundleInfoPlist(appPath); command != nil {
 		return command, nil
 	}
