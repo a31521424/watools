@@ -51,6 +51,7 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 					command, err := application.Scanner.ParseApplication(command.Path)
 					if err != nil {
 						logger.Error(err, "Failed to parse application")
+						dbInstance.DeleteCommand(w.ctx, id)
 						continue
 					}
 					command.ID = id

@@ -190,3 +190,20 @@ func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.Appli
 	}
 	return tx.Commit()
 }
+
+func (d *WaDB) DeleteCommand(ctx context.Context, id string) error {
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+	logger.Info(fmt.Sprintf("Deleting command %s", id))
+	tx, err := d.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	txQuery := d.query.WithTx(tx)
+	if err := txQuery.DeleteCommand(ctx, id); err != nil {
+		logger.Error(err, "Failed to delete command")
+		return err
+	}
+	return tx.Commit()
+}
