@@ -6,6 +6,14 @@ export function GetAllCommands() {
   return window['go']['command']['WaLaunchApp']['GetAllCommands']();
 }
 
+export function GetWatchMetrics() {
+  return window['go']['command']['WaLaunchApp']['GetWatchMetrics']();
+}
+
+export function GetWatchStatus() {
+  return window['go']['command']['WaLaunchApp']['GetWatchStatus']();
+}
+
 export function Shutdown(arg1) {
   return window['go']['command']['WaLaunchApp']['Shutdown'](arg1);
 }

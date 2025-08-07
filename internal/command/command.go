@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 	"watools/internal/command/application"
+	"watools/internal/command/watcher"
 	"watools/pkg/db"
 	"watools/pkg/generics"
 	"watools/pkg/logger"
@@ -19,8 +20,9 @@ var (
 )
 
 type WaLaunchApp struct {
-	ctx     context.Context
-	runners []models.CommandRunner
+	ctx          context.Context
+	runners      []models.CommandRunner
+	watchManager watcher.AppWatchManager
 }
 
 func GetWaLaunch() *WaLaunchApp {
@@ -33,36 +35,50 @@ func GetWaLaunch() *WaLaunchApp {
 func (w *WaLaunchApp) Startup(ctx context.Context) {
 	w.ctx = ctx
 	w.initCommandsUpdater()
+	w.initAppWatcher()
 }
 
-func (w *WaLaunchApp) Shutdown(ctx context.Context) {}
+func (w *WaLaunchApp) Shutdown(ctx context.Context) {
+	if w.watchManager != nil {
+		if err := w.watchManager.Stop(); err != nil {
+			logger.Error(err, "Failed to stop app watch manager")
+		}
+	}
+}
 
 func (w *WaLaunchApp) initCommandsUpdater() {
 	go func() {
 		dbInstance := db.GetWaDB()
-		for {
 
-			commands := dbInstance.FindExpiredCommands(w.ctx)
-			logger.Info(fmt.Sprintf("Found %d expired commands", len(commands)))
-			if len(commands) > 0 {
-				var updateCommands []*models.ApplicationCommand
-				for _, command := range commands {
-					id := command.ID
-					command, err := application.Scanner.ParseApplication(command.Path)
-					if err != nil {
-						logger.Error(err, "Failed to parse application")
-						dbInstance.DeleteCommand(w.ctx, id)
-						continue
+		ticker := time.NewTicker(30 * time.Minute)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-w.ctx.Done():
+				return
+			case <-ticker.C:
+				commands := dbInstance.FindExpiredCommands(w.ctx)
+				logger.Info(fmt.Sprintf("Found %d expired commands", len(commands)))
+				if len(commands) > 0 {
+					var updateCommands []*models.ApplicationCommand
+					for _, command := range commands {
+						id := command.ID
+						command, err := application.Scanner.ParseApplication(command.Path)
+						if err != nil {
+							logger.Error(err, "Failed to parse application")
+							dbInstance.DeleteCommand(w.ctx, id)
+							continue
+						}
+						command.ID = id
+						updateCommands = append(updateCommands, command)
 					}
-					command.ID = id
-					updateCommands = append(updateCommands, command)
-				}
-				err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
-				if err != nil {
-					logger.Error(err, "Failed to batch update commands")
+					err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
+					if err != nil {
+						logger.Error(err, "Failed to batch update commands")
+					}
 				}
 			}
-			time.Sleep(time.Minute * 5)
 		}
 	}()
 }
@@ -117,5 +133,50 @@ func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string) error {
 	}
 	logger.Info(fmt.Sprintf("Command not found: %s", uniqueTriggerID))
 	return fmt.Errorf("command not found")
+}
 
+func (w *WaLaunchApp) initAppWatcher() {
+	eventHandler := watcher.NewDefaultAppEventHandler(w.ctx)
+
+	watchManager, err := watcher.NewAppWatchManager(eventHandler)
+	if err != nil {
+		logger.Error(err, "Failed to create app watch manager")
+		return
+	}
+
+	w.watchManager = watchManager
+
+	if err := w.watchManager.Start(); err != nil {
+		logger.Error(err, "Failed to start app watch manager")
+		w.watchManager = nil
+		return
+	}
+
+	logger.Info("App watcher initialized successfully")
+}
+
+func (w *WaLaunchApp) GetWatchStatus() map[string]interface{} {
+	status := make(map[string]interface{})
+
+	if w.watchManager == nil {
+		status["enabled"] = false
+		status["error"] = "watch manager not initialized"
+		return status
+	}
+
+	status["enabled"] = true
+	status["running"] = w.watchManager.IsRunning()
+
+	status["watchDirs"] = w.watchManager.GetWatchDirs()
+	status["config"] = w.watchManager.GetConfig()
+	status["metrics"] = w.watchManager.GetMetrics()
+
+	return status
+}
+
+func (w *WaLaunchApp) GetWatchMetrics() *watcher.WatcherMetrics {
+	if w.watchManager == nil {
+		return watcher.NewWatcherMetrics()
+	}
+	return w.watchManager.GetMetrics()
 }
