@@ -138,7 +138,7 @@ func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string) error {
 func (w *WaLaunchApp) initAppWatcher() {
 	eventHandler := watcher.NewDefaultAppEventHandler(w.ctx)
 
-	watchManager, err := watcher.NewAppWatchManager(eventHandler)
+	watchManager, err := watcher.NewAppWatchManager(eventHandler, w.ctx)
 	if err != nil {
 		logger.Error(err, "Failed to create app watch manager")
 		return

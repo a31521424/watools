@@ -26,12 +26,12 @@ type appWatchManager struct {
 }
 
 // NewAppWatchManager create app watch manager
-func NewAppWatchManager(handler AppEventHandler) (AppWatchManager, error) {
-	return NewAppWatchManagerWithConfig(handler, DefaultWatcherConfig())
+func NewAppWatchManager(handler AppEventHandler, ctx context.Context) (AppWatchManager, error) {
+	return NewAppWatchManagerWithConfig(handler, ctx, DefaultWatcherConfig())
 }
 
 // NewAppWatchManagerWithConfig create app watch manager with config
-func NewAppWatchManagerWithConfig(handler AppEventHandler, config *WatcherConfig) (AppWatchManager, error) {
+func NewAppWatchManagerWithConfig(handler AppEventHandler, ctx context.Context, config *WatcherConfig) (AppWatchManager, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
