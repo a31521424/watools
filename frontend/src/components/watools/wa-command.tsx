@@ -9,6 +9,7 @@ import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {isDevMode} from "@/lib/env";
 import {useDebounce} from "@uidotdev/usehooks";
 import {TriggerCommand} from "../../../wailsjs/go/command/WaLaunchApp";
+import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
 
 
 export const WaCommand = () => {
@@ -89,6 +90,14 @@ export const WaCommand = () => {
         >
             <CommandEmpty>No results found.</CommandEmpty>
             <WaApplicationCommandGroup
+                searchKey={debounceInput}
+                onTriggerCommand={onTriggerCommand}
+                onSearchSuccess={(currentSelectedKey) => {
+                    scrollToTop()
+                    currentSelectedKey && setSelectedKey(currentSelectedKey)
+                }}
+            />
+            <WaOperationCommandGroup
                 searchKey={debounceInput}
                 onTriggerCommand={onTriggerCommand}
                 onSearchSuccess={(currentSelectedKey) => {

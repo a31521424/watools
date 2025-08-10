@@ -1,17 +1,17 @@
 import {useEffect, useState} from "react";
-import {ApplicationCommandType, CommandGroupType, CommandType} from "@/schemas/command";
+import {CommandGroupType, CommandType, OperationCommandType} from "@/schemas/command";
 import {WaBaseCommandGroup} from "@/components/watools/wa-base-command-group";
 import {IFuseOptions} from "fuse.js";
-import {getApplicationCommands} from "@/api/command";
 import {WaIcon} from "@/components/watools/wa-icon";
+import {getOperationCommands} from "@/api/command";
 
-type WaApplicationCommandGroupProps = {
+type WaOperationCommandGroupProps = {
     searchKey: string
     onTriggerCommand: (command: CommandType) => void
     onSearchSuccess: (selectedKey?: string) => void
 }
 
-const WaBaseCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {
+const WaBaseCommandFuseConfig: IFuseOptions<OperationCommandType> = {
     threshold: 0.3,
     minMatchCharLength: 1,
     useExtendedSearch: true,
@@ -19,20 +19,14 @@ const WaBaseCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {
     keys: [{
         name: 'name',
         weight: 1.0
-    }, {
-        name: 'nameInitial',
-        weight: 0.8
-    }, {
-        name: 'pathName',
-        weight: 0.6
     }]
 }
 
 
-export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps) => {
-    const [applicationCommandGroup, setApplicationCommandGroup] = useState<CommandGroupType<ApplicationCommandType> | null>(null)
+export const WaOperationCommandGroup = (props: WaOperationCommandGroupProps) => {
+    const [operationCommandGroup, setOperationCommandGroup] = useState<CommandGroupType<OperationCommandType> | null>(null)
     const initApplication = () => {
-        getApplicationCommands().then(setApplicationCommandGroup)
+        getOperationCommands().then(setOperationCommandGroup)
     }
     useEffect(() => {
         initApplication()
@@ -40,16 +34,16 @@ export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps)
     if (!props.searchKey) {
         return null
     }
-    if (!applicationCommandGroup) {
+    if (!operationCommandGroup) {
         return null
     }
 
-    return <WaBaseCommandGroup<ApplicationCommandType>
+    return <WaBaseCommandGroup<OperationCommandType>
         searchKey={props.searchKey}
-        commandGroup={applicationCommandGroup}
+        commandGroup={operationCommandGroup}
         onTriggerCommand={props.onTriggerCommand}
         onSearchSuccess={props.onSearchSuccess}
         fuseOptions={WaBaseCommandFuseConfig}
-        renderItemIcon={command => <WaIcon iconPath={command.iconPath} size={16}/>}
+        renderItemIcon={command => <WaIcon value="box" size={16}/>}
     />
 }
