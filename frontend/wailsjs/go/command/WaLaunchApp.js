@@ -26,6 +26,6 @@ export function Startup(arg1) {
   return window['go']['command']['WaLaunchApp']['Startup'](arg1);
 }
 
-export function TriggerCommand(arg1) {
-  return window['go']['command']['WaLaunchApp']['TriggerCommand'](arg1);
+export function TriggerCommand(arg1, arg2) {
+  return window['go']['command']['WaLaunchApp']['TriggerCommand'](arg1, arg2);
 }

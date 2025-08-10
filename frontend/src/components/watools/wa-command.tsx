@@ -61,7 +61,7 @@ export const WaCommand = () => {
         clearInput()
         HideApp()
         HideOrShowApp()
-        TriggerCommand(command.triggerId)
+        TriggerCommand(command.triggerId, command.category)
         HideOrShowApp()
     }
     const scrollToTop = () => {

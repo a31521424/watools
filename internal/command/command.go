@@ -152,10 +152,18 @@ func (w *WaLaunchApp) GetOperationCommands() []interface{} {
 	})
 }
 
-func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string) error {
-	for _, runner := range w.applicationRunner {
-		if runner.GetTriggerID() == uniqueTriggerID {
-			return runner.OnTrigger()
+func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string, triggerCategory models.CommandCategory) error {
+	if triggerCategory == models.CategoryApplication {
+		for _, runner := range w.applicationRunner {
+			if runner.GetTriggerID() == uniqueTriggerID {
+				return runner.OnTrigger()
+			}
+		}
+	} else if triggerCategory == models.CategoryOperation {
+		for _, runner := range w.operationRunner {
+			if runner.GetTriggerID() == uniqueTriggerID {
+				return runner.OnTrigger()
+			}
 		}
 	}
 	logger.Info(fmt.Sprintf("Command not found: %s", uniqueTriggerID))
