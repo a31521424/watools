@@ -105,26 +105,37 @@ func getMacApplicationPath() []string {
 		"/System/Applications",
 		"/System/Applications/Utilities",
 		"/System/Library/CoreServices",
-		"/Developer/Applications",
 	}
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		appFolderDirs = append(appFolderDirs, filepath.Join(homeDir, "Applications"))
 	}
 	logger.Info(fmt.Sprintf("Scanning app folders: %v", appFolderDirs))
-	seen := make(map[string]bool)
+	seen := make(map[string]struct{})
 	for _, appFolderDir := range appFolderDirs {
-		apps, err := os.ReadDir(appFolderDir)
+		entries, err := os.ReadDir(appFolderDir)
 		if err != nil {
-			logger.Error(err, "Failed to read app folder dir")
+			logger.Error(err, "Failed to read de folder dir")
 			continue
 		}
-		for _, app := range apps {
-			appPath := filepath.Join(appFolderDir, app.Name())
-			if app.IsDir() && !seen[appPath] {
-				if _, err := os.Stat(filepath.Join(appPath, "Contents", "Info.plist")); err == nil {
-					appPaths = append(appPaths, appPath)
-					seen[appPath] = true
+		for _, de := range entries {
+			appPath := filepath.Join(appFolderDir, de.Name())
+			if !strings.HasSuffix(appPath, ".app") {
+				continue
+			}
+			if de.Type()&os.ModeSymlink != 0 {
+				if rp, err := filepath.EvalSymlinks(appPath); err == nil {
+					appPath = rp
 				}
+			}
+			if _, exists := seen[appPath]; exists {
+				continue
+			}
+			if fi, err := os.Stat(appPath); err != nil || !fi.IsDir() {
+				continue
+			}
+			if _, err := os.Stat(filepath.Join(appPath, "Contents", "Info.plist")); err == nil {
+				appPaths = append(appPaths, appPath)
+				seen[appPath] = struct{}{}
 			}
 			//	TODO: Safari is a special case
 		}

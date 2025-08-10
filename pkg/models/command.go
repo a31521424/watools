@@ -61,7 +61,7 @@ func NewApplicationCommand(name string, description string, path string, iconPat
 	}
 	return &ApplicationCommand{
 		Command: Command{
-			TriggerID:   fmt.Sprintf("%s-%s-%d", category, name, id),
+			TriggerID:   fmt.Sprintf("%s-%s-%s", category, name, id),
 			Name:        name,
 			Description: description,
 			Category:    category,
