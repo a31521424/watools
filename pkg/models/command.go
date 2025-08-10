@@ -10,8 +10,8 @@ import (
 type CommandCategory string
 
 const (
-	CategoryApplication     CommandCategory = "Application"
-	CategorySystemOperation CommandCategory = "SystemOperation"
+	CategoryApplication CommandCategory = "Application"
+	CategoryOperation   CommandCategory = "Operation"
 )
 
 type CommandRunner interface {
@@ -69,5 +69,35 @@ func NewApplicationCommand(name string, description string, path string, iconPat
 		IconPath: iconPath,
 		Path:     path,
 		ID:       id,
+	}
+}
+
+type OperationCommand struct {
+	Command
+	onTrigger func() error
+}
+
+func (o *OperationCommand) GetTriggerID() string {
+	return o.TriggerID
+}
+
+func (o *OperationCommand) OnTrigger() error {
+	return o.onTrigger()
+}
+
+func (o *OperationCommand) GetMetadata() *Command {
+	return &o.Command
+}
+
+func NewOperationCommand(name string, description string, onTrigger func() error) *OperationCommand {
+	category := CategoryOperation
+	return &OperationCommand{
+		Command: Command{
+			TriggerID:   fmt.Sprintf("%s-%s", category, name),
+			Name:        name,
+			Description: description,
+			Category:    category,
+		},
+		onTrigger: onTrigger,
 	}
 }

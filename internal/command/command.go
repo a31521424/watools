@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 	"watools/internal/command/application"
+	"watools/internal/command/operator"
 	"watools/internal/command/watcher"
 	"watools/pkg/db"
 	"watools/pkg/generics"
@@ -122,6 +123,15 @@ func (w *WaLaunchApp) GetAllCommands() []interface{} {
 	commands = append(commands, generics.Map(apps, func(app *models.ApplicationCommand) interface{} {
 		var m map[string]interface{}
 		data, _ := json.Marshal(app)
+		_ = json.Unmarshal(data, &m)
+		return m
+	})...)
+
+	operations := operator.GetOperations()
+	w.runners = append(w.runners, generics.Map(operations, func(operation *models.OperationCommand) models.CommandRunner { return operation })...)
+	commands = append(commands, generics.Map(operations, func(operation *models.OperationCommand) interface{} {
+		var m map[string]interface{}
+		data, _ := json.Marshal(operation)
 		_ = json.Unmarshal(data, &m)
 		return m
 	})...)
