@@ -25,7 +25,7 @@ export const getOperationCommands = async (): Promise<CommandGroupType<Operation
     const commands = await GetOperationCommands()
     console.log('fetch operation commands', commands)
 
-    let filterCommands: ApplicationCommandType[] = []
+    let filterCommands: OperationCommandType[] = []
     if (commands) {
         filterCommands = commands.map(command => ({
             ...command

@@ -22,7 +22,9 @@ export type ApplicationCommandType = CommandType & {
     pathName: string
 }
 
-export type OperationCommandType = CommandType
+export type OperationCommandType = CommandType & {
+    icon: string
+}
 
 
 export type CommandGroupType<T extends CommandType> = {

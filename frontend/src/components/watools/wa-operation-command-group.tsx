@@ -44,6 +44,6 @@ export const WaOperationCommandGroup = (props: WaOperationCommandGroupProps) => 
         onTriggerCommand={props.onTriggerCommand}
         onSearchSuccess={props.onSearchSuccess}
         fuseOptions={WaBaseCommandFuseConfig}
-        renderItemIcon={command => <WaIcon value="box" size={16}/>}
+        renderItemIcon={command => <WaIcon value={command.icon} size={16}/>}
     />
 }

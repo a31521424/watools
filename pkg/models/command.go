@@ -74,6 +74,7 @@ func NewApplicationCommand(name string, description string, path string, iconPat
 
 type OperationCommand struct {
 	Command
+	Icon      string `json:"icon"`
 	onTrigger func() error
 }
 
@@ -89,7 +90,7 @@ func (o *OperationCommand) GetMetadata() *Command {
 	return &o.Command
 }
 
-func NewOperationCommand(name string, description string, onTrigger func() error) *OperationCommand {
+func NewOperationCommand(name string, description string, icon string, onTrigger func() error) *OperationCommand {
 	category := CategoryOperation
 	return &OperationCommand{
 		Command: Command{
@@ -98,6 +99,7 @@ func NewOperationCommand(name string, description string, onTrigger func() error
 			Description: description,
 			Category:    category,
 		},
+		Icon:      icon,
 		onTrigger: onTrigger,
 	}
 }
