@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -92,4 +93,12 @@ func InitDevMode() {
 
 func IsDevMode() bool {
 	return isDevMode
+}
+
+func LogLevel() string {
+	logLevelEnv := os.Getenv("WATOOLS_LOG_LEVEL")
+	if logLevelEnv != "" {
+		return strings.ToLower(logLevelEnv)
+	}
+	return "error"
 }

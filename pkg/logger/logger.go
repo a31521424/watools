@@ -44,14 +44,18 @@ func InitWaLogger() {
 	WaLogger = zerolog.New(multipleWriter).With().Timestamp().Logger()
 	logStr := ""
 	if isatty.IsTerminal(os.Stdout.Fd()) {
-		WaLogger = WaLogger.Level(zerolog.InfoLevel)
 		logStr = "WaLogger Init for terminal (dev mode)"
 	} else {
-		WaLogger = WaLogger.Level(zerolog.ErrorLevel)
 		logStr = "WaLogger Init for file (production mode)"
 	}
+	setLogLevel()
 	Info(logStr)
 	// Redirects Log to Zero log
 	log.SetFlags(0)
 	log.SetOutput(multipleWriter)
+}
+
+func setLogLevel() {
+	lvl, _ := zerolog.ParseLevel(config.LogLevel())
+	zerolog.SetGlobalLevel(lvl)
 }
