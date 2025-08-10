@@ -64,10 +64,14 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 					var updateCommands []*models.ApplicationCommand
 					for _, command := range commands {
 						id := command.ID
-						command, err := application.Scanner.ParseApplication(command.Path)
+						command, err := application.ParseApplication(command.Path)
 						if err != nil {
 							logger.Error(err, "Failed to parse application")
-							dbInstance.DeleteCommand(w.ctx, id)
+							err := dbInstance.DeleteCommand(w.ctx, id)
+							if err != nil {
+								logger.Error(err, fmt.Sprintf("Failed to delete command %s", id))
+								return
+							}
 							continue
 						}
 						command.ID = id
@@ -91,7 +95,7 @@ func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
 	dbInstance := db.GetWaDB()
 	commands := dbInstance.GetCommands(w.ctx)
 	if len(commands) == 0 {
-		commands, err := application.Scanner.GetApplications()
+		commands, err := application.GetApplications()
 		if err != nil {
 			logger.Error(err, "Failed to get application")
 			return []*models.ApplicationCommand{}
@@ -103,7 +107,7 @@ func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
 	}
 	for _, command := range commands {
 		if command.IconPath == "" {
-			command.IconPath = application.Scanner.GetDefaultIconPath()
+			command.IconPath = application.GetDefaultIconPath()
 		}
 	}
 	return commands
