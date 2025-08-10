@@ -203,7 +203,7 @@ func (awm *appWatchManager) handleAppAddedWithRetry(path string) error {
 	// delay to ensure app is fully installed
 	time.Sleep(awm.config.GetAppAddedDelay())
 
-	command, err := application.Scanner.ParseApplication(path)
+	command, err := application.ParseApplication(path)
 	if err != nil {
 		return fmt.Errorf("failed to parse added application: %w", err)
 	}
@@ -231,7 +231,7 @@ func (awm *appWatchManager) handleAppModifiedWithRetry(path string) error {
 	// delay to ensure modification is complete
 	time.Sleep(awm.config.GetAppModifiedDelay())
 
-	command, err := application.Scanner.ParseApplication(path)
+	command, err := application.ParseApplication(path)
 	if err != nil {
 		// if parsing fails, app might be removed
 		return awm.handleAppRemovedWithRetry(path)

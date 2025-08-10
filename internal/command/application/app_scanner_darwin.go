@@ -14,12 +14,6 @@ import (
 	"watools/pkg/models"
 )
 
-var Scanner *macAppScanner
-
-func init() {
-	Scanner = &macAppScanner{}
-}
-
 type InfoPList struct {
 	BundleName             string `plist:"CFBundleName"`
 	BundleDisplayName      string `plist:"CFBundleDisplayName"`
@@ -143,11 +137,7 @@ func getMacApplicationPath() []string {
 	return appPaths
 }
 
-type macAppScanner struct {
-	AppScanner
-}
-
-func (*macAppScanner) GetApplications() ([]*models.ApplicationCommand, error) {
+func GetApplications() ([]*models.ApplicationCommand, error) {
 	var commands []*models.ApplicationCommand
 
 	for _, appPath := range getMacApplicationPath() {
@@ -160,13 +150,13 @@ func (*macAppScanner) GetApplications() ([]*models.ApplicationCommand, error) {
 	return commands, nil
 }
 
-func (*macAppScanner) ParseApplication(appPath string) (*models.ApplicationCommand, error) {
+func ParseApplication(appPath string) (*models.ApplicationCommand, error) {
 	if command := parseAppBundleInfoPlist(appPath); command != nil {
 		return command, nil
 	}
 	return nil, fmt.Errorf("failed to parse Info.plist for '%s'", appPath)
 }
 
-func (*macAppScanner) GetDefaultIconPath() string {
+func GetDefaultIconPath() string {
 	return "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericApplicationIcon.icns"
 }
