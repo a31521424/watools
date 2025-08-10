@@ -21,9 +21,10 @@ var (
 )
 
 type WaLaunchApp struct {
-	ctx          context.Context
-	runners      []models.CommandRunner
-	watchManager watcher.AppWatchManager
+	ctx               context.Context
+	applicationRunner []models.CommandRunner
+	operationRunner   []models.CommandRunner
+	watchManager      watcher.AppWatchManager
 }
 
 func GetWaLaunch() *WaLaunchApp {
@@ -114,12 +115,12 @@ func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
 	return commands
 }
 
-func (w *WaLaunchApp) GetAllCommands() []interface{} {
+func (w *WaLaunchApp) GetApplicationCommands() []interface{} {
 	var commands []interface{}
-	w.runners = nil
+	w.applicationRunner = nil
 
 	apps := w.getApplicationCommands()
-	w.runners = append(w.runners, generics.Map(apps, func(app *models.ApplicationCommand) models.CommandRunner { return app })...)
+	w.applicationRunner = append(w.applicationRunner, generics.Map(apps, func(app *models.ApplicationCommand) models.CommandRunner { return app })...)
 	commands = append(commands, generics.Map(apps, func(app *models.ApplicationCommand) interface{} {
 		var m map[string]interface{}
 		data, _ := json.Marshal(app)
@@ -127,8 +128,15 @@ func (w *WaLaunchApp) GetAllCommands() []interface{} {
 		return m
 	})...)
 
+	return commands
+}
+
+func (w *WaLaunchApp) GetOperationCommands() []interface{} {
+	var commands []interface{}
+	w.operationRunner = nil
+
 	operations := operator.GetOperations()
-	w.runners = append(w.runners, generics.Map(operations, func(operation *models.OperationCommand) models.CommandRunner { return operation })...)
+	w.operationRunner = append(w.operationRunner, generics.Map(operations, func(operation *models.OperationCommand) models.CommandRunner { return operation })...)
 	commands = append(commands, generics.Map(operations, func(operation *models.OperationCommand) interface{} {
 		var m map[string]interface{}
 		data, _ := json.Marshal(operation)
@@ -136,11 +144,16 @@ func (w *WaLaunchApp) GetAllCommands() []interface{} {
 		return m
 	})...)
 
-	return commands
+	return generics.Map(w.operationRunner, func(runner models.CommandRunner) interface{} {
+		var m map[string]interface{}
+		data, _ := json.Marshal(runner)
+		_ = json.Unmarshal(data, &m)
+		return m
+	})
 }
 
 func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string) error {
-	for _, runner := range w.runners {
+	for _, runner := range w.applicationRunner {
 		if runner.GetTriggerID() == uniqueTriggerID {
 			return runner.OnTrigger()
 		}

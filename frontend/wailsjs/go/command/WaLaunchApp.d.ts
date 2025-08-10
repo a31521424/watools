@@ -3,7 +3,9 @@
 import {watcher} from '../models';
 import {context} from '../models';
 
-export function GetAllCommands():Promise<Array<any>>;
+export function GetApplicationCommands():Promise<Array<any>>;
+
+export function GetOperationCommands():Promise<Array<any>>;
 
 export function GetWatchMetrics():Promise<watcher.WatcherMetrics>;
 
