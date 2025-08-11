@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 	"os"
@@ -18,10 +19,13 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
-	_ "github.com/golang-migrate/migrate/v4/source/file" // driver for reading migrations from files
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
 var dbMutex sync.Mutex
+
+//go:embed migrations/*.sql
+var migrationFiles embed.FS
 
 type WaDB struct {
 	db    *sql.DB
@@ -30,20 +34,25 @@ type WaDB struct {
 
 func runMigrations(db *sql.DB) error {
 	logger.Info("Running migrations")
-	driver, err := sqlite.WithInstance(db, &sqlite.Config{})
+
+	sourceDriver, err := iofs.New(migrationFiles, "migrations")
+	if err != nil {
+		logger.Error(err, "Failed to create iofs source driver")
+		return err
+	}
+
+	databaseDriver, err := sqlite.WithInstance(db, &sqlite.Config{})
 	if err != nil {
 		logger.Error(err, "Failed to create sqlite driver")
 		return err
 	}
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://pkg/db/migrations",
-		"sqlite",
-		driver,
-	)
+
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite3", databaseDriver)
 	if err != nil {
 		logger.Error(err, "Failed to create migrate instance")
 		return err
 	}
+
 	err = m.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		logger.Error(err, "Failed to run migrations")
