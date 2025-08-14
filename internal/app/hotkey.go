@@ -18,8 +18,8 @@ func (c *HotkeyConfig) ParseHotkey() ([]hotkey.Modifier, hotkey.Key, error) {
 	hotkeyParts := strings.Split(strings.ToLower(c.Hotkey), "+")
 	var modifiers []hotkey.Modifier
 	var pureKey *hotkey.Key
-	
-	// 标准化修饰键名称
+
+	// Normalize modifier key names
 	for i, part := range hotkeyParts {
 		switch part {
 		case "cmd", "command", "⌘":
@@ -32,7 +32,7 @@ func (c *HotkeyConfig) ParseHotkey() ([]hotkey.Modifier, hotkey.Key, error) {
 			hotkeyParts[i] = "shift"
 		}
 	}
-	
+
 	for _, part := range hotkeyParts {
 		if mod, ok := modifierMap[part]; ok {
 			modifiers = append(modifiers, mod)
@@ -56,18 +56,18 @@ type HotkeyListener struct {
 }
 
 func (l *HotkeyListener) listen() {
-	// 确保通道已初始化
+	// Ensure channel is initialized
 	if l.quit == nil {
 		l.quit = make(chan struct{}, 1)
 	}
-	
+
 	for {
-		// 检查是否已注册
+		// Check if registered
 		if !l.IsRegistered() {
 			logger.Info(fmt.Sprintf("Hotkey listener unregistered, id: %s", l.ID))
 			return
 		}
-		
+
 		select {
 		case <-l.quit:
 			logger.Info(fmt.Sprintf("Hotkey listener stopped, id: %s", l.ID))
@@ -84,55 +84,55 @@ func (l *HotkeyListener) listen() {
 }
 
 func (l *HotkeyListener) Register() error {
-	// 如果已经注册，先注销
+	// If already registered, unregister first
 	if l.IsRegistered() {
 		if err := l.Unregister(); err != nil {
 			logger.Info(fmt.Sprintf("Failed to unregister existing hotkey, id: %s, error: %v", l.ID, err))
 		}
 	}
-	
+
 	l.quit = make(chan struct{}, 1)
 	l.hk = hotkey.New(l.Modifiers, l.Key)
-	
+
 	err := l.hk.Register()
 	if err != nil {
 		logger.Info(fmt.Sprintf("Failed to register hotkey, id: %s, error: %v", l.ID, err))
-		// 清理资源
+		// Clean up resources
 		l.hk = nil
 		l.quit = nil
 		return err
 	}
-	
+
 	go l.listen()
 	logger.Info(fmt.Sprintf("Hotkey registered successfully, id: %s", l.ID))
 	return nil
 }
 
 func (l *HotkeyListener) Unregister() error {
-	// 检查是否已注册
+	// Check if registered
 	if !l.IsRegistered() {
-		return nil // 已经注销或从未注册
+		return nil // Already unregistered or never registered
 	}
-	
+
 	err := l.hk.Unregister()
 	if err != nil {
 		logger.Info(fmt.Sprintf("Failed to unregister hotkey, id: %s, error: %v", l.ID, err))
-		// 即使出错也要清理资源
+		// Clean up resources even if error occurs
 	}
-	
-	// 发送停止信号
+
+	// Send stop signal
 	if l.quit != nil {
 		select {
 		case l.quit <- struct{}{}:
 		default:
-			// 通道已满，无需处理
+			// Channel is full, no need to handle
 		}
 	}
-	
-	// 清理资源
+
+	// Clean up resources
 	l.hk = nil
 	l.quit = nil
-	
+
 	logger.Info(fmt.Sprintf("Hotkey unregistered successfully, id: %s", l.ID))
 	return err
 }

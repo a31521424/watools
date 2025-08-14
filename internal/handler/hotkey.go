@@ -29,7 +29,7 @@ func (h *HotkeyAPI) GetHotkeys(res http.ResponseWriter, req *http.Request) {
 	hm := app.GetHotkeyManager()
 	configs := hm.GetAllConfigs()
 
-	// 转换为API格式
+	// Convert to API format
 	apiConfigs := make([]HotkeyConfig, len(configs))
 	for i, cfg := range configs {
 		apiConfigs[i] = HotkeyConfig{
@@ -57,27 +57,27 @@ func (h *HotkeyAPI) UpdateHotkey(res http.ResponseWriter, req *http.Request) {
 	}
 
 	hm := app.GetHotkeyManager()
-	
-	// 创建应用层配置
+
+	// Create app layer config
 	cfg := app.HotkeyConfig{
 		ID:     apiConfig.ID,
 		Name:   apiConfig.Name,
 		Hotkey: apiConfig.Hotkey,
 	}
 
-	// 验证并设置配置
+	// Validate and set config
 	if err := hm.SetConfig(cfg); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// 保存配置
+	// Save config
 	if err := hm.SaveConfigs(); err != nil {
 		http.Error(res, "Failed to save configs: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// 重新注册所有热键
+	// Re-register all hotkeys
 	if err := hm.RegisterAll(); err != nil {
 		http.Error(res, "Failed to re-register hotkeys: "+err.Error(), http.StatusInternalServerError)
 		return
