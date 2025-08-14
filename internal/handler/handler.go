@@ -7,13 +7,10 @@ import (
 
 type WaHandler struct {
 	http.Handler
-	hotkeyAPI *HotkeyAPI
 }
 
 func NewWaHandler() *WaHandler {
-	return &WaHandler{
-		hotkeyAPI: NewHotkeyAPI(),
-	}
+	return &WaHandler{}
 }
 
 func (w *WaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -25,9 +22,5 @@ func (w *WaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch url {
 	case "application-icon":
 		HandleApplicationIcon(res, req)
-	case "hotkeys":
-		w.hotkeyAPI.GetHotkeys(res, req)
-	case "hotkeys/update":
-		w.hotkeyAPI.UpdateHotkey(res, req)
 	}
 }
