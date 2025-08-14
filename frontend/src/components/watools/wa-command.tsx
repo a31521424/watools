@@ -24,6 +24,7 @@ export const WaCommand = () => {
         console.log('window onFocusChange', focus)
         if (!focus) {
             HideApp()
+            clearInput()
             return
         }
         ClipboardGetText().then(text => {
