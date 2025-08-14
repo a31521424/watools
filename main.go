@@ -4,16 +4,17 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"watools/config"
 	"watools/internal"
 	"watools/internal/app"
 	"watools/internal/command"
 	"watools/internal/handler"
 	"watools/pkg/logger"
+
+	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //go:embed all:frontend/dist
@@ -35,6 +36,7 @@ func initApp(ctx context.Context, apps []interface{}) {
 		baseApp := waApp.(internal.BaseApp)
 		baseApp.Startup(ctx)
 	}
+	logger.Info("App initialized successfully")
 }
 
 func shutdownApp(ctx context.Context, apps []interface{}) {

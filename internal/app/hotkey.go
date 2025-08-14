@@ -30,18 +30,16 @@ func (c *HotkeyConfig) ParseHotkey() ([]hotkey.Modifier, hotkey.Key, error) {
 			modifiersKeyMap["alt"] = &struct{}{}
 		case "shift", "⇧":
 			modifiersKeyMap["shift"] = &struct{}{}
+		default:
+			part = strings.ToLower(part)
+			if key, ok := keyMap[part]; ok {
+				pureKey = &key
+			}
 		}
 	}
-	var hotkeyParts []string
 	for part := range modifiersKeyMap {
-		hotkeyParts = append(hotkeyParts, part)
-	}
-
-	for _, part := range hotkeyParts {
 		if mod, ok := modifierMap[part]; ok {
 			modifiers = append(modifiers, mod)
-		} else if key, ok := keyMap[part]; ok && pureKey == nil {
-			pureKey = &key
 		}
 	}
 	if len(modifiers) == 0 || pureKey == nil {
@@ -64,20 +62,17 @@ func (l *HotkeyListener) listen() {
 	if l.quit == nil {
 		l.quit = make(chan struct{}, 1)
 	}
+	if !l.IsRegistered() {
+		logger.Info(fmt.Sprintf("Hotkey listener unregistered, id: %s", l.ID))
+		return
+	}
 
 	for {
-		// Check if registered
-		if !l.IsRegistered() {
-			logger.Info(fmt.Sprintf("Hotkey listener unregistered, id: %s", l.ID))
-			return
-		}
-
 		select {
 		case <-l.quit:
 			logger.Info(fmt.Sprintf("Hotkey listener stopped, id: %s", l.ID))
 			return
 		case <-l.hk.Keydown():
-			logger.Info(fmt.Sprintf("Hotkey pressed, id: %s", l.ID))
 			if l.OnTrigger != nil {
 				l.OnTrigger()
 			} else {
@@ -108,7 +103,6 @@ func (l *HotkeyListener) Register() error {
 	}
 
 	go l.listen()
-	logger.Info(fmt.Sprintf("Hotkey registered successfully, id: %s", l.ID))
 	return nil
 }
 
@@ -142,6 +136,5 @@ func (l *HotkeyListener) Unregister() error {
 }
 
 func (l *HotkeyListener) IsRegistered() bool {
-	logger.Info(fmt.Sprintf("Checking if hotkey is registered, id: %s", l.ID))
 	return l.hk != nil
 }

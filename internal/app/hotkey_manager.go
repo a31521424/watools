@@ -191,7 +191,6 @@ func (hm *HotkeyManager) RegisterAll() error {
 			Key:       key,
 		}
 
-		// Set trigger function based on ID
 		switch cfg.ID {
 		case "show-hide-window":
 			listener.OnTrigger = func() {
