@@ -66,7 +66,7 @@ func (hm *HotkeyManager) LoadConfigs() error {
 		if os.IsNotExist(err) {
 			// If config file doesn't exist, use default config and save
 			hm.configs = defaultConfigs
-			return hm.SaveConfigs()
+			return hm.saveConfigsUnsafe()
 		}
 		return fmt.Errorf("failed to read hotkey config file: %w", err)
 	}
@@ -101,8 +101,24 @@ func (hm *HotkeyManager) SaveConfigs() error {
 	}
 	hm.mu.RUnlock()
 
+	return hm.saveConfigsUnsafe(configs)
+}
+
+// saveConfigsUnsafe saves configs without acquiring locks
+// Should only be called when lock is already held
+func (hm *HotkeyManager) saveConfigsUnsafe(configs ...[]HotkeyConfig) error {
+	var configsToSave []HotkeyConfig
+	if len(configs) > 0 {
+		configsToSave = configs[0]
+	} else {
+		configsToSave = make([]HotkeyConfig, 0, len(hm.configs))
+		for _, cfg := range hm.configs {
+			configsToSave = append(configsToSave, cfg)
+		}
+	}
+
 	// Serialize
-	data, err := json.MarshalIndent(configs, "", "  ")
+	data, err := json.MarshalIndent(configsToSave, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal hotkey configs: %w", err)
 	}
@@ -154,15 +170,12 @@ func (hm *HotkeyManager) RegisterAll() error {
 
 	// Create listener for each config
 	hm.mu.RLock()
-	defer hm.mu.RUnlock()
-
 	// For safety, copy configs values
 	configs := make([]HotkeyConfig, 0, len(hm.configs))
 	for _, cfg := range hm.configs {
 		configs = append(configs, cfg)
 	}
-
-	// Release read lock then perform registration
+	// Release read lock before performing registration
 	hm.mu.RUnlock()
 
 	for _, cfg := range configs {
