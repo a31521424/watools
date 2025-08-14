@@ -9,7 +9,7 @@ import (
 
 func GetOperations() []*models.OperationCommand {
 	return []*models.OperationCommand{
-		// 无需特殊权限的操作
+		// Operations requiring no special permissions
 		models.NewOperationCommand("System Sleep", "Put your Mac to sleep", "moon", func() error {
 			return exec.Command("osascript", "-e", "tell application \"System Events\" to sleep").Run()
 		}),
