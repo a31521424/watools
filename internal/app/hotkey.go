@@ -15,22 +15,26 @@ type HotkeyConfig struct {
 }
 
 func (c *HotkeyConfig) ParseHotkey() ([]hotkey.Modifier, hotkey.Key, error) {
-	hotkeyParts := strings.Split(strings.ToLower(c.Hotkey), "+")
+	modifiersKeyMap := make(map[string]*struct{})
 	var modifiers []hotkey.Modifier
 	var pureKey *hotkey.Key
 
 	// Normalize modifier key names
-	for i, part := range hotkeyParts {
+	for _, part := range strings.Split(strings.ToLower(c.Hotkey), "+") {
 		switch part {
 		case "cmd", "command", "⌘":
-			hotkeyParts[i] = "cmd"
+			modifiersKeyMap["cmd"] = &struct{}{}
 		case "ctrl", "control", "^":
-			hotkeyParts[i] = "ctrl"
+			modifiersKeyMap["ctrl"] = &struct{}{}
 		case "alt", "option", "opt", "⌥":
-			hotkeyParts[i] = "alt"
+			modifiersKeyMap["alt"] = &struct{}{}
 		case "shift", "⇧":
-			hotkeyParts[i] = "shift"
+			modifiersKeyMap["shift"] = &struct{}{}
 		}
+	}
+	var hotkeyParts []string
+	for part := range modifiersKeyMap {
+		hotkeyParts = append(hotkeyParts, part)
 	}
 
 	for _, part := range hotkeyParts {
@@ -138,5 +142,6 @@ func (l *HotkeyListener) Unregister() error {
 }
 
 func (l *HotkeyListener) IsRegistered() bool {
+	logger.Info(fmt.Sprintf("Checking if hotkey is registered, id: %s", l.ID))
 	return l.hk != nil
 }
