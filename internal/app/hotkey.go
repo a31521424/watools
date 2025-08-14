@@ -2,9 +2,10 @@ package app
 
 import (
 	"fmt"
-	"golang.design/x/hotkey"
 	"strings"
 	"watools/pkg/logger"
+
+	"golang.design/x/hotkey"
 )
 
 type HotkeyConfig struct {
