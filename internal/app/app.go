@@ -87,26 +87,18 @@ func (a *WaApp) ReloadAPP() {
 }
 
 func (a *WaApp) registerHotkeys() {
-	if a.hotkeyListener != nil {
+	hm := GetHotkeyManager()
+	if err := hm.LoadConfigs(); err != nil {
+		logger.Error(err, "Failed to load hotkey configs")
 		return
 	}
-	a.hotkeyListener = GetHotkeyListeners()
-	for _, l := range a.hotkeyListener {
-		err := l.Register()
-		if err != nil {
-			logger.Error(err, "Failed to register hotkey")
-		}
+	
+	if err := hm.RegisterAll(); err != nil {
+		logger.Error(err, "Failed to register hotkeys")
 	}
 }
 
 func (a *WaApp) unregisterHotkeys() {
-	if a.hotkeyListener == nil {
-		return
-	}
-	for _, l := range a.hotkeyListener {
-		err := l.Unregister()
-		if err != nil {
-			logger.Error(err, "Failed to unregister hotkey")
-		}
-	}
+	hm := GetHotkeyManager()
+	hm.UnregisterAll()
 }
