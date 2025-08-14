@@ -6,27 +6,39 @@ import {cn} from "@/lib/utils";
 import {HideApp, HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
 import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
-import {isDevMode} from "@/lib/env";
 import {useDebounce} from "@uidotdev/usehooks";
 import {TriggerCommand} from "../../../wailsjs/go/command/WaLaunchApp";
 import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
+import {ClipboardGetText} from "../../../wailsjs/runtime";
 
 
 export const WaCommand = () => {
     const [input, setInput] = useState<string>('')
+    const inputRef = useRef<HTMLInputElement>(null)
+    const [lastClipboardText, setLastClipboardText] = useState<string>('1')
     const [selectedKey, setSelectedKey] = useState<string>('')
     const commandListRef = useRef<HTMLDivElement>(null)
     const debounceInput = useDebounce(input, 50)
 
     useWindowFocus((focus) => {
         console.log('window onFocusChange', focus)
-        if (isDevMode()) {
-            return
-        }
         if (!focus) {
             HideApp()
+            return
         }
-    })
+        ClipboardGetText().then(text => {
+            text = text.trim()
+            if (text && text !== lastClipboardText) {
+                setInput(text)
+                setLastClipboardText(text)
+                setTimeout(() => {
+                    if (inputRef.current) {
+                        inputRef.current.select()
+                    }
+                }, 50)
+            }
+        })
+    }, [lastClipboardText])
 
     const isPanelOpen = input.length > 0
     const clearInput = () => {
@@ -79,6 +91,7 @@ export const WaCommand = () => {
         }}
     >
         <WaComplexInput
+            ref={inputRef}
             autoFocus
             onValueChange={setInput}
             classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}

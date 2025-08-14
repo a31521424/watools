@@ -1,6 +1,6 @@
 import {useEffect} from "react";
 
-export const useWindowFocus = (onFocusChange: (focus: boolean) => void) => {
+export const useWindowFocus = (onFocusChange: (focus: boolean) => void, deps?: React.DependencyList) => {
     useEffect(() => {
         const handleFocus = () => {
             onFocusChange(true)
@@ -14,5 +14,5 @@ export const useWindowFocus = (onFocusChange: (focus: boolean) => void) => {
             window.removeEventListener('focus', handleFocus)
             window.removeEventListener('blur', handleBlur)
         }
-    }, [])
+    }, deps)
 }
