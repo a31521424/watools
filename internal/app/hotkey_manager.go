@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"watools/config"
 	"watools/pkg/logger"
 )
@@ -13,10 +14,12 @@ type HotkeyManager struct {
 	listeners map[string]*HotkeyListener
 	configs   map[string]HotkeyConfig
 	configDir string
+	mu        sync.RWMutex
 }
 
 var (
 	hotkeyManagerInstance *HotkeyManager
+	hotkeyManagerOnce     sync.Once
 	defaultConfigs        = map[string]HotkeyConfig{
 		"show-hide-window": {
 			ID:     "show-hide-window",
@@ -37,17 +40,20 @@ var (
 )
 
 func GetHotkeyManager() *HotkeyManager {
-	if hotkeyManagerInstance == nil {
+	hotkeyManagerOnce.Do(func() {
 		hotkeyManagerInstance = &HotkeyManager{
 			listeners: make(map[string]*HotkeyListener),
 			configs:   make(map[string]HotkeyConfig),
 			configDir: filepath.Join(config.ProjectCacheDir(), "hotkeys"),
 		}
-	}
+	})
 	return hotkeyManagerInstance
 }
 
 func (hm *HotkeyManager) LoadConfigs() error {
+	hm.mu.Lock()
+	defer hm.mu.Unlock()
+	
 	// 创建配置目录
 	if err := os.MkdirAll(hm.configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create hotkey config directory: %w", err)
@@ -88,12 +94,13 @@ func (hm *HotkeyManager) LoadConfigs() error {
 }
 
 func (hm *HotkeyManager) SaveConfigs() error {
-	// 转换为slice
+	hm.mu.RLock()
 	configs := make([]HotkeyConfig, 0, len(hm.configs))
 	for _, cfg := range hm.configs {
 		configs = append(configs, cfg)
 	}
-
+	hm.mu.RUnlock()
+	
 	// 序列化
 	data, err := json.MarshalIndent(configs, "", "  ")
 	if err != nil {
@@ -110,6 +117,8 @@ func (hm *HotkeyManager) SaveConfigs() error {
 }
 
 func (hm *HotkeyManager) GetConfig(id string) (HotkeyConfig, bool) {
+	hm.mu.RLock()
+	defer hm.mu.RUnlock()
 	cfg, exists := hm.configs[id]
 	return cfg, exists
 }
@@ -120,11 +129,15 @@ func (hm *HotkeyManager) SetConfig(cfg HotkeyConfig) error {
 		return fmt.Errorf("invalid hotkey format: %w", err)
 	}
 
+	hm.mu.Lock()
+	defer hm.mu.Unlock()
 	hm.configs[cfg.ID] = cfg
 	return nil
 }
 
 func (hm *HotkeyManager) GetAllConfigs() []HotkeyConfig {
+	hm.mu.RLock()
+	defer hm.mu.RUnlock()
 	configs := make([]HotkeyConfig, 0, len(hm.configs))
 	for _, cfg := range hm.configs {
 		configs = append(configs, cfg)
@@ -133,13 +146,28 @@ func (hm *HotkeyManager) GetAllConfigs() []HotkeyConfig {
 }
 
 func (hm *HotkeyManager) RegisterAll() error {
-	waApp := GetWaApp()
+	// 先获取 WaApp 实例
+	// 注意：这里我们不直接在 GetWaApp 中调用 GetHotkeyManager，避免循环依赖
+	// 如果存在循环依赖问题，可能需要重新设计架构
+	// 这里假设 WaApp 的初始化不依赖于 HotkeyManager 的初始化
 	
 	// 清除现有的监听器
 	hm.unregisterAll()
 
 	// 为每个配置创建监听器
+	hm.mu.RLock()
+	defer hm.mu.RUnlock()
+	
+	// 为了安全起见，我们复制一份 configs 的值
+	configs := make([]HotkeyConfig, 0, len(hm.configs))
 	for _, cfg := range hm.configs {
+		configs = append(configs, cfg)
+	}
+	
+	// 释放读锁后再进行注册操作
+	hm.mu.RUnlock()
+	
+	for _, cfg := range configs {
 		modifiers, key, err := cfg.ParseHotkey()
 		if err != nil {
 			logger.Info(fmt.Sprintf("Failed to parse hotkey, id: %s, error: %v", cfg.ID, err))
@@ -156,15 +184,25 @@ func (hm *HotkeyManager) RegisterAll() error {
 		switch cfg.ID {
 		case "show-hide-window":
 			listener.OnTrigger = func() {
-				waApp.HideOrShowApp()
+				// 延迟获取 WaApp 实例，避免初始化顺序问题
+				app := GetWaApp()
+				if app != nil {
+					app.HideOrShowApp()
+				}
 			}
 		case "reload":
 			listener.OnTrigger = func() {
-				waApp.Reload()
+				app := GetWaApp()
+				if app != nil {
+					app.Reload()
+				}
 			}
 		case "reload-app":
 			listener.OnTrigger = func() {
-				waApp.ReloadAPP()
+				app := GetWaApp()
+				if app != nil {
+					app.ReloadAPP()
+				}
 			}
 		default:
 			// 对于未知的热键ID，跳过注册
@@ -178,7 +216,11 @@ func (hm *HotkeyManager) RegisterAll() error {
 			continue
 		}
 
+		// 重新加锁以更新 listeners
+		hm.mu.Lock()
 		hm.listeners[cfg.ID] = listener
+		hm.mu.Unlock()
+		
 		logger.Info(fmt.Sprintf("Hotkey registered, id: %s, hotkey: %s", cfg.ID, cfg.Hotkey))
 	}
 
@@ -190,6 +232,9 @@ func (hm *HotkeyManager) UnregisterAll() {
 }
 
 func (hm *HotkeyManager) unregisterAll() {
+	hm.mu.Lock()
+	defer hm.mu.Unlock()
+	
 	for id, listener := range hm.listeners {
 		if err := listener.Unregister(); err != nil {
 			logger.Error(err, "Failed to unregister hotkey", "id", id)
@@ -199,6 +244,8 @@ func (hm *HotkeyManager) unregisterAll() {
 }
 
 func (hm *HotkeyManager) IsRegistered(id string) bool {
+	hm.mu.RLock()
+	defer hm.mu.RUnlock()
 	listener, exists := hm.listeners[id]
 	if !exists {
 		return false
