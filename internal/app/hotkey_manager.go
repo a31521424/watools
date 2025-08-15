@@ -26,16 +26,6 @@ var (
 			Name:   "Show/Hide Window",
 			Hotkey: "cmd+Space",
 		},
-		"reload": {
-			ID:     "reload",
-			Name:   "Reload",
-			Hotkey: "cmd+R",
-		},
-		"reload-app": {
-			ID:     "reload-app",
-			Name:   "Reload App",
-			Hotkey: "cmd+shift+R",
-		},
 	}
 )
 
@@ -198,20 +188,6 @@ func (hm *HotkeyManager) RegisterAll() error {
 				app := GetWaApp()
 				if app != nil {
 					app.HideOrShowApp()
-				}
-			}
-		case "reload":
-			listener.OnTrigger = func() {
-				app := GetWaApp()
-				if app != nil {
-					app.Reload()
-				}
-			}
-		case "reload-app":
-			listener.OnTrigger = func() {
-				app := GetWaApp()
-				if app != nil {
-					app.ReloadAPP()
 				}
 			}
 		default:
