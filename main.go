@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"os"
 	"watools/config"
 	"watools/internal"
 	"watools/internal/app"
@@ -24,8 +25,14 @@ var assets embed.FS
 var wailsJson []byte
 
 func init() {
+	initLang()
 	config.ParseProject(wailsJson)
 	logger.InitWaLogger()
+}
+
+func initLang() {
+	os.Setenv("LANG", "en_US.UTF-8")
+	os.Setenv("LC_ALL", "en_US.UTF-8")
 }
 
 func initApp(ctx context.Context, apps []interface{}) {
