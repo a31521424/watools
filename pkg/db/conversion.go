@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+	"watools/pkg/logger"
 	"watools/pkg/models"
 )
 
@@ -16,7 +17,7 @@ func ConvertApplicationCommand(command Command) *models.ApplicationCommand {
 	var err error
 	dirUpdatedAt, err = time.Parse(time.DateTime, command.DirUpdatedAt)
 	if err != nil {
-		Logger.Error(err, fmt.Sprintf("Failed to parse dirUpdatedAt: %s", command.DirUpdatedAt))
+		logger.Error(err, fmt.Sprintf("Failed to parse dirUpdatedAt: %s", command.DirUpdatedAt))
 	}
 	return models.NewApplicationCommand(command.Name, command.Description, command.Path, command.IconPath, command.ID, dirUpdatedAt)
 }
