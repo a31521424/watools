@@ -198,7 +198,6 @@ func (d *WaDB) DeleteCommand(ctx context.Context, id string) error {
 }
 
 func (d *WaDB) GetCommandIsUpdatedDir(ctx context.Context, path string, dirUpdatedAt time.Time) *models.ApplicationCommand {
-	logger.Info(fmt.Sprintf("Updating dir updated command %s", path))
 	command, err := d.query.GetCommandIsUpdatedDir(ctx, GetCommandIsUpdatedDirParams{
 		Path:         path,
 		DirUpdatedAt: dirUpdatedAt.Format(time.DateTime),
