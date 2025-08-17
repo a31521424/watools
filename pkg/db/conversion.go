@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 	"watools/pkg/models"
 )
@@ -11,11 +12,11 @@ func nullString(s string) sql.NullString {
 }
 
 func ConvertApplicationCommand(command Command) *models.ApplicationCommand {
-	var dirUpdatedAt *time.Time
-	if parsed, err := time.Parse(time.DateTime, command.DirUpdatedAt); err != nil {
-		dirUpdatedAt = nil
-	} else {
-		dirUpdatedAt = &parsed
+	var dirUpdatedAt time.Time
+	var err error
+	dirUpdatedAt, err = time.Parse(time.DateTime, command.DirUpdatedAt)
+	if err != nil {
+		Logger.Error(err, fmt.Sprintf("Failed to parse dirUpdatedAt: %s", command.DirUpdatedAt))
 	}
 	return models.NewApplicationCommand(command.Name, command.Description, command.Path, command.IconPath, command.ID, dirUpdatedAt)
 }

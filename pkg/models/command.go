@@ -31,15 +31,10 @@ type Command struct {
 
 type ApplicationCommand struct {
 	Command
-	IconPath     string     `json:"iconPath,omitempty"`
-	Path         string     `json:"path"`
-	ID           string     `json:"id"`
-	DirUpdatedAt *time.Time `json:"dirUpdatedAt"`
-}
-
-func (a *ApplicationCommand) UpdateDirUpdatedAt(updatedAt *time.Time) *ApplicationCommand {
-	a.DirUpdatedAt = updatedAt
-	return a
+	IconPath     string    `json:"iconPath,omitempty"`
+	Path         string    `json:"path"`
+	ID           string    `json:"id"`
+	DirUpdatedAt time.Time `json:"dirUpdatedAt"`
 }
 
 func (a *ApplicationCommand) GetTriggerID() string {
@@ -62,7 +57,7 @@ func (a *ApplicationCommand) GetMetadata() *Command {
 	return &a.Command
 }
 
-func NewApplicationCommand(name string, description string, path string, iconPath string, id string, dirUpdatedAt *time.Time) *ApplicationCommand {
+func NewApplicationCommand(name string, description string, path string, iconPath string, id string, dirUpdatedAt time.Time) *ApplicationCommand {
 	category := CategoryApplication
 	if id == "" {
 		id = uuid.New().String()
