@@ -27,7 +27,14 @@ type InfoPList struct {
 
 func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
 	var commandName, commandDescription, commandIconPath, commandID string
-
+	fi, err := os.Stat(appPath)
+	if err != nil {
+		return nil
+	}
+	if !fi.IsDir() {
+		return nil
+	}
+	dirUpdatedAt := fi.ModTime()
 	plistPath := filepath.Join(strings.TrimSpace(appPath), "Contents", "Info.plist")
 	plistFile, err := os.Open(plistPath)
 	if err != nil {
@@ -91,7 +98,7 @@ func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
 			}
 		}
 	}
-	return models.NewApplicationCommand(commandName, commandDescription, appPath, commandIconPath, commandID, nil)
+	return models.NewApplicationCommand(commandName, commandDescription, appPath, commandIconPath, commandID, dirUpdatedAt)
 }
 
 type AppPathInfo struct {
@@ -149,7 +156,7 @@ func GetApplications() ([]*models.ApplicationCommand, error) {
 
 	for _, appPathInfo := range getMacApplicationPath() {
 		if command := parseAppBundleInfoPlist(appPathInfo.Path); command != nil {
-			commands = append(commands, command.UpdateDirUpdatedAt(&appPathInfo.UpdateAt))
+			commands = append(commands, command)
 		} else {
 			logger.Info(fmt.Sprintf("Failed to parse Info.plist for '%s'", appPathInfo))
 		}
