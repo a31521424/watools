@@ -2,7 +2,7 @@ version: "2"
 sql:
   - engine: "sqlite"
     schema: "./pkg/db/migrations/"
-    queries: "./pkg/db/query.sql"
+    queries: "./pkg/db/queries/"
     gen:
       go:
         package: "db"
