@@ -1,5 +1,5 @@
 import {WaComplexInput} from "@/components/watools/wa-complex-input";
-import {Command, CommandEmpty, CommandList} from "@/components/ui/command";
+import {Command, CommandList} from "@/components/ui/command";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {WaApplicationCommandGroup} from "@/components/watools/wa-application-command-group";
 import {cn} from "@/lib/utils";
@@ -28,7 +28,7 @@ export const WaCommand = () => {
         }
         ClipboardGetText().then(text => {
             text = text.trim()
-            if (text.length >200) {
+            if (text.length > 200) {
                 text = text.substring(0, 200) + '...'
             }
             if (text && text !== lastClipboardText.current) {
@@ -97,6 +97,7 @@ export const WaCommand = () => {
             ref={inputRef}
             autoFocus
             onValueChange={setInput}
+            className="text-gray-600 text-xl"
             classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}
             value={input}
         />
