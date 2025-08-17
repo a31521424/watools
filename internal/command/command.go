@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 	"watools/internal/command/application"
@@ -60,53 +61,58 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 			case <-w.ctx.Done():
 				return
 			case <-ticker.C:
-				commands := dbInstance.GetExpiredCommands(w.ctx)
-				logger.Info(fmt.Sprintf("Found %d expired commands", len(commands)))
-				if len(commands) > 0 {
-					var updateCommands []*models.ApplicationCommand
-					for _, command := range commands {
-						id := command.ID
-						command, err := application.ParseApplication(command.Path)
-						if err != nil {
-							logger.Error(err, "Failed to parse application")
-							err := dbInstance.DeleteCommand(w.ctx, id)
-							if err != nil {
-								logger.Error(err, fmt.Sprintf("Failed to delete command %s", id))
-								return
-							}
-							continue
-						}
-						command.ID = id
-						updateCommands = append(updateCommands, command)
-					}
-					err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
+				commands := dbInstance.GetCommands(w.ctx)
+				seen := make(map[string]struct{})
+				var updateCommands []*models.ApplicationCommand
+				var insertCommands []*models.ApplicationCommand
+				for _, command := range commands {
+					seen[command.Path] = struct{}{}
+					id := command.ID
+					fi, err := os.Stat(command.Path)
 					if err != nil {
-						logger.Error(err, "Failed to batch update commands")
-					}
-				}
-				logger.Info("Checking commands for disk")
-				appPathInfos := application.GetAppPathInfos()
-				for _, appPathInfo := range appPathInfos {
-					dbCommand := dbInstance.GetCommandIsUpdatedDir(w.ctx, appPathInfo.Path, appPathInfo.UpdateAt)
-					if dbCommand == nil {
+						logger.Error(err, fmt.Sprintf("Failed to stat command %s", command.Path))
 						continue
 					}
-					logger.Info(fmt.Sprintf("Command %s is updated, parse now", dbCommand.Name))
-					command, err := application.ParseApplication(dbCommand.Path)
+					if fi.ModTime().Format(time.DateTime) == command.DirUpdatedAt.Format(time.DateTime) {
+						continue
+					}
+					logger.Info(fmt.Sprintf("Update dir updated for command: %s, %s", command.Name, command.Path))
+					command, err := application.ParseApplication(command.Path)
 					if err != nil {
 						logger.Error(err, "Failed to parse application")
-						err := dbInstance.DeleteCommand(w.ctx, command.ID)
+						err := dbInstance.DeleteCommand(w.ctx, id)
 						if err != nil {
-							logger.Error(err, fmt.Sprintf("Failed to delete command %s", command.ID))
-							return
+							logger.Error(err, fmt.Sprintf("Failed to delete command %s", id))
 						}
 						continue
 					}
-					command.ID = dbCommand.ID
-					err = dbInstance.BatchUpdateCommands(w.ctx, []*models.ApplicationCommand{command})
-					if err != nil {
-						logger.Error(err, fmt.Sprintf("Failed to update command name: %s, id: %s", command.Name, command.ID))
+					command.ID = id
+					updateCommands = append(updateCommands, command)
+				}
+				logger.Info(fmt.Sprintf("Update commands result: updated %d / total %d", len(updateCommands), len(commands)))
+				err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
+				if err != nil {
+					logger.Error(err, "Failed to batch update updated commands to db")
+				}
+
+				logger.Info("Checking commands from disk")
+				appPathInfos := application.GetAppPathInfos()
+				for _, appPathInfo := range appPathInfos {
+					if _, exists := seen[appPathInfo.Path]; exists {
+						continue
 					}
+					logger.Info(fmt.Sprintf("Adding command from path: %s", appPathInfo.Path))
+					command, err := application.ParseApplication(appPathInfo.Path)
+					if err != nil {
+						logger.Error(err, "Failed to parse application")
+						continue
+					}
+					insertCommands = append(insertCommands, command)
+				}
+				logger.Info(fmt.Sprintf("Scan disk commands result: added %d / total %d", len(insertCommands), len(appPathInfos)))
+				err = dbInstance.BatchInsertCommands(w.ctx, insertCommands)
+				if err != nil {
+					logger.Error(err, "Failed to batch insert new commands to db")
 				}
 			}
 		}
