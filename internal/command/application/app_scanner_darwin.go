@@ -3,15 +3,17 @@ package application
 import (
 	"bytes"
 	"fmt"
-	"howett.net/plist"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 	"watools/config"
 	"watools/pkg/logger"
 	"watools/pkg/models"
+
+	"howett.net/plist"
 )
 
 type InfoPList struct {
@@ -89,11 +91,16 @@ func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
 			}
 		}
 	}
-	return models.NewApplicationCommand(commandName, commandDescription, appPath, commandIconPath, commandID)
+	return models.NewApplicationCommand(commandName, commandDescription, appPath, commandIconPath, commandID, nil)
 }
 
-func getMacApplicationPath() []string {
-	var appPaths []string
+type AppPathInfo struct {
+	Path     string
+	UpdateAt time.Time
+}
+
+func getMacApplicationPath() []AppPathInfo {
+	var appPathInfos []AppPathInfo
 	appFolderDirs := []string{
 		"/Applications",
 		"/System/Applications",
@@ -124,27 +131,27 @@ func getMacApplicationPath() []string {
 			if _, exists := seen[appPath]; exists {
 				continue
 			}
-			if fi, err := os.Stat(appPath); err != nil || !fi.IsDir() {
+			fi, err := os.Stat(appPath)
+			if err != nil || !fi.IsDir() {
 				continue
 			}
 			if _, err := os.Stat(filepath.Join(appPath, "Contents", "Info.plist")); err == nil {
-				appPaths = append(appPaths, appPath)
+				appPathInfos = append(appPathInfos, AppPathInfo{Path: appPath, UpdateAt: fi.ModTime()})
 				seen[appPath] = struct{}{}
 			}
-			//	TODO: Safari is a special case
 		}
 	}
-	return appPaths
+	return appPathInfos
 }
 
 func GetApplications() ([]*models.ApplicationCommand, error) {
 	var commands []*models.ApplicationCommand
 
-	for _, appPath := range getMacApplicationPath() {
-		if command := parseAppBundleInfoPlist(appPath); command != nil {
-			commands = append(commands, command)
+	for _, appPathInfo := range getMacApplicationPath() {
+		if command := parseAppBundleInfoPlist(appPathInfo.Path); command != nil {
+			commands = append(commands, command.UpdateDirUpdatedAt(&appPathInfo.UpdateAt))
 		} else {
-			logger.Info(fmt.Sprintf("Failed to parse Info.plist for '%s'", appPath))
+			logger.Info(fmt.Sprintf("Failed to parse Info.plist for '%s'", appPathInfo))
 		}
 	}
 	return commands, nil
@@ -159,4 +166,8 @@ func ParseApplication(appPath string) (*models.ApplicationCommand, error) {
 
 func GetDefaultIconPath() string {
 	return "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericApplicationIcon.icns"
+}
+
+func GetAppPathInfos() []AppPathInfo {
+	return getMacApplicationPath()
 }

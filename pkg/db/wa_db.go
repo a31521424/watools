@@ -22,8 +22,6 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
-var dbMutex sync.Mutex
-
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
@@ -37,43 +35,37 @@ func runMigrations(db *sql.DB) error {
 
 	sourceDriver, err := iofs.New(migrationFiles, "migrations")
 	if err != nil {
-		logger.Error(err, "Failed to create iofs source driver")
-		return err
+		return fmt.Errorf("failed to create iofs driver: %w", err)
 	}
 
 	databaseDriver, err := sqlite.WithInstance(db, &sqlite.Config{})
 	if err != nil {
-		logger.Error(err, "Failed to create sqlite driver")
-		return err
+		return fmt.Errorf("failed to create sqlite driver: %w", err)
 	}
 
 	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite3", databaseDriver)
 	if err != nil {
-		logger.Error(err, "Failed to create migrate instance")
-		return err
+		return fmt.Errorf("failed to create migrate instance: %w", err)
 	}
 
 	err = m.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		logger.Error(err, "Failed to run migrations")
-		return err
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 	logger.Info("Migrations completed")
 	return nil
 }
 
-func NewWaDB() *WaDB {
+func NewWaDB() (*WaDB, error) {
 	sqliteFolderPath := filepath.Join(config.ProjectCacheDir(), "data")
 	sqliteFilePath := filepath.Join(sqliteFolderPath, fmt.Sprintf("%s.db", config.ProjectName()))
 	err := os.MkdirAll(sqliteFolderPath, 0755)
 	if err != nil {
-		logger.Error(err, "Failed to create sqlite folder")
-		return nil
+		return nil, fmt.Errorf("failed to create sqlite folder: %w", err)
 	}
 	db, err := sql.Open("sqlite", sqliteFilePath)
 	if err != nil {
-		logger.Error(err, "Failed to open sqlite file")
-		return nil
+		return nil, fmt.Errorf("failed to open sqlite file: %w", err)
 	}
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)
@@ -81,31 +73,27 @@ func NewWaDB() *WaDB {
 	db.SetConnMaxIdleTime(1 * time.Minute)
 	if err := db.Ping(); err != nil {
 		db.Close()
-		logger.Error(err, "Failed to ping sqlite file")
-		return nil
+		return nil, fmt.Errorf("failed to ping sqlite file: %w", err)
 	}
 	if _, err = db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
 		db.Close()
-		logger.Error(err, "Failed to set journal mode")
-		return nil
+		return nil, fmt.Errorf("failed to set journal mode: %w", err)
 	}
 	if _, err = db.Exec("PRAGMA busy_timeout = 5000;"); err != nil {
 		db.Close()
-		logger.Error(err, "Failed to set busy timeout")
-		return nil
+		return nil, fmt.Errorf("failed to set busy timeout: %w", err)
 	}
 
 	err = runMigrations(db)
 	if err != nil {
 		db.Close()
-		logger.Error(err, "Failed to run db migrations")
-		return nil
+		return nil, fmt.Errorf("failed to run db migrations: %w", err)
 	}
 
 	return &WaDB{
 		db:    db,
 		query: New(db),
-	}
+	}, nil
 }
 
 var (
@@ -115,9 +103,10 @@ var (
 
 func GetWaDB() *WaDB {
 	waDBOnce.Do(func() {
-		waDBInstance = NewWaDB()
-		if waDBInstance == nil {
-			panic("Failed to get WaDB instance")
+		var err error
+		waDBInstance, err = NewWaDB()
+		if err != nil || waDBInstance == nil {
+			panic(err)
 		}
 	})
 	return waDBInstance
@@ -125,6 +114,15 @@ func GetWaDB() *WaDB {
 
 func (d *WaDB) Close() error {
 	return d.db.Close()
+}
+
+func (d *WaDB) withTx(ctx context.Context, f func(tx *sql.Tx) error) error {
+	tx, err := d.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+	return f(tx)
 }
 
 func (d *WaDB) GetCommands(ctx context.Context) []*models.ApplicationCommand {
@@ -137,36 +135,30 @@ func (d *WaDB) GetCommands(ctx context.Context) []*models.ApplicationCommand {
 }
 
 func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
-	dbMutex.Lock()
-	defer dbMutex.Unlock()
 	logger.Info(fmt.Sprintf("Starting to insert %d commands", len(commands)))
-	tx, err := d.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	txQuery := d.query.WithTx(tx)
-	for _, command := range commands {
-		if _, err := txQuery.CreateCommand(ctx, CreateCommandParams{
-			ID:          command.ID,
-			Name:        command.Name,
-			Description: command.Description,
-			Category:    string(command.Category),
-			Path:        command.Path,
-			IconPath:    command.IconPath,
-		}); err != nil {
-			logger.Error(err, "Failed to create command")
-			return err
+	return d.withTx(ctx, func(tx *sql.Tx) error {
+		txQuery := d.query.WithTx(tx)
+		for _, command := range commands {
+			if _, err := txQuery.CreateCommand(ctx, CreateCommandParams{
+				ID:           command.ID,
+				Name:         command.Name,
+				Description:  command.Description,
+				Category:     string(command.Category),
+				Path:         command.Path,
+				IconPath:     command.IconPath,
+				DirUpdatedAt: command.DirUpdatedAt.Format(time.DateTime),
+			}); err != nil {
+				return err
+			}
 		}
-	}
-	logger.Info(fmt.Sprintf("Inserted %d commands", len(commands)))
-	return tx.Commit()
+		logger.Info(fmt.Sprintf("Inserted %d commands", len(commands)))
+		return tx.Commit()
+	})
 }
 
-func (d *WaDB) FindExpiredCommands(ctx context.Context) []*models.ApplicationCommand {
+func (d *WaDB) GetExpiredCommands(ctx context.Context) []*models.ApplicationCommand {
 	expiredTime := time.Now().Add(-time.Hour * 24)
-	dbCommands, err := d.query.FindExpiredCommands(ctx, *TimeToDBTime(&expiredTime))
+	dbCommands, err := d.query.GetExpiredCommands(ctx, expiredTime.Format(time.DateTime))
 	if err != nil {
 		logger.Error(err, "Failed to get expired commands")
 		return nil
@@ -175,44 +167,47 @@ func (d *WaDB) FindExpiredCommands(ctx context.Context) []*models.ApplicationCom
 }
 
 func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
-	dbMutex.Lock()
-	defer dbMutex.Unlock()
 	logger.Info(fmt.Sprintf("Updating %d commands", len(commands)))
-	tx, err := d.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	txQuery := d.query.WithTx(tx)
-	for _, command := range commands {
-		if err := txQuery.UpdateCommandPartial(ctx, UpdateCommandPartialParams{
-			ID:          command.ID,
-			Name:        nullString(command.Name),
-			Path:        nullString(command.Path),
-			IconPath:    nullString(command.IconPath),
-			Category:    nullString(string(command.Category)),
-			Description: nullString(command.Description),
-		}); err != nil {
-			logger.Error(err, "Failed to update command")
-			return err
+	return d.withTx(ctx, func(tx *sql.Tx) error {
+		txQuery := d.query.WithTx(tx)
+		for _, command := range commands {
+			if err := txQuery.UpdateCommandPartial(ctx, UpdateCommandPartialParams{
+				ID:          command.ID,
+				Name:        nullString(command.Name),
+				Path:        nullString(command.Path),
+				IconPath:    nullString(command.IconPath),
+				Category:    nullString(string(command.Category)),
+				Description: nullString(command.Description),
+			}); err != nil {
+				return fmt.Errorf("failed to update command: %w", err)
+			}
 		}
-	}
-	return tx.Commit()
+		return tx.Commit()
+	})
 }
 
 func (d *WaDB) DeleteCommand(ctx context.Context, id string) error {
-	dbMutex.Lock()
-	defer dbMutex.Unlock()
 	logger.Info(fmt.Sprintf("Deleting command %s", id))
-	tx, err := d.db.BeginTx(ctx, nil)
+	return d.withTx(ctx, func(tx *sql.Tx) error {
+		txQuery := d.query.WithTx(tx)
+		if err := txQuery.DeleteCommand(ctx, id); err != nil {
+			return fmt.Errorf("failed to delete command: %w", err)
+		}
+		return tx.Commit()
+	})
+}
+
+func (d *WaDB) GetCommandIsUpdatedDir(ctx context.Context, path string, dirUpdatedAt time.Time) *models.ApplicationCommand {
+	logger.Info(fmt.Sprintf("Updating dir updated command %s", path))
+	command, err := d.query.GetCommandIsUpdatedDir(ctx, GetCommandIsUpdatedDirParams{
+		Path:         path,
+		DirUpdatedAt: dirUpdatedAt.Format(time.DateTime),
+	})
 	if err != nil {
-		return err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		logger.Error(err, "Failed to get command is updated dir")
 	}
-	defer tx.Rollback()
-	txQuery := d.query.WithTx(tx)
-	if err := txQuery.DeleteCommand(ctx, id); err != nil {
-		logger.Error(err, "Failed to delete command")
-		return err
-	}
-	return tx.Commit()
+	return ConvertApplicationCommand(command)
 }

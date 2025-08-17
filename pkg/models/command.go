@@ -2,9 +2,11 @@ package models
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"os/exec"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type CommandCategory string
@@ -29,9 +31,15 @@ type Command struct {
 
 type ApplicationCommand struct {
 	Command
-	IconPath string `json:"iconPath,omitempty"`
-	Path     string `json:"path"`
-	ID       string `json:"id"`
+	IconPath     string     `json:"iconPath,omitempty"`
+	Path         string     `json:"path"`
+	ID           string     `json:"id"`
+	DirUpdatedAt *time.Time `json:"dirUpdatedAt"`
+}
+
+func (a *ApplicationCommand) UpdateDirUpdatedAt(updatedAt *time.Time) *ApplicationCommand {
+	a.DirUpdatedAt = updatedAt
+	return a
 }
 
 func (a *ApplicationCommand) GetTriggerID() string {
@@ -54,7 +62,7 @@ func (a *ApplicationCommand) GetMetadata() *Command {
 	return &a.Command
 }
 
-func NewApplicationCommand(name string, description string, path string, iconPath string, id string) *ApplicationCommand {
+func NewApplicationCommand(name string, description string, path string, iconPath string, id string, dirUpdatedAt *time.Time) *ApplicationCommand {
 	category := CategoryApplication
 	if id == "" {
 		id = uuid.New().String()
@@ -66,9 +74,10 @@ func NewApplicationCommand(name string, description string, path string, iconPat
 			Description: description,
 			Category:    category,
 		},
-		IconPath: iconPath,
-		Path:     path,
-		ID:       id,
+		IconPath:     iconPath,
+		Path:         path,
+		ID:           id,
+		DirUpdatedAt: dirUpdatedAt,
 	}
 }
 

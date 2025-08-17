@@ -1,0 +1,36 @@
+-- name: CreateCommand :one
+INSERT INTO commands (id, name, description, category, path, icon_path, dir_updated_at)
+VALUES (@id, @name, @description, @category, @path, @icon_path, @dir_updated_at)
+RETURNING *;
+
+-- name: GetCommands :many
+SELECT *
+FROM commands;
+
+-- name: GetExpiredCommands :many
+SELECT *
+FROM commands
+WHERE updated_at < @updated_at;
+
+-- name: DeleteCommand :exec
+DELETE
+FROM commands
+WHERE id = @id;
+
+-- name: UpdateCommandPartial :exec
+UPDATE commands
+SET name           = COALESCE(sqlc.narg(name), name),
+    description    = COALESCE(sqlc.narg(description), description),
+    category       = COALESCE(sqlc.narg(category), category),
+    path           = COALESCE(sqlc.narg(path), path),
+    icon_path      = COALESCE(sqlc.narg(icon_path), icon_path),
+    dir_updated_at = COALESCE(sqlc.narg(dir_updated_at), dir_updated_at),
+    updated_at     = datetime('now', 'localtime')
+WHERE id = @id;
+
+-- name: GetCommandIsUpdatedDir :one
+SELECT *
+FROM commands
+WHERE dir_updated_at != @dir_updated_at
+  AND path = @path
+LIMIT 1;

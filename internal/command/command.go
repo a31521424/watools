@@ -60,7 +60,7 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 			case <-w.ctx.Done():
 				return
 			case <-ticker.C:
-				commands := dbInstance.FindExpiredCommands(w.ctx)
+				commands := dbInstance.GetExpiredCommands(w.ctx)
 				logger.Info(fmt.Sprintf("Found %d expired commands", len(commands)))
 				if len(commands) > 0 {
 					var updateCommands []*models.ApplicationCommand
@@ -82,6 +82,30 @@ func (w *WaLaunchApp) initCommandsUpdater() {
 					err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
 					if err != nil {
 						logger.Error(err, "Failed to batch update commands")
+					}
+				}
+				logger.Info("Checking commands for disk")
+				appPathInfos := application.GetAppPathInfos()
+				for _, appPathInfo := range appPathInfos {
+					dbCommand := dbInstance.GetCommandIsUpdatedDir(w.ctx, appPathInfo.Path, appPathInfo.UpdateAt)
+					if dbCommand == nil {
+						continue
+					}
+					logger.Info(fmt.Sprintf("Command %s is updated, parse now", dbCommand.Name))
+					command, err := application.ParseApplication(dbCommand.Path)
+					if err != nil {
+						logger.Error(err, "Failed to parse application")
+						err := dbInstance.DeleteCommand(w.ctx, command.ID)
+						if err != nil {
+							logger.Error(err, fmt.Sprintf("Failed to delete command %s", command.ID))
+							return
+						}
+						continue
+					}
+					command.ID = dbCommand.ID
+					err = dbInstance.BatchUpdateCommands(w.ctx, []*models.ApplicationCommand{command})
+					if err != nil {
+						logger.Error(err, fmt.Sprintf("Failed to update command name: %s, id: %s", command.Name, command.ID))
 					}
 				}
 			}

@@ -9,15 +9,14 @@ import (
 )
 
 type Command struct {
-	ID          string
-	Name        string
-	Description string
-	Category    string
-	Path        string
-	IconPath    string
-	CreatedAt   string
-	UpdatedAt   string
-	IsDeleted   bool
+	ID           string
+	Name         string
+	Description  string
+	Category     string
+	Path         string
+	IconPath     string
+	UpdatedAt    string
+	DirUpdatedAt string
 }
 
 type Metadata struct {
