@@ -104,7 +104,6 @@ export const WaCommand = () => {
             ref={commandListRef}
             className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}
         >
-            <CommandEmpty>No results found.</CommandEmpty>
             <WaApplicationCommandGroup
                 searchKey={debounceInput}
                 onTriggerCommand={onTriggerCommand}
