@@ -1,7 +1,8 @@
 import {WaCommand} from "./wa-command";
 import {resizeWindowHeight, useElementResize} from "@/hooks/useElementResize";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
-import {EventsEmit} from "../../../wailsjs/runtime/runtime";
+import {EventsEmit} from "../../../wailsjs/runtime";
+import {isDevMode} from "@/lib/env";
 
 const Main = () => {
     const windowRef = useElementResize<HTMLDivElement>({
@@ -11,6 +12,9 @@ const Main = () => {
     // Enable panel-like behavior by emitting focus events to backend
     useWindowFocus((focused) => {
         if (!focused) {
+            if (isDevMode()) {
+                return
+            }
             EventsEmit("window-blur");
         }
     });

@@ -96,7 +96,7 @@ export const WaCommand = () => {
             ref={inputRef}
             autoFocus
             onValueChange={setInput}
-            className="text-gray-600 text-xl"
+            className="text-gray-800 text-xl"
             classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}
             value={input}
         />

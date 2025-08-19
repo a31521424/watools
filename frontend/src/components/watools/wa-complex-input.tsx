@@ -10,7 +10,7 @@ export const WaComplexInput = (
     return (
         <div
             data-slot="command-input-wrapper"
-            className={cn("flex h-9 items-center gap-2 border-b p-3", classNames?.wrapper)}
+            className={cn("flex h-9 items-center gap-2 p-3", classNames?.wrapper)}
         >
             <CommandPrimitive.Input
                 data-slot="command-input"
