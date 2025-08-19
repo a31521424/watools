@@ -58,6 +58,9 @@ func (a *WaApp) Startup(ctx context.Context) {
 	a.ctx = ctx
 	a.initWindowSize()
 	a.registerHotkeys()
+
+	// Enable panel behavior for auto focus return
+	a.EnablePanelBehavior()
 }
 
 func (a *WaApp) Shutdown(ctx context.Context) {

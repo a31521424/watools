@@ -3,9 +3,13 @@
 import {app} from '../models';
 import {context} from '../models';
 
+export function EnablePanelBehavior():Promise<void>;
+
 export function GetHotkeys():Promise<Array<app.HotkeyConfigAPI>>;
 
 export function HideApp():Promise<void>;
+
+export function HideAppWithFocusReturn():Promise<void>;
 
 export function HideOrShowApp():Promise<void>;
 
@@ -14,6 +18,8 @@ export function Reload():Promise<void>;
 export function ReloadAPP():Promise<void>;
 
 export function ShowApp():Promise<void>;
+
+export function ShowAppAsPanel():Promise<void>;
 
 export function Shutdown(arg1:context.Context):Promise<void>;
 

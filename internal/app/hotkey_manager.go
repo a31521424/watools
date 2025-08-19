@@ -187,7 +187,11 @@ func (hm *HotkeyManager) RegisterAll() error {
 				// Delay getting WaApp instance to avoid init order issues
 				app := GetWaApp()
 				if app != nil {
-					app.HideOrShowApp()
+					if app.isHidden {
+						app.ShowAppAsPanel()
+					} else {
+						app.HideAppWithFocusReturn()
+					}
 				}
 			}
 		default:
