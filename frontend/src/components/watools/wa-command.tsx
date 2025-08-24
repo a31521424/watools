@@ -19,6 +19,15 @@ export const WaCommand = () => {
     const [selectedKey, setSelectedKey] = useState<string>('')
     const commandListRef = useRef<HTMLDivElement>(null)
     const debounceInput = useDebounce(input, 50)
+    const firstSelectedKeyRef = useRef<string>('')
+
+    // Reset selected key when search input changes
+    useEffect(() => {
+        if (debounceInput) {
+            setSelectedKey('')
+            firstSelectedKeyRef.current = ''
+        }
+    }, [debounceInput])
 
     useWindowFocus((focus) => {
         console.log('window onFocusChange', focus)
@@ -109,7 +118,10 @@ export const WaCommand = () => {
                 onTriggerCommand={onTriggerCommand}
                 onSearchSuccess={(currentSelectedKey) => {
                     scrollToTop()
-                    currentSelectedKey && setSelectedKey(currentSelectedKey)
+                    if (currentSelectedKey && !firstSelectedKeyRef.current) {
+                        firstSelectedKeyRef.current = currentSelectedKey
+                        setSelectedKey(currentSelectedKey)
+                    }
                 }}
             />
             <WaOperationCommandGroup
@@ -117,7 +129,10 @@ export const WaCommand = () => {
                 onTriggerCommand={onTriggerCommand}
                 onSearchSuccess={(currentSelectedKey) => {
                     scrollToTop()
-                    currentSelectedKey && setSelectedKey(currentSelectedKey)
+                    if (currentSelectedKey && !firstSelectedKeyRef.current) {
+                        firstSelectedKeyRef.current = currentSelectedKey
+                        setSelectedKey(currentSelectedKey)
+                    }
                 }}
             />
         </CommandList>
