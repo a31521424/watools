@@ -15,9 +15,11 @@ var (
 )
 
 type WaApp struct {
-	ctx            context.Context
-	isHidden       bool
-	hotkeyListener []*HotkeyListener
+	ctx              context.Context
+	isHidden         bool
+	hotkeyListener   []*HotkeyListener
+	lastScreenWidth  int
+	lastScreenHeight int
 }
 
 // HotkeyConfigAPI represents a hotkey configuration for API responses
@@ -43,7 +45,17 @@ func (a *WaApp) initWindowSize() {
 	width := 800
 	height := 56
 	if len(screen) > 0 {
-		width = screen[0].Size.Width / 3
+		// Find primary screen and record its size
+		primaryScreen := screen[0]
+		for _, s := range screen {
+			if s.IsPrimary {
+				primaryScreen = s
+				break
+			}
+		}
+		a.lastScreenWidth = primaryScreen.Size.Width
+		a.lastScreenHeight = primaryScreen.Size.Height
+		width = primaryScreen.Width / 3
 	}
 	runtime.WindowSetSize(a.ctx, width, height)
 	if config.IsDevMode() {
@@ -76,8 +88,59 @@ func (a *WaApp) HideApp() {
 
 func (a *WaApp) ShowApp() {
 	if a.isHidden {
+		// Check if screen configuration changed before showing
+		a.checkAndRepositionIfNeeded()
 		runtime.WindowShow(a.ctx)
 		a.isHidden = false
+	}
+}
+
+// checkAndRepositionIfNeeded checks for screen changes and repositions window if needed
+func (a *WaApp) checkAndRepositionIfNeeded() {
+	screen, err := runtime.ScreenGetAll(a.ctx)
+	if err != nil {
+		logger.Error(err, "Failed to get screen for reposition check")
+		return
+	}
+
+	if len(screen) == 0 {
+		return
+	}
+
+	// Find current primary screen
+	primaryScreen := screen[0]
+	for _, s := range screen {
+		if s.IsPrimary {
+			primaryScreen = s
+			break
+		}
+	}
+
+	// Check if screen dimensions changed
+	if primaryScreen.Size.Width != a.lastScreenWidth || primaryScreen.Size.Height != a.lastScreenHeight {
+		logger.Info("Screen configuration changed, repositioning window")
+
+		// Update stored dimensions
+		a.lastScreenWidth = primaryScreen.Width
+		a.lastScreenHeight = primaryScreen.Height
+
+		// Recalculate and set window size
+		width := primaryScreen.Width / 3
+		if width < 400 {
+			width = 400
+		}
+		if width > 800 {
+			width = 800
+		}
+		height := 56
+
+		runtime.WindowSetSize(a.ctx, width, height)
+
+		if config.IsDevMode() {
+			runtime.WindowSetPosition(a.ctx, width, 0)
+		} else {
+			runtime.WindowCenter(a.ctx)
+		}
 	}
 }
 

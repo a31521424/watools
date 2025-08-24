@@ -75,6 +75,9 @@ func (a *WaApp) ShowAppAsPanel() {
 	// Small delay to ensure the previous app is stored
 	time.Sleep(10 * time.Millisecond)
 
+	// Check if screen configuration changed before showing
+	a.checkAndRepositionIfNeeded()
+
 	// Show our window
 	runtime.WindowShow(a.ctx)
 	a.isHidden = false
