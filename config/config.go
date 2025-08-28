@@ -4,12 +4,13 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type Project struct {

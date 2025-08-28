@@ -86,8 +86,8 @@ type WatcherMetrics struct {
 	EventsDropped      int64            `json:"eventsDropped"`
 	ErrorsCount        int64            `json:"errorsCount"`
 	EventsByType       map[string]int64 `json:"eventsByType"`
-	LastEventTime      time.Time        `json:"lastEventTime"`
-	WatcherStartTime   time.Time        `json:"watcherStartTime"`
+	LastEventTime      time.Time        `json:"lastEventTime" ts_type:"string"`
+	WatcherStartTime   time.Time        `json:"watcherStartTime" ts_type:"string"`
 	ProcessingDuration time.Duration    `json:"processingDuration"`
 }
 
