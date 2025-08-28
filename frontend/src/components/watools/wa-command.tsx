@@ -36,8 +36,8 @@ export const WaCommand = () => {
         }
         ClipboardGetText().then(text => {
             text = text.trim()
-            if (text.length > 200) {
-                text = text.substring(0, 200) + '...'
+            if (text.length > 1500) {
+                text = text.substring(0, 1500) + '...'
             }
             if (text && text !== lastClipboardText.current) {
                 setInput(text)
