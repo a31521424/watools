@@ -55,7 +55,7 @@ func (a *WaApp) initWindowSize() {
 		}
 		a.lastScreenWidth = primaryScreen.Size.Width
 		a.lastScreenHeight = primaryScreen.Size.Height
-		width = primaryScreen.Width / 3
+		width = primaryScreen.Size.Width / 3
 	}
 	runtime.WindowSetSize(a.ctx, width, height)
 	if config.IsDevMode() {
