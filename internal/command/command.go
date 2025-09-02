@@ -38,7 +38,7 @@ func GetWaLaunch() *WaLaunchApp {
 func (w *WaLaunchApp) Startup(ctx context.Context) {
 	w.ctx = ctx
 	w.initAppWatcher()
-	w.asyncUpdateApplications()
+	w.asyncUpdateApplications(30 * time.Second)
 }
 
 func (w *WaLaunchApp) Shutdown(ctx context.Context) {
@@ -49,7 +49,8 @@ func (w *WaLaunchApp) Shutdown(ctx context.Context) {
 	}
 }
 
-func (w *WaLaunchApp) asyncUpdateApplications() {
+func (w *WaLaunchApp) asyncUpdateApplications(delay time.Duration) {
+	time.Sleep(delay)
 	go w.updateApplications()
 }
 
