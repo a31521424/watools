@@ -37,8 +37,8 @@ func GetWaLaunch() *WaLaunchApp {
 
 func (w *WaLaunchApp) Startup(ctx context.Context) {
 	w.ctx = ctx
-	w.initCommandsUpdater()
 	w.initAppWatcher()
+	w.asyncUpdateApplications()
 }
 
 func (w *WaLaunchApp) Shutdown(ctx context.Context) {
@@ -49,74 +49,65 @@ func (w *WaLaunchApp) Shutdown(ctx context.Context) {
 	}
 }
 
-func (w *WaLaunchApp) initCommandsUpdater() {
-	go func() {
-		dbInstance := db.GetWaDB()
+func (w *WaLaunchApp) asyncUpdateApplications() {
+	go w.updateApplications()
+}
 
-		ticker := time.NewTicker(30 * time.Minute)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-w.ctx.Done():
-				return
-			case <-ticker.C:
-				commands := dbInstance.GetCommands(w.ctx)
-				seen := make(map[string]struct{})
-				var updateCommands []*models.ApplicationCommand
-				var insertCommands []*models.ApplicationCommand
-				for _, command := range commands {
-					seen[command.Path] = struct{}{}
-					id := command.ID
-					fi, err := os.Stat(command.Path)
-					if err != nil {
-						logger.Error(err, fmt.Sprintf("Failed to stat command %s", command.Path))
-						continue
-					}
-					if fi.ModTime().Format(time.DateTime) == command.DirUpdatedAt.Format(time.DateTime) {
-						continue
-					}
-					logger.Info(fmt.Sprintf("Update dir updated for command: %s, %s", command.Name, command.Path))
-					command, err := application.ParseApplication(command.Path)
-					if err != nil {
-						logger.Error(err, "Failed to parse application")
-						err := dbInstance.DeleteCommand(w.ctx, id)
-						if err != nil {
-							logger.Error(err, fmt.Sprintf("Failed to delete command %s", id))
-						}
-						continue
-					}
-					command.ID = id
-					updateCommands = append(updateCommands, command)
-				}
-				logger.Info(fmt.Sprintf("Update commands result: updated %d / total %d", len(updateCommands), len(commands)))
-				err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
-				if err != nil {
-					logger.Error(err, "Failed to batch update updated commands to db")
-				}
-
-				logger.Info("Checking commands from disk")
-				appPathInfos := application.GetAppPathInfos()
-				for _, appPathInfo := range appPathInfos {
-					if _, exists := seen[appPathInfo.Path]; exists {
-						continue
-					}
-					logger.Info(fmt.Sprintf("Adding command from path: %s", appPathInfo.Path))
-					command, err := application.ParseApplication(appPathInfo.Path)
-					if err != nil {
-						logger.Error(err, "Failed to parse application")
-						continue
-					}
-					insertCommands = append(insertCommands, command)
-				}
-				logger.Info(fmt.Sprintf("Scan disk commands result: added %d / total %d", len(insertCommands), len(appPathInfos)))
-				err = dbInstance.BatchInsertCommands(w.ctx, insertCommands)
-				if err != nil {
-					logger.Error(err, "Failed to batch insert new commands to db")
-				}
-			}
+func (w *WaLaunchApp) updateApplications() {
+	dbInstance := db.GetWaDB()
+	commands := dbInstance.GetCommands(w.ctx)
+	seen := make(map[string]struct{})
+	var updateCommands []*models.ApplicationCommand
+	var insertCommands []*models.ApplicationCommand
+	for _, command := range commands {
+		seen[command.Path] = struct{}{}
+		id := command.ID
+		fi, err := os.Stat(command.Path)
+		if err != nil {
+			logger.Error(err, fmt.Sprintf("Failed to stat command %s", command.Path))
+			continue
 		}
-	}()
+		if fi.ModTime().Format(time.DateTime) == command.DirUpdatedAt.Format(time.DateTime) {
+			continue
+		}
+		logger.Info(fmt.Sprintf("Update dir updated for command: %s, %s", command.Name, command.Path))
+		command, err := application.ParseApplication(command.Path)
+		if err != nil {
+			logger.Error(err, "Failed to parse application")
+			err := dbInstance.DeleteCommand(w.ctx, id)
+			if err != nil {
+				logger.Error(err, fmt.Sprintf("Failed to delete command %s", id))
+			}
+			continue
+		}
+		command.ID = id
+		updateCommands = append(updateCommands, command)
+	}
+	logger.Info(fmt.Sprintf("Update commands result: updated %d / total %d", len(updateCommands), len(commands)))
+	err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
+	if err != nil {
+		logger.Error(err, "Failed to batch update updated commands to db")
+	}
+
+	logger.Info("Checking commands from disk")
+	appPathInfos := application.GetAppPathInfos()
+	for _, appPathInfo := range appPathInfos {
+		if _, exists := seen[appPathInfo.Path]; exists {
+			continue
+		}
+		logger.Info(fmt.Sprintf("Adding command from path: %s", appPathInfo.Path))
+		command, err := application.ParseApplication(appPathInfo.Path)
+		if err != nil {
+			logger.Error(err, "Failed to parse application")
+			continue
+		}
+		insertCommands = append(insertCommands, command)
+	}
+	logger.Info(fmt.Sprintf("Scan disk commands result: added %d / total %d", len(insertCommands), len(appPathInfos)))
+	err = dbInstance.BatchInsertCommands(w.ctx, insertCommands)
+	if err != nil {
+		logger.Error(err, "Failed to batch insert new commands to db")
+	}
 }
 
 var ApiMutex sync.Mutex
