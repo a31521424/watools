@@ -172,12 +172,13 @@ func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.Appli
 		txQuery := d.query.WithTx(tx)
 		for _, command := range commands {
 			if err := txQuery.UpdateCommandPartial(ctx, UpdateCommandPartialParams{
-				ID:          command.ID,
-				Name:        nullString(command.Name),
-				Path:        nullString(command.Path),
-				IconPath:    nullString(command.IconPath),
-				Category:    nullString(string(command.Category)),
-				Description: nullString(command.Description),
+				ID:           command.ID,
+				Name:         nullString(command.Name),
+				Path:         nullString(command.Path),
+				IconPath:     nullString(command.IconPath),
+				Category:     nullString(string(command.Category)),
+				Description:  nullString(command.Description),
+				DirUpdatedAt: nullString(command.DirUpdatedAt.Format(time.DateTime)),
 			}); err != nil {
 				return fmt.Errorf("failed to update command: %w", err)
 			}
