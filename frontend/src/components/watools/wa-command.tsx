@@ -3,13 +3,12 @@ import {Command, CommandList} from "@/components/ui/command";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {WaApplicationCommandGroup} from "@/components/watools/wa-application-command-group";
 import {cn} from "@/lib/utils";
-import {HideApp, HideOrShowApp} from "../../../wailsjs/go/app/WaApp";
 import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {useDebounce} from "@uidotdev/usehooks";
-import {TriggerCommand} from "../../../wailsjs/go/command/WaLaunchApp";
 import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
+import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 
 
 export const WaCommand = () => {
@@ -61,7 +60,7 @@ export const WaCommand = () => {
         if (isPanelOpen) {
             clearInput()
         } else {
-            HideOrShowApp()
+            HideOrShowAppApi()
         }
     }
 
@@ -82,10 +81,9 @@ export const WaCommand = () => {
 
     const onTriggerCommand = (command: CommandType) => {
         clearInput()
-        HideApp()
-        HideOrShowApp()
-        TriggerCommand(command.triggerId, command.category)
-        HideOrShowApp()
+        TriggerCommandApi(command.triggerId, command.category).then(() => {
+            HideAppApi()
+        })
     }
     const scrollToTop = () => {
         if (commandListRef.current) {

@@ -1,9 +1,9 @@
 import {ApplicationCommandType, CommandGroupType, OperationCommandType} from "@/schemas/command";
 import {isContainNonAscii, toPinyinInitial} from "@/lib/search";
-import {GetApplicationCommands, GetOperationCommands} from "../../wailsjs/go/command/WaLaunchApp";
+import {GetApplicationCommandsApi, GetOperatorCommandsApi} from "../../wailsjs/go/coordinator/WaAppCoordinator";
 
 export const getApplicationCommands = async (): Promise<CommandGroupType<ApplicationCommandType>> => {
-    const commands = await GetApplicationCommands()
+    const commands = await GetApplicationCommandsApi()
     console.log('fetch application commands', commands)
 
     let filterCommands: ApplicationCommandType[] = []
@@ -22,7 +22,7 @@ export const getApplicationCommands = async (): Promise<CommandGroupType<Applica
 }
 
 export const getOperationCommands = async (): Promise<CommandGroupType<OperationCommandType>> => {
-    const commands = await GetOperationCommands()
+    const commands = await GetOperatorCommandsApi()
     console.log('fetch operation commands', commands)
 
     let filterCommands: OperationCommandType[] = []

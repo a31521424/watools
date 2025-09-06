@@ -24,14 +24,11 @@ type Project struct {
 }
 
 var ProjectInfo Project
-var (
-	isDevMode bool
-	devOnce   sync.Once
-)
 
 var (
-	wailsCtx context.Context
-	ctxOnce  sync.Once
+	initOnce  sync.Once
+	wailsCtx  context.Context
+	isDevMode bool
 )
 
 func ParseProject(jsonFile []byte) {
@@ -71,22 +68,10 @@ func ProjectCacheDir() string {
 	return cacheDir
 }
 
-func InitWailsContext(ctx context.Context) {
-	ctxOnce.Do(func() {
+func InitWithWailsContext(ctx context.Context) {
+	initOnce.Do(func() {
 		wailsCtx = ctx
-	})
-}
 
-func GetWailsContext() context.Context {
-	return wailsCtx
-}
-
-func InitDevMode() {
-	if wailsCtx == nil {
-		log.Println("wails context is nil")
-		return
-	}
-	devOnce.Do(func() {
 		info := runtime.Environment(wailsCtx)
 		isDevMode = info.BuildType == "dev"
 	})

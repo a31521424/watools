@@ -179,22 +179,29 @@ func (w *WaLaunchApp) GetOperationCommands() []interface{} {
 	})
 }
 
-func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string, triggerCategory models.CommandCategory) error {
+func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string, triggerCategory models.CommandCategory) {
+	var runners []models.CommandRunner
 	if triggerCategory == models.CategoryApplication {
-		for _, runner := range w.applicationRunner {
-			if runner.GetTriggerID() == uniqueTriggerID {
-				return runner.OnTrigger()
-			}
-		}
+		runners = w.applicationRunner
 	} else if triggerCategory == models.CategoryOperation {
-		for _, runner := range w.operationRunner {
-			if runner.GetTriggerID() == uniqueTriggerID {
-				return runner.OnTrigger()
+		runners = w.operationRunner
+	} else {
+		logger.Error(fmt.Errorf("trigger category is not valid: %s", triggerCategory))
+	}
+
+	for _, runner := range runners {
+		if runner.GetTriggerID() == uniqueTriggerID {
+			err := runner.OnTrigger()
+			if err != nil {
+				logger.Error(err, fmt.Sprintf("cant trigger runner: %s", uniqueTriggerID))
+			} else {
+				logger.Info(fmt.Sprintf("trigger runner success: %s", uniqueTriggerID))
 			}
+			return
 		}
 	}
-	logger.Info(fmt.Sprintf("Command not found: %s", uniqueTriggerID))
-	return fmt.Errorf("command not found")
+
+	logger.Error(fmt.Errorf("not find runner: %s", uniqueTriggerID))
 }
 
 func (w *WaLaunchApp) initAppWatcher() {

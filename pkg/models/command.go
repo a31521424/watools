@@ -16,6 +16,17 @@ const (
 	CategoryOperation   CommandCategory = "Operation"
 )
 
+func ParseCommandCategory(category string) (CommandCategory, error) {
+	switch category {
+	case string(CategoryApplication):
+		return CategoryApplication, nil
+	case string(CategoryOperation):
+		return CategoryOperation, nil
+	default:
+		return CategoryApplication, fmt.Errorf("cant parse command category")
+	}
+}
+
 type CommandRunner interface {
 	GetTriggerID() string
 	OnTrigger() error

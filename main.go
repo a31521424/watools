@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"os"
 	"watools/config"
-	"watools/internal"
-	"watools/internal/app"
-	"watools/internal/command"
+	"watools/internal/coordinator"
 	"watools/internal/handler"
 	"watools/pkg/logger"
 
@@ -35,29 +33,8 @@ func initLang() {
 	os.Setenv("LC_ALL", "en_US.UTF-8")
 }
 
-func initApp(ctx context.Context, apps []interface{}) {
-	config.InitWailsContext(ctx)
-	config.InitDevMode()
-
-	for _, waApp := range apps {
-		baseApp := waApp.(internal.BaseApp)
-		baseApp.Startup(ctx)
-	}
-	logger.Info("App initialized successfully")
-}
-
-func shutdownApp(ctx context.Context, apps []interface{}) {
-	for _, waApp := range apps {
-		baseApp := waApp.(internal.BaseApp)
-		baseApp.Shutdown(ctx)
-	}
-}
-
 func main() {
-	waApps := []interface{}{
-		app.GetWaApp(),
-		command.GetWaLaunch(),
-	}
+	waAppCoordinator := coordinator.GetWaAppCoordinator()
 
 	err := wails.Run(&options.App{
 		Title:     "watools",
@@ -70,12 +47,11 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
 		OnStartup: func(ctx context.Context) {
-			initApp(ctx, waApps)
+			config.InitWithWailsContext(ctx)
+			waAppCoordinator.Startup(ctx)
 		},
-		OnShutdown: func(ctx context.Context) {
-			shutdownApp(ctx, waApps)
-		},
-		Bind: waApps,
+		OnShutdown: waAppCoordinator.Shutdown,
+		Bind:       []interface{}{waAppCoordinator},
 		Mac: &mac.Options{
 			TitleBar:             mac.TitleBarHidden(),
 			WebviewIsTransparent: true,
