@@ -64,11 +64,18 @@ export const WaCommand = () => {
         }
     }
 
+
     const handleHotkey = useCallback((e: KeyboardEvent) => {
         if (e.key === "Escape") {
             e.preventDefault()
             e.stopPropagation()
             onClickEscape()
+        } else if (e.key === "Tab") {
+            e.preventDefault()
+            e.stopPropagation()
+            if (inputRef.current) {
+                inputRef.current.focus()
+            }
         }
     }, [input])
 
