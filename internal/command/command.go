@@ -14,6 +14,8 @@ import (
 	"watools/pkg/generics"
 	"watools/pkg/logger"
 	"watools/pkg/models"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 var (
@@ -108,6 +110,9 @@ func (w *WaLaunchApp) updateApplications() {
 	err = dbInstance.BatchInsertCommands(w.ctx, insertCommands)
 	if err != nil {
 		logger.Error(err, "Failed to batch insert new commands to db")
+	}
+	if len(insertCommands)+len(updateCommands) > 0 {
+		runtime.EventsEmit(w.ctx, "watools.applicationChanged")
 	}
 }
 

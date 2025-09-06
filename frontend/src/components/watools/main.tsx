@@ -15,7 +15,7 @@ const Main = () => {
             if (isDevMode()) {
                 return
             }
-            EventsEmit("window-blur");
+            EventsEmit("watools.window-blur");
         }
     });
 

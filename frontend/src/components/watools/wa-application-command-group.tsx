@@ -4,6 +4,7 @@ import {WaBaseCommandGroup} from "@/components/watools/wa-base-command-group";
 import {IFuseOptions} from "fuse.js";
 import {getApplicationCommands} from "@/api/command";
 import {WaIcon} from "@/components/watools/wa-icon";
+import {EventsOff, EventsOn} from "../../../wailsjs/runtime";
 
 type WaApplicationCommandGroupProps = {
     searchKey: string
@@ -31,11 +32,14 @@ const WaBaseCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {
 
 export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps) => {
     const [applicationCommandGroup, setApplicationCommandGroup] = useState<CommandGroupType<ApplicationCommandType> | null>(null)
-    const initApplication = () => {
-        getApplicationCommands().then(setApplicationCommandGroup)
-    }
     useEffect(() => {
-        initApplication()
+        getApplicationCommands().then(setApplicationCommandGroup)
+        EventsOn('watools.applicationChanged', () => {
+            getApplicationCommands().then(setApplicationCommandGroup)
+        })
+        return () => {
+            EventsOff('watools.applicationChanged')
+        }
     }, [])
     if (!props.searchKey) {
         return null

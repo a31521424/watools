@@ -53,7 +53,7 @@ import (
 // EnablePanelBehavior configures the window to behave like a macOS panel
 func (a *WaApp) EnablePanelBehavior() {
 	// Listen for window blur events to implement auto-hide
-	runtime.EventsOn(a.ctx, "window-blur", func(optionalData ...interface{}) {
+	runtime.EventsOn(a.ctx, "watools.window-blur", func(optionalData ...interface{}) {
 		if !a.isHidden {
 			// First return focus to previous app
 			C.returnFocusToPreviousApp()
