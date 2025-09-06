@@ -188,9 +188,9 @@ func (hm *HotkeyManager) RegisterAll() error {
 				app := GetWaApp()
 				if app != nil {
 					if app.isHidden {
-						app.ShowAppAsPanel()
+						app.ShowApp()
 					} else {
-						app.HideAppWithFocusReturn()
+						app.HideApp()
 					}
 				}
 			}

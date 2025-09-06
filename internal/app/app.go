@@ -70,29 +70,10 @@ func (a *WaApp) Startup(ctx context.Context) {
 	a.ctx = ctx
 	a.initWindowSize()
 	a.registerHotkeys()
-
-	// Enable panel behavior for auto focus return
-	a.EnablePanelBehavior()
 }
 
 func (a *WaApp) Shutdown(ctx context.Context) {
 	a.unregisterHotkeys()
-}
-
-func (a *WaApp) HideApp() {
-	if !a.isHidden {
-		runtime.WindowHide(a.ctx)
-		a.isHidden = true
-	}
-}
-
-func (a *WaApp) ShowApp() {
-	if a.isHidden {
-		// Check if screen configuration changed before showing
-		a.checkAndRepositionIfNeeded()
-		runtime.WindowShow(a.ctx)
-		a.isHidden = false
-	}
 }
 
 // checkAndRepositionIfNeeded checks for screen changes and repositions window if needed
@@ -143,15 +124,6 @@ func (a *WaApp) checkAndRepositionIfNeeded() {
 		}
 	}
 }
-
-func (a *WaApp) HideOrShowApp() {
-	if a.isHidden {
-		a.ShowApp()
-	} else {
-		a.HideApp()
-	}
-}
-
 func (a *WaApp) Reload() {
 	runtime.WindowReload(a.ctx)
 }

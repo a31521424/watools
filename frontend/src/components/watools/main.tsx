@@ -1,8 +1,8 @@
 import {WaCommand} from "./wa-command";
 import {resizeWindowHeight, useElementResize} from "@/hooks/useElementResize";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
-import {EventsEmit} from "../../../wailsjs/runtime";
 import {isDevMode} from "@/lib/env";
+import {HideAppApi} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 
 const Main = () => {
     const windowRef = useElementResize<HTMLDivElement>({
@@ -15,7 +15,7 @@ const Main = () => {
             if (isDevMode()) {
                 return
             }
-            EventsEmit("watools.window-blur");
+            HideAppApi()
         }
     });
 
