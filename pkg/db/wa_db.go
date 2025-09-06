@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 	"watools/config"
-	"watools/pkg/generics"
 	"watools/pkg/logger"
 	"watools/pkg/models"
 
+	"github.com/samber/lo"
 	_ "modernc.org/sqlite"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -131,7 +131,9 @@ func (d *WaDB) GetCommands(ctx context.Context) []*models.ApplicationCommand {
 		logger.Error(err, "Failed to get commands")
 		return nil
 	}
-	return generics.Map(dbCommands, ConvertApplicationCommand)
+	return lo.Map(dbCommands, func(item Command, _ int) *models.ApplicationCommand {
+		return ConvertApplicationCommand(item)
+	})
 }
 
 func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
@@ -163,7 +165,9 @@ func (d *WaDB) GetExpiredCommands(ctx context.Context) []*models.ApplicationComm
 		logger.Error(err, "Failed to get expired commands")
 		return nil
 	}
-	return generics.Map(dbCommands, ConvertApplicationCommand)
+	return lo.Map(dbCommands, func(item Command, _ int) *models.ApplicationCommand {
+		return ConvertApplicationCommand(item)
+	})
 }
 
 func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.ApplicationCommand) error {

@@ -11,10 +11,10 @@ import (
 	"watools/internal/command/operator"
 	"watools/internal/command/watcher"
 	"watools/pkg/db"
-	"watools/pkg/generics"
 	"watools/pkg/logger"
 	"watools/pkg/models"
 
+	"github.com/samber/lo"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -147,8 +147,8 @@ func (w *WaLaunchApp) GetApplicationCommands() []interface{} {
 	w.applicationRunner = nil
 
 	apps := w.getApplicationCommands()
-	w.applicationRunner = append(w.applicationRunner, generics.Map(apps, func(app *models.ApplicationCommand) models.CommandRunner { return app })...)
-	commands = append(commands, generics.Map(apps, func(app *models.ApplicationCommand) interface{} {
+	w.applicationRunner = append(w.applicationRunner, lo.Map(apps, func(app *models.ApplicationCommand, _ int) models.CommandRunner { return app })...)
+	commands = append(commands, lo.Map(apps, func(app *models.ApplicationCommand, _ int) interface{} {
 		var m map[string]interface{}
 		data, _ := json.Marshal(app)
 		_ = json.Unmarshal(data, &m)
@@ -163,15 +163,15 @@ func (w *WaLaunchApp) GetOperationCommands() []interface{} {
 	w.operationRunner = nil
 
 	operations := operator.GetOperations()
-	w.operationRunner = append(w.operationRunner, generics.Map(operations, func(operation *models.OperationCommand) models.CommandRunner { return operation })...)
-	commands = append(commands, generics.Map(operations, func(operation *models.OperationCommand) interface{} {
+	w.operationRunner = append(w.operationRunner, lo.Map(operations, func(operation *models.OperationCommand, _ int) models.CommandRunner { return operation })...)
+	commands = append(commands, lo.Map(operations, func(operation *models.OperationCommand, _ int) interface{} {
 		var m map[string]interface{}
 		data, _ := json.Marshal(operation)
 		_ = json.Unmarshal(data, &m)
 		return m
 	})...)
 
-	return generics.Map(w.operationRunner, func(runner models.CommandRunner) interface{} {
+	return lo.Map(w.operationRunner, func(runner models.CommandRunner, _ int) interface{} {
 		var m map[string]interface{}
 		data, _ := json.Marshal(runner)
 		_ = json.Unmarshal(data, &m)
