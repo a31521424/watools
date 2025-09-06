@@ -9,6 +9,8 @@ import (
 	"watools/pkg/db"
 	"watools/pkg/logger"
 	"watools/pkg/models"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // appWatchManager app watch manager darwin implementation
@@ -319,13 +321,17 @@ func (h *defaultAppEventHandler) OnAppAdded(command *models.ApplicationCommand) 
 	existingCommands := h.db.GetCommands(h.ctx)
 	for _, existing := range existingCommands {
 		if existing.Path == command.Path {
-			// if exists, update instead of insert
-			return h.OnAppModified(command)
+			// if exists, update instead of insert (no event emission here to avoid duplicate)
+			return h.onAppModifiedInternal(command)
 		}
 	}
 
 	// insert new app
-	return h.db.BatchInsertCommands(h.ctx, []*models.ApplicationCommand{command})
+	err := h.db.BatchInsertCommands(h.ctx, []*models.ApplicationCommand{command})
+	if err == nil {
+		h.emitApplicationChanged()
+	}
+	return err
 }
 
 // OnAppRemoved handle app removed
@@ -334,7 +340,11 @@ func (h *defaultAppEventHandler) OnAppRemoved(path string) error {
 	commands := h.db.GetCommands(h.ctx)
 	for _, command := range commands {
 		if command.Path == path {
-			return h.db.DeleteCommand(h.ctx, command.ID)
+			err := h.db.DeleteCommand(h.ctx, command.ID)
+			if err == nil {
+				h.emitApplicationChanged()
+			}
+			return err
 		}
 	}
 	return nil
@@ -342,6 +352,15 @@ func (h *defaultAppEventHandler) OnAppRemoved(path string) error {
 
 // OnAppModified handle app modified
 func (h *defaultAppEventHandler) OnAppModified(command *models.ApplicationCommand) error {
+	err := h.onAppModifiedInternal(command)
+	if err == nil {
+		h.emitApplicationChanged()
+	}
+	return err
+}
+
+// onAppModifiedInternal internal method for handling app modified without emitting events
+func (h *defaultAppEventHandler) onAppModifiedInternal(command *models.ApplicationCommand) error {
 	// find existing command and update
 	commands := h.db.GetCommands(h.ctx)
 	for _, existing := range commands {
@@ -351,6 +370,11 @@ func (h *defaultAppEventHandler) OnAppModified(command *models.ApplicationComman
 		}
 	}
 
-	// if not found, treat as new app
-	return h.OnAppAdded(command)
+	// if not found, treat as new app (no event emission here to avoid duplicate)
+	return h.db.BatchInsertCommands(h.ctx, []*models.ApplicationCommand{command})
+}
+
+// emitApplicationChanged emit application changed event to frontend
+func (h *defaultAppEventHandler) emitApplicationChanged() {
+	runtime.EventsEmit(h.ctx, "watools.applicationChanged")
 }
