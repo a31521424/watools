@@ -73,7 +73,7 @@ func (w *WaLaunchApp) updateApplications() {
 		if fi.ModTime().Format(time.DateTime) == command.DirUpdatedAt.Format(time.DateTime) {
 			continue
 		}
-		logger.Info(fmt.Sprintf("Update dir updated for command: %s, %s, %s, %s", command.Name, command.Path, fi.ModTime().Format(time.DateTime), command.DirUpdatedAt.Format(time.DateTime)))
+		logger.Info(fmt.Sprintf("Update dir updated for command: %s, %s", command.Name, command.Path))
 		command, err := application.ParseApplication(command.Path)
 		if err != nil {
 			logger.Error(err, "Failed to parse application")
