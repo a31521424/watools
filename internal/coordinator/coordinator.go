@@ -15,6 +15,7 @@ type WaAppCoordinator struct {
 	ctx         context.Context
 	waApp       *app.WaApp
 	waLaunchApp *command.WaLaunchApp
+	waPlugin    *plugin.WaPlugin
 }
 
 var (
@@ -27,6 +28,7 @@ func GetWaAppCoordinator() *WaAppCoordinator {
 		waAppCoordinatorInstance = &WaAppCoordinator{
 			waApp:       app.GetWaApp(),
 			waLaunchApp: command.GetWaLaunch(),
+			waPlugin:    plugin.GetWaPluginInstance(),
 		}
 	})
 	return waAppCoordinatorInstance
@@ -39,11 +41,13 @@ func (w *WaAppCoordinator) Startup(ctx context.Context) {
 
 	w.waApp.OnStartup(ctx)
 	w.waLaunchApp.OnStartup(ctx)
+	w.waPlugin.OnStartup(ctx)
 }
 
 func (w *WaAppCoordinator) Shutdown(ctx context.Context) {
 	w.waApp.Shutdown(ctx)
 	w.waLaunchApp.Shutdown(ctx)
+	w.waPlugin.Shutdown(ctx)
 }
 
 // region app
@@ -89,11 +93,15 @@ func (w *WaAppCoordinator) TriggerCommandApi(uniqueTriggerID string, triggerCate
 // region plugin
 
 func (w *WaAppCoordinator) GetPluginsApi() []*models.Plugin {
-	return plugin.GetWaPluginInstance().GetPlugins()
+	return w.waPlugin.GetPlugins()
 }
 
 func (w *WaAppCoordinator) GetPluginApi(id string) *models.Plugin {
-	return plugin.GetWaPluginInstance().GetPlugin(id)
+	return w.waPlugin.GetPlugin(id)
+}
+
+func (w *WaAppCoordinator) GetPluginExecEntryApi(id string) string {
+	return w.waPlugin.GetPluginExecEntry(id)
 }
 
 // end region plugin

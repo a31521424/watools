@@ -28,6 +28,8 @@ func (w *WaPlugin) OnStartup(ctx context.Context) {
 	w.ctx = ctx
 }
 
+func (w *WaPlugin) Shutdown(ctx context.Context) {}
+
 var allPlugins []*models.Plugin = []*models.Plugin{
 	&models.Plugin{
 		ID:          "e6c8cc94-27ba-42b7-9ad2-4543ab02635b",
