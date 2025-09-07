@@ -6,6 +6,7 @@ import (
 	"watools/config"
 	"watools/internal/app"
 	"watools/internal/command"
+	"watools/internal/plugin"
 	"watools/pkg/logger"
 	"watools/pkg/models"
 )
@@ -84,3 +85,15 @@ func (w *WaAppCoordinator) TriggerCommandApi(uniqueTriggerID string, triggerCate
 }
 
 // end region command
+
+// region plugin
+
+func (w *WaAppCoordinator) GetPluginsApi() []*models.Plugin {
+	return plugin.GetWaPluginInstance().GetPlugins()
+}
+
+func (w *WaAppCoordinator) GetPluginApi(id string) *models.Plugin {
+	return plugin.GetWaPluginInstance().GetPlugin(id)
+}
+
+// end region plugin
