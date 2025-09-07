@@ -215,3 +215,52 @@ func (d *WaDB) GetCommandIsUpdatedDir(ctx context.Context, path string, dirUpdat
 	}
 	return ConvertApplicationCommand(command)
 }
+
+func (d *WaDB) GetPlugins(ctx context.Context) []*models.Plugin {
+	plugins, err := d.query.GetPlugins(ctx)
+	if err != nil {
+		logger.Error(err, "Failed to get plugins")
+		return nil
+	}
+	return lo.Map(plugins, func(item Plugin, _ int) *models.Plugin {
+		return ConvertPlugin(item)
+	})
+}
+
+func (d *WaDB) GetPlugin(ctx context.Context, id string) *models.Plugin {
+	plugin, err := d.query.GetPlugin(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		logger.Error(err, "Failed to get plugin")
+		return nil
+	}
+	return ConvertPlugin(plugin)
+}
+
+func (d *WaDB) CreatePlugin(ctx context.Context, plugin *models.Plugin) error {
+	return d.withTx(ctx, func(tx *sql.Tx) error {
+		txQuery := d.query.WithTx(tx)
+		if _, err := txQuery.CreatePlugin(ctx, CreatePluginParams{
+			ID:          plugin.ID,
+			PackageID:   plugin.PackageID,
+			Name:        plugin.Name,
+			Version:     plugin.Version,
+			Description: nullString(plugin.Description),
+		}); err != nil {
+			return fmt.Errorf("failed to create plugin: %w", err)
+		}
+		return tx.Commit()
+	})
+}
+
+func (d *WaDB) DeletePlugin(ctx context.Context, id string) error {
+	return d.withTx(ctx, func(tx *sql.Tx) error {
+		txQuery := d.query.WithTx(tx)
+		if err := txQuery.DeletePlugin(ctx, id); err != nil {
+			return fmt.Errorf("failed to delete plugin: %w", err)
+		}
+		return tx.Commit()
+	})
+}

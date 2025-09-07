@@ -15,3 +15,12 @@ CREATE TABLE metadata
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS plugins
+(
+    id          VARCHAR(36) NOT NULL PRIMARY KEY,
+    package_id  TEXT        NOT NULL,
+    name        TEXT        NOT NULL,
+    version     TEXT        NOT NULL,
+    description TEXT
+)
