@@ -30,10 +30,15 @@ func getPngIconCachePath(iconPath string) string {
 func HandleApplicationIcon(res http.ResponseWriter, req *http.Request) {
 	IconPath := req.URL.Query().Get("path")
 	pngIconPath := getPngIconCachePath(IconPath)
+	if pngIconPath == "" {
+		http.NotFound(res, req)
+		return
+	}
 	if _, err := os.Stat(pngIconPath); os.IsNotExist(err) {
 		err := icon2Png(IconPath, pngIconPath)
 		if err != nil {
 			logger.Error(err, fmt.Sprintf("Failed to convert icon to png %v", IconPath))
+			http.NotFound(res, req)
 			return
 		}
 	}
