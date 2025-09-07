@@ -14,8 +14,4 @@ export function HideAppApi():Promise<void>;
 
 export function HideOrShowAppApi():Promise<void>;
 
-export function ReloadApi():Promise<void>;
-
-export function ReloadAppApi():Promise<void>;
-
 export function TriggerCommandApi(arg1:string,arg2:string):Promise<void>;

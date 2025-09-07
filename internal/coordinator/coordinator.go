@@ -60,14 +60,6 @@ func (w *WaAppCoordinator) HideOrShowAppApi() {
 	w.waApp.HideOrShowApp()
 }
 
-func (w *WaAppCoordinator) ReloadApi() {
-	w.waApp.Reload()
-}
-
-func (w *WaAppCoordinator) ReloadAppApi() {
-	w.waApp.ReloadAPP()
-}
-
 // end region app
 
 // region command

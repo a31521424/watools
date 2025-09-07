@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"watools/config"
+	"watools/internal/app_menu"
 	"watools/internal/coordinator"
 	"watools/internal/handler"
 	"watools/pkg/logger"
@@ -34,6 +35,7 @@ func initLang() {
 
 func main() {
 	waAppCoordinator := coordinator.GetWaAppCoordinator()
+	appMenu := app_menu.GetWatoolsMenu()
 
 	err := wails.Run(&options.App{
 		Title:     "watools",
@@ -57,6 +59,7 @@ func main() {
 			},
 		},
 		Logger: logger.NewAdapter(),
+		Menu:   appMenu,
 	})
 
 	if err != nil {
