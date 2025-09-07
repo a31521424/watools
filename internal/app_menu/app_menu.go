@@ -8,13 +8,13 @@ import (
 )
 
 func GetWatoolsMenu() *menu.Menu {
-	appMenu := menu.NewMenu()
+	appMenu := menu.NewMenuFromItems(menu.EditMenu(), menu.WindowMenu(), menu.AppMenu())
 
-	applicationMenu := appMenu.AddSubmenu("Application")
-	applicationMenu.AddText("Reload", keys.Combo("r", keys.CmdOrCtrlKey, keys.ShiftKey), func(_ *menu.CallbackData) {
+	viewMenu := appMenu.AddSubmenu("View")
+	viewMenu.AddText("Reload", keys.Combo("r", keys.CmdOrCtrlKey, keys.ShiftKey), func(_ *menu.CallbackData) {
 		app.GetWaApp().ReloadAPP()
 	})
-	applicationMenu.AddText("Refresh", keys.CmdOrCtrl("r"), func(_ *menu.CallbackData) {
+	viewMenu.AddText("Refresh", keys.CmdOrCtrl("r"), func(_ *menu.CallbackData) {
 		app.GetWaApp().Reload()
 	})
 
