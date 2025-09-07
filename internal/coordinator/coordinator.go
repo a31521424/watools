@@ -96,10 +96,6 @@ func (w *WaAppCoordinator) GetPluginsApi() []*models.Plugin {
 	return w.waPlugin.GetPlugins()
 }
 
-func (w *WaAppCoordinator) GetPluginApi(id string) *models.Plugin {
-	return w.waPlugin.GetPlugin(id)
-}
-
 func (w *WaAppCoordinator) GetPluginExecEntryApi(id string) string {
 	return w.waPlugin.GetPluginExecEntry(id)
 }

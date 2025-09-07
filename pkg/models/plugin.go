@@ -6,11 +6,11 @@ import (
 )
 
 type Plugin struct {
-	ID          string
-	PackageID   string
-	Name        string
-	Version     string
-	Description string
+	ID          string `json:"id"`
+	PackageID   string `json:"packageID"`
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	Description string `json:"description"`
 }
 
 func (p *Plugin) GetExecEntry() string {

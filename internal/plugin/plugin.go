@@ -44,12 +44,8 @@ func (w *WaPlugin) GetPlugins() []*models.Plugin {
 	return allPlugins
 }
 
-func (w *WaPlugin) GetPlugin(id string) *models.Plugin {
-	return lo.FindOrElse(allPlugins, nil, func(plugin *models.Plugin) bool { return plugin.ID == id })
-}
-
 func (w *WaPlugin) GetPluginExecEntry(id string) string {
-	plugin := w.GetPlugin(id)
+	plugin := lo.FindOrElse(allPlugins, nil, func(plugin *models.Plugin) bool { return plugin.ID == id })
 	if plugin == nil {
 		return ""
 	}

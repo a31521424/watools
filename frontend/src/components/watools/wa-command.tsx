@@ -9,6 +9,7 @@ import {useDebounce} from "@uidotdev/usehooks";
 import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
+import {WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
 
 
 export const WaCommand = () => {
@@ -86,6 +87,7 @@ export const WaCommand = () => {
         }
     }, [handleHotkey])
 
+
     const onTriggerCommand = (command: CommandType) => {
         clearInput()
         TriggerCommandApi(command.triggerId, command.category).then(() => {
@@ -140,6 +142,7 @@ export const WaCommand = () => {
                     }
                 }}
             />
+            <WaPluginCommandGroup searchKey={debounceInput}/>
         </CommandList>
     </Command>
 }
