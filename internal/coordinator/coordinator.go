@@ -3,6 +3,7 @@ package coordinator
 import (
 	"context"
 	"sync"
+	"watools/config"
 	"watools/internal/app"
 	"watools/internal/command"
 	"watools/pkg/logger"
@@ -33,8 +34,10 @@ func GetWaAppCoordinator() *WaAppCoordinator {
 func (w *WaAppCoordinator) Startup(ctx context.Context) {
 	w.ctx = ctx
 
-	w.waApp.Startup(ctx)
-	w.waLaunchApp.Startup(ctx)
+	config.InitWithWailsContext(ctx)
+
+	w.waApp.OnStartup(ctx)
+	w.waLaunchApp.OnStartup(ctx)
 }
 
 func (w *WaAppCoordinator) Shutdown(ctx context.Context) {
@@ -50,6 +53,14 @@ func (w *WaAppCoordinator) HideAppApi() {
 
 func (w *WaAppCoordinator) HideOrShowAppApi() {
 	w.waApp.HideOrShowApp()
+}
+
+func (w *WaAppCoordinator) ReloadApi() {
+	w.waApp.Reload()
+}
+
+func (w *WaAppCoordinator) ReloadAppApi() {
+	w.waApp.ReloadAPP()
 }
 
 // end region app

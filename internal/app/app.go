@@ -66,7 +66,7 @@ func (a *WaApp) initWindowSize() {
 	runtime.WindowCenter(a.ctx)
 }
 
-func (a *WaApp) Startup(ctx context.Context) {
+func (a *WaApp) OnStartup(ctx context.Context) {
 	a.ctx = ctx
 	a.initWindowSize()
 	a.registerHotkeys()

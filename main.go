@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"embed"
 	"fmt"
 	"os"
@@ -46,12 +45,9 @@ func main() {
 			Handler: handler.NewWaHandler(),
 		},
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
-		OnStartup: func(ctx context.Context) {
-			config.InitWithWailsContext(ctx)
-			waAppCoordinator.Startup(ctx)
-		},
-		OnShutdown: waAppCoordinator.Shutdown,
-		Bind:       []interface{}{waAppCoordinator},
+		OnStartup:        waAppCoordinator.Startup,
+		OnShutdown:       waAppCoordinator.Shutdown,
+		Bind:             []interface{}{waAppCoordinator},
 		Mac: &mac.Options{
 			TitleBar:             mac.TitleBarHidden(),
 			WebviewIsTransparent: true,

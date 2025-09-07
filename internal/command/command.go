@@ -37,7 +37,7 @@ func GetWaLaunch() *WaLaunchApp {
 	return launchAppInstance
 }
 
-func (w *WaLaunchApp) Startup(ctx context.Context) {
+func (w *WaLaunchApp) OnStartup(ctx context.Context) {
 	w.ctx = ctx
 	w.initAppWatcher()
 	w.asyncUpdateApplications(30 * time.Second)

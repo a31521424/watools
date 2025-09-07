@@ -18,8 +18,12 @@ export function HideOrShowAppApi() {
   return window['go']['coordinator']['WaAppCoordinator']['HideOrShowAppApi']();
 }
 
-export function Startup(arg1) {
-  return window['go']['coordinator']['WaAppCoordinator']['Startup'](arg1);
+export function ReloadApi() {
+  return window['go']['coordinator']['WaAppCoordinator']['ReloadApi']();
+}
+
+export function ReloadAppApi() {
+  return window['go']['coordinator']['WaAppCoordinator']['ReloadAppApi']();
 }
 
 export function TriggerCommandApi(arg1, arg2) {
