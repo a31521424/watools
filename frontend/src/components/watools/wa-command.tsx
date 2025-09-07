@@ -142,7 +142,11 @@ export const WaCommand = () => {
                     }
                 }}
             />
-            <WaPluginCommandGroup searchKey={debounceInput}/>
+            <WaPluginCommandGroup searchKey={debounceInput} OnTriggerCommand={entry => {
+                clearInput()
+                entry.exec && entry.exec(debounceInput)
+                HideAppApi()
+            }}/>
         </CommandList>
     </Command>
 }
