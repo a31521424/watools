@@ -12,7 +12,7 @@ func nullString(s string) sql.NullString {
 	return sql.NullString{String: s, Valid: s != ""}
 }
 
-func ConvertApplicationCommand(command Command) *models.ApplicationCommand {
+func ConvertApplicationCommand(command Application) *models.ApplicationCommand {
 	var dirUpdatedAt time.Time
 	var err error
 	dirUpdatedAt, err = time.Parse(time.DateTime, command.DirUpdatedAt)

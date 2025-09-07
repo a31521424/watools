@@ -1,2 +1,2 @@
-DROP TABLE IF EXISTS commands;
+DROP TABLE IF EXISTS applications;
 DROP TABLE IF EXISTS metadata;

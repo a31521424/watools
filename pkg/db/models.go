@@ -8,7 +8,7 @@ import (
 	"database/sql"
 )
 
-type Command struct {
+type Application struct {
 	ID           string
 	Name         string
 	Description  string

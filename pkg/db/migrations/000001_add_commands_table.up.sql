@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS commands
+CREATE TABLE IF NOT EXISTS applications
 (
     id             VARCHAR(36)  NOT NULL PRIMARY KEY,
     name           VARCHAR(255) NOT NULL,

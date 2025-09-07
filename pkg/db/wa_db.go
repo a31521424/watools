@@ -126,12 +126,12 @@ func (d *WaDB) withTx(ctx context.Context, f func(tx *sql.Tx) error) error {
 }
 
 func (d *WaDB) GetCommands(ctx context.Context) []*models.ApplicationCommand {
-	dbCommands, err := d.query.GetCommands(ctx)
+	dbCommands, err := d.query.GetApplications(ctx)
 	if err != nil {
 		logger.Error(err, "Failed to get commands")
 		return nil
 	}
-	return lo.Map(dbCommands, func(item Command, _ int) *models.ApplicationCommand {
+	return lo.Map(dbCommands, func(item Application, _ int) *models.ApplicationCommand {
 		return ConvertApplicationCommand(item)
 	})
 }
@@ -141,7 +141,7 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Appli
 	return d.withTx(ctx, func(tx *sql.Tx) error {
 		txQuery := d.query.WithTx(tx)
 		for _, command := range commands {
-			if _, err := txQuery.CreateCommand(ctx, CreateCommandParams{
+			if _, err := txQuery.CreateApplication(ctx, CreateApplicationParams{
 				ID:           command.ID,
 				Name:         command.Name,
 				Description:  command.Description,
@@ -160,12 +160,12 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Appli
 
 func (d *WaDB) GetExpiredCommands(ctx context.Context) []*models.ApplicationCommand {
 	expiredTime := time.Now().Add(-time.Hour * 24)
-	dbCommands, err := d.query.GetExpiredCommands(ctx, expiredTime.Format(time.DateTime))
+	dbCommands, err := d.query.GetExpiredApplications(ctx, expiredTime.Format(time.DateTime))
 	if err != nil {
 		logger.Error(err, "Failed to get expired commands")
 		return nil
 	}
-	return lo.Map(dbCommands, func(item Command, _ int) *models.ApplicationCommand {
+	return lo.Map(dbCommands, func(item Application, _ int) *models.ApplicationCommand {
 		return ConvertApplicationCommand(item)
 	})
 }
@@ -175,7 +175,7 @@ func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.Appli
 	return d.withTx(ctx, func(tx *sql.Tx) error {
 		txQuery := d.query.WithTx(tx)
 		for _, command := range commands {
-			if err := txQuery.UpdateCommandPartial(ctx, UpdateCommandPartialParams{
+			if err := txQuery.UpdateApplicationPartial(ctx, UpdateApplicationPartialParams{
 				ID:           command.ID,
 				Name:         nullString(command.Name),
 				Path:         nullString(command.Path),
@@ -195,7 +195,7 @@ func (d *WaDB) DeleteCommand(ctx context.Context, id string) error {
 	logger.Info(fmt.Sprintf("Deleting command %s", id))
 	return d.withTx(ctx, func(tx *sql.Tx) error {
 		txQuery := d.query.WithTx(tx)
-		if err := txQuery.DeleteCommand(ctx, id); err != nil {
+		if err := txQuery.DeleteApplication(ctx, id); err != nil {
 			return fmt.Errorf("failed to delete command: %w", err)
 		}
 		return tx.Commit()
@@ -203,7 +203,7 @@ func (d *WaDB) DeleteCommand(ctx context.Context, id string) error {
 }
 
 func (d *WaDB) GetCommandIsUpdatedDir(ctx context.Context, path string, dirUpdatedAt time.Time) *models.ApplicationCommand {
-	command, err := d.query.GetCommandIsUpdatedDir(ctx, GetCommandIsUpdatedDirParams{
+	command, err := d.query.GetApplicationIsUpdatedDir(ctx, GetApplicationIsUpdatedDirParams{
 		Path:         path,
 		DirUpdatedAt: dirUpdatedAt.Format(time.DateTime),
 	})

@@ -1,24 +1,24 @@
--- name: CreateCommand :one
-INSERT INTO commands (id, name, description, category, path, icon_path, dir_updated_at)
+-- name: CreateApplication :one
+INSERT INTO applications (id, name, description, category, path, icon_path, dir_updated_at)
 VALUES (@id, @name, @description, @category, @path, @icon_path, @dir_updated_at)
 RETURNING *;
 
--- name: GetCommands :many
+-- name: GetApplications :many
 SELECT *
-FROM commands;
+FROM applications;
 
--- name: GetExpiredCommands :many
+-- name: GetExpiredApplications :many
 SELECT *
-FROM commands
+FROM applications
 WHERE updated_at < @updated_at;
 
--- name: DeleteCommand :exec
+-- name: DeleteApplication :exec
 DELETE
-FROM commands
+FROM applications
 WHERE id = @id;
 
--- name: UpdateCommandPartial :exec
-UPDATE commands
+-- name: UpdateApplicationPartial :exec
+UPDATE applications
 SET name           = COALESCE(sqlc.narg(name), name),
     description    = COALESCE(sqlc.narg(description), description),
     category       = COALESCE(sqlc.narg(category), category),
@@ -28,9 +28,9 @@ SET name           = COALESCE(sqlc.narg(name), name),
     updated_at     = datetime('now', 'localtime')
 WHERE id = @id;
 
--- name: GetCommandIsUpdatedDir :one
+-- name: GetApplicationIsUpdatedDir :one
 SELECT *
-FROM commands
+FROM applications
 WHERE dir_updated_at != @dir_updated_at
   AND path = @path
 LIMIT 1;
