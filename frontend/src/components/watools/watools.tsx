@@ -43,7 +43,7 @@ const Watools = () => {
         }
     })
 
-
+    // TODO: define page paths enum
     return <div ref={windowRef} className="bg-white w-full rounded-xl overflow-x-hidden scrollbar-hide">
         <Switch>
             <Route path="/"> <WaCommand/> </Route>
