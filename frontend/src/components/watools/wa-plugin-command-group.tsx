@@ -1,7 +1,8 @@
 import {CommandGroup, CommandItem} from "@/components/ui/command";
-import {usePlugins} from "@/hooks/usePlugins";
 import {WaIcon} from "@/components/watools/wa-icon";
 import {PluginEntry} from "@/schemas/plugin";
+import {usePluginActions} from "@/store/pluginStore";
+import {useMemo} from "react";
 
 type WaPluginCommandGroupProps = {
     searchKey: string
@@ -11,13 +12,19 @@ type WaPluginCommandGroupProps = {
 
 export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
 
-    const pluginEntries = usePlugins({input: props.searchKey})
-    if (!pluginEntries.length) {
+    const {getPlugins} = usePluginActions()
+    const plugins = getPlugins()
+
+    const matchPluginEntries = useMemo(() => {
+        return plugins.flatMap(plugin => plugin.allEntries).filter(entry => entry.match(props.searchKey))
+    }, [plugins, props.searchKey])
+
+    if (!matchPluginEntries.length) {
         return null
     }
 
     return <CommandGroup key='Plugin' heading="Plugin">
-        {pluginEntries.map(entry => (
+        {matchPluginEntries.map(entry => (
             <CommandItem
                 key={entry.title}
                 value={entry.title}

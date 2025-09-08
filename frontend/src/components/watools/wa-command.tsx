@@ -10,7 +10,7 @@ import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command
 import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 import {WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
-import {isDevMode} from "@/lib/env";
+import {useLocation} from "wouter";
 
 
 export const WaCommand = () => {
@@ -21,6 +21,7 @@ export const WaCommand = () => {
     const commandListRef = useRef<HTMLDivElement>(null)
     const debounceInput = useDebounce(input, 50)
     const firstSelectedKeyRef = useRef<string>('')
+    const [location, navigate] = useLocation()
 
     // Reset selected key when search input changes
     useEffect(() => {
@@ -31,13 +32,7 @@ export const WaCommand = () => {
     }, [debounceInput])
 
     useWindowFocus((focused) => {
-        console.log('window onFocusChange', focused)
-
         if (!focused) {
-            if (isDevMode()) {
-                return
-            }
-            HideAppApi()
             return
         }
         ClipboardGetText().then(text => {
@@ -152,9 +147,14 @@ export const WaCommand = () => {
                 }}
             />
             <WaPluginCommandGroup searchKey={debounceInput} OnTriggerCommand={entry => {
-                clearInput()
-                entry.exec && entry.exec(debounceInput)
-                HideAppApi()
+                console.log('on trigger entry', entry)
+                if (entry.exec) {
+                    clearInput()
+                    entry.exec(debounceInput)
+                    HideAppApi()
+                } else {
+                    navigate(`/plugins/${entry.entryID}`, {state: {input: debounceInput}})
+                }
             }}/>
         </CommandList>
     </Command>

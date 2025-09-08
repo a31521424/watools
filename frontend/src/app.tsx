@@ -1,7 +1,7 @@
-import Main from "@/components/watools/main";
+import Watools from "@/components/watools/watools";
 import './app.css'
 
 
 export default () => {
-    return <Main/>
+    return <Watools/>
 }

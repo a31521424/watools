@@ -6,6 +6,7 @@ export namespace models {
 	    name: string;
 	    version: string;
 	    description: string;
+	    author: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Plugin(source);
@@ -18,6 +19,7 @@ export namespace models {
 	        this.name = source["name"];
 	        this.version = source["version"];
 	        this.description = source["description"];
+	        this.author = source["author"];
 	    }
 	}
 
