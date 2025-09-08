@@ -48,7 +48,7 @@ export const WaPluginRender = () => {
 
     if (!entry) {
         navigate("/")
-        return
+        return null
     }
     return <div ref={containerRef} className="min-h-[400px]"></div>
 }
