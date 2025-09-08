@@ -21,7 +21,7 @@ const Watools = () => {
             const loadedPlugins = await Promise.all(
                 allPlugins.map(async plugin => {
                     let execEntry = await GetPluginExecEntryApi(plugin.id)
-                    execEntry = `/api/plugin-entry?path=${encodeURIComponent(execEntry)}`
+                    execEntry = `/api/plugin-entry?path=${encodeURIComponent(execEntry)}&timestamp=${Date.now()}`
                     const {default: pluginPackage}: {
                         default: PluginPackage
                     } = await import(/* @vite-ignore */ execEntry)
