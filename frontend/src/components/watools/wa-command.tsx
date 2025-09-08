@@ -10,6 +10,7 @@ import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command
 import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 import {WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
+import {isDevMode} from "@/lib/env";
 
 
 export const WaCommand = () => {
@@ -29,9 +30,14 @@ export const WaCommand = () => {
         }
     }, [debounceInput])
 
-    useWindowFocus((focus) => {
-        console.log('window onFocusChange', focus)
-        if (!focus) {
+    useWindowFocus((focused) => {
+        console.log('window onFocusChange', focused)
+
+        if (!focused) {
+            if (isDevMode()) {
+                return
+            }
+            HideAppApi()
             return
         }
         ClipboardGetText().then(text => {
@@ -49,6 +55,9 @@ export const WaCommand = () => {
                 }, 50)
             }
         })
+        if (inputRef.current) {
+            inputRef.current.focus()
+        }
     })
 
     const isPanelOpen = input.length > 0

@@ -1,6 +1,6 @@
 import {useEffect} from "react";
 
-export const useWindowFocus = (onFocusChange: (focus: boolean) => void, deps?: React.DependencyList) => {
+export const useWindowFocus = (onFocusChange: (focused: boolean) => void, deps?: React.DependencyList) => {
     useEffect(() => {
         const handleFocus = () => {
             onFocusChange(true)
