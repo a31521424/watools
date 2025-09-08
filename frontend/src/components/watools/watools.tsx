@@ -4,7 +4,6 @@ import {Route, Switch} from "wouter";
 import {useEffect} from "react";
 import {usePluginActions} from "@/store/pluginStore";
 import {GetPluginExecEntryApi, GetPluginsApi, HideAppApi} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
-import {PluginPackage} from "@/schemas/plugin";
 import {WaPluginRender} from "@/components/watools/wa-plugin-render";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {isDevMode} from "@/lib/env";
@@ -20,16 +19,22 @@ const Watools = () => {
             const allPlugins = await GetPluginsApi()
             const loadedPlugins = await Promise.all(
                 allPlugins.map(async plugin => {
-                    let execEntry = await GetPluginExecEntryApi(plugin.id)
-                    execEntry = `/api/plugin-entry?path=${encodeURIComponent(execEntry)}&timestamp=${Date.now()}`
-                    const {default: pluginPackage}: {
-                        default: PluginPackage
-                    } = await import(/* @vite-ignore */ execEntry)
-                    pluginPackage.metadata = plugin
-                    return pluginPackage
+                    try {
+                        let execEntry = await GetPluginExecEntryApi(plugin.id)
+                        execEntry = `/api/plugin-entry?path=${encodeURIComponent(execEntry)}&timestamp=${Date.now()}`
+                        const module = await import(/* @vite-ignore */ execEntry)
+                        return {
+                            ...module.default,
+                            metadata: plugin,
+                        }
+                    } catch (e) {
+                        // TODO: use go logger
+                        console.error(`Load plugin error for ${plugin.id}:`, e);
+                        return null
+                    }
                 })
             )
-            setPlugins(loadedPlugins)
+            setPlugins(loadedPlugins.filter(plugin => plugin))
         })()
 
     }, [])
@@ -43,8 +48,8 @@ const Watools = () => {
         }
     })
 
-    // TODO: define page paths enum
     return <div ref={windowRef} className="bg-white w-full rounded-xl overflow-x-hidden scrollbar-hide">
+        {/* TODO: define page paths enum*/}
         <Switch>
             <Route path="/"> <WaCommand/> </Route>
             <Route path="/plugins/:entryID"> <WaPluginRender/> </Route>
