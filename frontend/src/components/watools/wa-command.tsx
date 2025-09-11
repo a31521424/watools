@@ -40,7 +40,7 @@ export const WaCommand = () => {
             if (text.length > 1500) {
                 text = text.substring(0, 1500) + '...'
             }
-            if (text && text !== lastClipboardText.current) {
+            if (text && text !== lastClipboardText.current && !debounceInput) {
                 setInput(text)
                 lastClipboardText.current = text
                 setTimeout(() => {
