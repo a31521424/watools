@@ -7,7 +7,7 @@ import {GetPluginExecEntryApi, GetPluginsApi, HideAppApi} from "../../../wailsjs
 import {WaPluginRender} from "@/components/watools/wa-plugin-render";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {isDevMode} from "@/lib/env";
-import {LogError} from "../../../wailsjs/runtime";
+import {Logger} from "@/lib/logger";
 
 const Watools = () => {
     const windowRef = useElementResize<HTMLDivElement>({
@@ -29,7 +29,7 @@ const Watools = () => {
                             metadata: plugin,
                         }
                     } catch (e) {
-                        LogError(`Failed to load plugin ${plugin.name}: ${e}`)
+                        Logger.error(`Failed to load plugin ${plugin.name}: ${e}`)
                         return null
                     }
                 })
