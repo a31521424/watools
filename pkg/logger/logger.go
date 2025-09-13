@@ -2,14 +2,15 @@ package logger
 
 import (
 	"fmt"
-	"github.com/mattn/go-isatty"
-	"github.com/rs/zerolog"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
 	"watools/config"
+
+	"github.com/mattn/go-isatty"
+	"github.com/rs/zerolog"
 )
 
 var WaLogger zerolog.Logger
