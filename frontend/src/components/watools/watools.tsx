@@ -24,6 +24,7 @@ const Watools = () => {
                         let execEntry = await GetPluginExecEntryApi(plugin.id)
                         execEntry = `/api/plugin-entry?path=${encodeURIComponent(execEntry)}&timestamp=${Date.now()}`
                         const module = await import(/* @vite-ignore */ execEntry)
+                        console.log('Loaded plugin:', plugin.name, module.default)
                         return {
                             ...module.default,
                             metadata: plugin,
