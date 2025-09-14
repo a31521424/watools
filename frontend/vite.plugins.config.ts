@@ -42,7 +42,7 @@ export default defineConfig({
                 inlineDynamicImports: true,
             },
         },
-        minify: false,
+        // minify: true,
         // sourcemap: true,
     }
 })

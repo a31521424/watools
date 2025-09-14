@@ -34,7 +34,7 @@
     "tailwindcss": "^4.1.10",
     "tw-animate-css": "^1.3.4",
     "typescript": "^4.6.4",
-    "vite": "6.3.4"
+    "vite": "7.1.5"
   },
   "packageManager": "yarn@1.22.22"
 }
