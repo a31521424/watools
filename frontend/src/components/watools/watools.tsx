@@ -20,17 +20,19 @@ const Watools = () => {
             const allPlugins = await GetPluginsApi()
             const loadedPlugins = await Promise.all(
                 allPlugins.map(async plugin => {
+                    console.log('on load plugin', plugin)
                     try {
                         let execEntry = await GetPluginExecEntryApi(plugin.id)
                         execEntry = `/api/plugin-entry?path=${encodeURIComponent(execEntry)}&timestamp=${Date.now()}`
+                        console.log('load exec entry', execEntry)
                         const module = await import(/* @vite-ignore */ execEntry)
-                        console.log('Loaded plugin:', plugin.name, module.default)
+                        console.log('Loaded plugin:', plugin.packageID, module.default)
                         return {
                             ...module.default,
                             metadata: plugin,
                         }
                     } catch (e) {
-                        Logger.error(`Failed to load plugin ${plugin.name}: ${e}`)
+                        Logger.error(`Failed to load plugin ${plugin.packageID}: ${e}`)
                         return null
                     }
                 })

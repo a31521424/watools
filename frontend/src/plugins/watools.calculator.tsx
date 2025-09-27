@@ -4,7 +4,7 @@ import {createRoot} from "react-dom/client";
 import {ClipboardSetText} from "../../wailsjs/runtime";
 
 
-const Calculator: React.FC<{ input: string }> = ({input}) => {
+const WatoolsCalculator: React.FC<{ input: string }> = ({input}) => {
     const [expression, setExpression] = useState(input)
     const [result, setResult] = useState<string>("")
     const [error, setError] = useState<string>("")
@@ -126,7 +126,7 @@ const calculatorEntry: PluginEntry = {
 
     render: (container: Element, input: string): void => {
         const root = createRoot(container)
-        root.render(<Calculator input={input.trim()}/>)
+        root.render(<WatoolsCalculator input={input.trim()}/>)
     },
 
 }

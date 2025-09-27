@@ -37,6 +37,7 @@ var allPlugins []*models.Plugin = []*models.Plugin{
 		Name:        "calculator",
 		Version:     "0.0.1",
 		Description: "A simple calculator plugin",
+		Internal:    true,
 	},
 }
 

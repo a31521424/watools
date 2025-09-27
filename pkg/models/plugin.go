@@ -12,6 +12,7 @@ type Plugin struct {
 	Version     string `json:"version"`
 	Description string `json:"description"`
 	Author      string `json:"author"`
+	Internal    bool   `json:"internal"`
 }
 
 func (p *Plugin) GetExecEntry() string {

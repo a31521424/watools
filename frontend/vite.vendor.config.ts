@@ -18,7 +18,7 @@ const entries = Object.fromEntries(
 );
 
 const importMap = Object.fromEntries(
-    Object.entries(VENDOR_ENTRIES).map(([key, value]) => [key, `./vendor/${value}.js`])
+    Object.entries(VENDOR_ENTRIES).map(([_, value]) => [value, `./vendor/${value}.js`])
 )
 
 const importMapJs = ` // AUTO-GENERATED Import Map
