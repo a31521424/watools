@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "build:plugin": "vite build --config vite.plugins.config.ts"
+    "build:plugin": "vite build --config vite.plugins.config.ts",
+    "build:vendor": "vite build --config vite.vendor.config.ts"
   },
   "dependencies": {
     "@uidotdev/usehooks": "^2.4.1",
