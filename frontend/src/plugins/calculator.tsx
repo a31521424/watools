@@ -30,7 +30,6 @@ const Calculator: React.FC<{ input: string }> = ({input}) => {
     return (
         <div style={{
             width: "100%",
-            maxWidth: "320px",
             padding: "12px",
             fontFamily: "sans-serif",
         }}>
