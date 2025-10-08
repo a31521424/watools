@@ -22,7 +22,6 @@ export default defineConfig({
     },
     build: {
         outDir: 'dist-plugins',
-        emptyOutDir: true,
         lib: {
             entry: entries,
             formats: ['es'],
