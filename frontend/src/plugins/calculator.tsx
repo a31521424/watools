@@ -1,11 +1,10 @@
 import {PluginEntry, PluginMetadata, PluginPackage} from "src/schemas/plugin";
+import {ClipboardSetText} from "../../wailsjs/runtime";
+import React, {useState} from "react";
+import {createRoot} from "react-dom/client";
 
-const {React, ReactDOM} = window.PluginRuntime
 
-const {useState} = React
-const {createRoot} = ReactDOM
-
-const Calculator: React.FC<{ input: string }> = ({ input }) => {
+const Calculator: React.FC<{ input: string }> = ({input}) => {
     const [expression, setExpression] = useState(input)
     const [result, setResult] = useState<string>("")
     const [error, setError] = useState<string>("")
@@ -79,10 +78,10 @@ const Calculator: React.FC<{ input: string }> = ({ input }) => {
             )}
 
             {/* 操作按钮 */}
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div style={{display: "flex", gap: "8px"}}>
                 <button
                     onClick={() => {
-                        window.runtime.ClipboardSetText(result)
+                        ClipboardSetText(result)
                         setCopied(true)
                         setTimeout(() => setCopied(false), 1500)
                     }}
@@ -145,9 +144,17 @@ const metadata: PluginMetadata = {
     author: 'Banbxio'
 }
 
-const CalculatorPlugin: PluginPackage = {
+const Plugin: PluginPackage = {
     metadata,
     allEntries: [calculatorEntry]
 }
 
-export default CalculatorPlugin
+// @ts-ignore
+if (!window.WailsAppPlugins) {
+    // @ts-ignore
+    window.WailsAppPlugins = {}
+}
+// @ts-ignore
+window.WailsAppPlugins[metadata.packageID] = Plugin
+
+export default Plugin

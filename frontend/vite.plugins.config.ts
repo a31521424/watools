@@ -1,48 +1,51 @@
-import {defineConfig} from 'vite'
-import {readdirSync} from "node:fs";
-import react from "@vitejs/plugin-react";
+import {defineConfig} from 'vite';
+import react from '@vitejs/plugin-react';
+import {readdirSync} from 'node:fs';
+import * as path from 'node:path';
+import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
 
-const pluginDir = 'src/plugins'
-const pluginFiles = readdirSync(pluginDir, {withFileTypes: true}).filter(file => file.name.endsWith('.tsx')).map(file => file.name.replace('.tsx', ''))
+const pluginDir = path.resolve(__dirname, 'src/plugins');
+const entries = readdirSync(pluginDir, {withFileTypes: true})
+    .filter(dirent => dirent.isFile() && dirent.name.endsWith('.tsx'))
+    .reduce((acc, dirent) => {
+        const name = dirent.name.replace('.tsx', '');
+        acc[name] = path.resolve(pluginDir, dirent.name);
+        return acc;
+    }, {} as Record<string, string>);
 
-console.log('Building plugins:', pluginFiles)
+console.log('Building plugins:', Object.keys(entries));
 
-const entries = pluginFiles.reduce((acc, plugin) => {
-    acc[plugin] = `${pluginDir}/${plugin}.tsx`
-    return acc
-}, {} as Record<string, string>)
-
-// https://vitejs.dev/config/
-
-
-export default defineConfig({
-    plugins: [react()],
+export default defineConfig(({mode}) => ({
+    plugins: [
+        react(),
+        cssInjectedByJsPlugin(),
+    ],
     define: {
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
     },
     build: {
         outDir: 'dist-plugins',
+        sourcemap: mode !== 'production',
+        minify: false,
         lib: {
             entry: entries,
-            formats: ['es'],
-            fileName: (_, entryName) => `${entryName}.js`,
+            formats: ['iife'],
+            name: '_WailsAppPlugins',
+            fileName: (format, entryName) => `${entryName}.js`,
         },
         rollupOptions: {
-            input: entries,
             external: [
                 'react',
                 'react-dom',
                 'react-dom/client',
-                'tailwindcss',
-                'tailwind-merge',
-                'tailwind-scrollbar-hide'
             ],
             output: {
-                format: 'es',
-                inlineDynamicImports: true,
+                globals: {
+                    'react': 'sharedLibs.React',
+                    'react-dom': 'sharedLibs.ReactDOM',
+                    'react-dom/client': 'sharedLibs.ReactDOM',
+                },
             },
         },
-        // minify: true,
-        // sourcemap: true,
-    }
-})
+    },
+}));

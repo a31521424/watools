@@ -8,6 +8,7 @@ import {WaPluginRender} from "@/components/watools/wa-plugin-render";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {isDevMode} from "@/lib/env";
 import {Logger} from "@/lib/logger";
+import {PluginPackage} from "@/schemas/plugin";
 
 const Watools = () => {
     const windowRef = useElementResize<HTMLDivElement>({
@@ -18,24 +19,33 @@ const Watools = () => {
     useEffect(() => {
         (async () => {
             const allPlugins = await GetPluginsApi()
-            const loadedPlugins = await Promise.all(
+            const loadedPlugins: (PluginPackage | null)[] = await Promise.all(
                 allPlugins.map(async plugin => {
                     try {
-                        let execEntry = await GetPluginExecEntryApi(plugin.id)
-                        execEntry = `/api/plugin-entry?path=${encodeURIComponent(execEntry)}&timestamp=${Date.now()}`
-                        const module = await import(/* @vite-ignore */ execEntry)
-                        console.log('Loaded plugin:', plugin.name, module.default)
-                        return {
-                            ...module.default,
-                            metadata: plugin,
+                        let fileEntry = await GetPluginExecEntryApi(plugin.id)
+                        fileEntry = `/api/plugin-entry?path=${encodeURIComponent(fileEntry)}&timestamp=${Date.now()}`
+                        const response = await fetch(fileEntry)
+                        if (!response.ok) {
+                            Logger.error(`Failed to fetch plugin ${plugin.packageID}`)
+                            return null
                         }
+                        const pluginCode = await response.text()
+                        new Function(pluginCode)()
+
+                        // @ts-ignore
+                        const pluginModule = window.WailsAppPlugins[plugin.packageID]
+
+                        return {
+                            allEntries: pluginModule.allEntries,
+                            metadata: plugin,
+                        } as PluginPackage
                     } catch (e) {
-                        Logger.error(`Failed to load plugin ${plugin.name}: ${e}`)
+                        Logger.error(`Failed to load plugin ${plugin.packageID}: ${e}`)
                         return null
                     }
                 })
             )
-            setPlugins(loadedPlugins.filter(plugin => plugin))
+            setPlugins(loadedPlugins.filter((p): p is PluginPackage => p !== null))
         })()
 
     }, [])
