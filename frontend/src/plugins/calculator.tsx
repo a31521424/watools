@@ -1,10 +1,11 @@
 import {PluginEntry, PluginMetadata, PluginPackage} from "src/schemas/plugin";
-import React, {useState} from "react";
-import {createRoot} from "react-dom/client";
-import {ClipboardSetText} from "../../wailsjs/runtime";
 
+const {React, ReactDOM} = window.PluginRuntime
 
-const Calculator: React.FC<{ input: string }> = ({input}) => {
+const {useState} = React
+const {createRoot} = ReactDOM
+
+const Calculator: React.FC<{ input: string }> = ({ input }) => {
     const [expression, setExpression] = useState(input)
     const [result, setResult] = useState<string>("")
     const [error, setError] = useState<string>("")
@@ -34,6 +35,7 @@ const Calculator: React.FC<{ input: string }> = ({input}) => {
             padding: "12px",
             fontFamily: "sans-serif",
         }}>
+            {/* 输入框 */}
             <input
                 type="text"
                 value={expression}
@@ -50,6 +52,7 @@ const Calculator: React.FC<{ input: string }> = ({input}) => {
                 }}
             />
 
+            {/* 结果 */}
             {result && (
                 <div style={{
                     fontSize: "18px",
@@ -61,6 +64,7 @@ const Calculator: React.FC<{ input: string }> = ({input}) => {
                 </div>
             )}
 
+            {/* 错误提示 */}
             {error && (
                 <div style={{
                     background: "#ffeaea",
@@ -74,10 +78,11 @@ const Calculator: React.FC<{ input: string }> = ({input}) => {
                 </div>
             )}
 
-            <div style={{display: "flex", gap: "8px"}}>
+            {/* 操作按钮 */}
+            <div style={{ display: "flex", gap: "8px" }}>
                 <button
                     onClick={() => {
-                        ClipboardSetText(result)
+                        window.runtime.ClipboardSetText(result)
                         setCopied(true)
                         setTimeout(() => setCopied(false), 1500)
                     }}

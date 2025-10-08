@@ -1,7 +1,6 @@
 import {defineConfig} from 'vite'
 import {readdirSync} from "node:fs";
 import react from "@vitejs/plugin-react";
-import path from "node:path";
 
 const pluginDir = 'src/plugins'
 const pluginFiles = readdirSync(pluginDir, {withFileTypes: true}).filter(file => file.name.endsWith('.tsx')).map(file => file.name.replace('.tsx', ''))
@@ -21,9 +20,8 @@ export default defineConfig({
     define: {
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
     },
-    publicDir: false,
     build: {
-        outDir: path.resolve(__dirname, 'public', 'plugins'),
+        outDir: 'dist-plugins',
         emptyOutDir: true,
         lib: {
             entry: entries,
@@ -43,10 +41,9 @@ export default defineConfig({
             output: {
                 format: 'es',
                 inlineDynamicImports: true,
-                chunkFileNames: 'shared/chunk-[hash].js',
             },
         },
-        minify: true,
-        sourcemap: true,
+        // minify: true,
+        // sourcemap: true,
     }
 })

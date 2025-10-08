@@ -3,7 +3,6 @@ node_modules
 frontend/dist
 frontend/dist-plugins
 frontend/public/vendor
-frontend/public/plugins
 frontend/public/importmap.js
 
 .vscode
