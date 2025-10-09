@@ -2,6 +2,7 @@ import {PluginEntry, PluginMetadata, PluginPackage} from "src/schemas/plugin";
 import {ClipboardSetText} from "../../wailsjs/runtime";
 import React, {useState} from "react";
 import {createRoot} from "react-dom/client";
+import { tw } from 'twind';
 
 
 const Calculator: React.FC<{ input: string }> = ({input}) => {
@@ -28,56 +29,32 @@ const Calculator: React.FC<{ input: string }> = ({input}) => {
     }, [expression])
 
     return (
-        <div style={{
-            width: "100%",
-            padding: "12px",
-            fontFamily: "sans-serif",
-        }}>
+        <div className={tw`w-full p-3 font-sans`}>
             {/* 输入框 */}
             <input
                 type="text"
                 value={expression}
                 onChange={(e) => setExpression(e.target.value)}
                 placeholder="请输入算式，如 1+2*3"
-                style={{
-                    width: "100%",
-                    padding: "8px",
-                    marginBottom: "10px",
-                    border: "1px solid #ccc",
-                    borderRadius: "6px",
-                    fontFamily: "monospace",
-                    fontSize: "14px"
-                }}
+                className={tw`w-full p-2 mb-2.5 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             />
 
             {/* 结果 */}
             {result && (
-                <div style={{
-                    fontSize: "18px",
-                    fontWeight: "bold",
-                    color: "#2196F3",
-                    marginBottom: "8px"
-                }}>
+                <div className={tw`text-lg font-bold text-blue-500 mb-2`}>
                     结果: {result}
                 </div>
             )}
 
             {/* 错误提示 */}
             {error && (
-                <div style={{
-                    background: "#ffeaea",
-                    color: "#b00020",
-                    padding: "6px 8px",
-                    borderRadius: "6px",
-                    fontSize: "13px",
-                    marginBottom: "8px"
-                }}>
+                <div className={tw`bg-red-50 text-red-600 px-2 py-1.5 rounded-md text-sm mb-2`}>
                     {error}
                 </div>
             )}
 
             {/* 操作按钮 */}
-            <div style={{display: "flex", gap: "8px"}}>
+            <div className={tw`flex gap-2`}>
                 <button
                     onClick={() => {
                         ClipboardSetText(result)
@@ -85,30 +62,17 @@ const Calculator: React.FC<{ input: string }> = ({input}) => {
                         setTimeout(() => setCopied(false), 1500)
                     }}
                     disabled={!result}
-                    style={{
-                        flex: 1,
-                        padding: "8px",
-                        border: "none",
-                        borderRadius: "6px",
-                        background: result ? "#007bff" : "#ccc",
-                        color: "#fff",
-                        cursor: result ? "pointer" : "not-allowed",
-                        fontSize: "14px"
-                    }}
+                    className={tw`flex-1 p-2 border-none rounded-md text-white text-sm transition-colors ${
+                        result
+                            ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                            : 'bg-gray-400 cursor-not-allowed'
+                    }`}
                 >
                     {copied ? "✅ 已复制" : "复制结果"}
                 </button>
                 <button
                     onClick={() => setExpression("")}
-                    style={{
-                        flex: 1,
-                        padding: "8px",
-                        border: "1px solid #ccc",
-                        borderRadius: "6px",
-                        background: "#f5f5f5",
-                        cursor: "pointer",
-                        fontSize: "14px"
-                    }}
+                    className={tw`flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 hover:bg-gray-100 cursor-pointer text-sm transition-colors`}
                 >
                     清空
                 </button>

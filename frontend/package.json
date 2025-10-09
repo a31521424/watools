@@ -22,6 +22,7 @@
     "react-dom": "19.0.0",
     "tailwind-merge": "^3.3.1",
     "tailwind-scrollbar-hide": "^4.0.0",
+    "twind": "^0.16.19",
     "wouter": "^3.7.1",
     "zustand": "^5.0.8"
   },
@@ -34,8 +35,7 @@
     "tailwindcss": "^4.1.10",
     "tw-animate-css": "^1.3.4",
     "typescript": "^4.6.4",
-    "vite": "7.1.5",
-    "vite-plugin-css-injected-by-js": "^3.5.2"
+    "vite": "7.1.5"
   },
   "packageManager": "yarn@1.22.22"
 }

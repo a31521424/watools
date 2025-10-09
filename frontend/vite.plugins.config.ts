@@ -2,7 +2,6 @@ import {defineConfig} from 'vite';
 import react from '@vitejs/plugin-react';
 import {readdirSync} from 'node:fs';
 import * as path from 'node:path';
-import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
 
 const pluginDir = path.resolve(__dirname, 'src/plugins');
 const entries = readdirSync(pluginDir, {withFileTypes: true})
@@ -18,7 +17,6 @@ console.log('Building plugins:', Object.keys(entries));
 export default defineConfig(({mode}) => ({
     plugins: [
         react(),
-        cssInjectedByJsPlugin(),
     ],
     define: {
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
@@ -26,7 +24,7 @@ export default defineConfig(({mode}) => ({
     build: {
         outDir: 'dist-plugins',
         sourcemap: mode !== 'production',
-        minify: false,
+        minify: mode === 'production',
         lib: {
             entry: entries,
             formats: ['iife'],
