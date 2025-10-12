@@ -21,13 +21,3 @@ func ConvertApplicationCommand(command Application) *models.ApplicationCommand {
 	}
 	return models.NewApplicationCommand(command.Name, command.Description, command.Path, command.IconPath, command.ID, dirUpdatedAt)
 }
-
-func ConvertPlugin(plugin Plugin) *models.Plugin {
-	return &models.Plugin{
-		ID:          plugin.ID,
-		PackageID:   plugin.PackageID,
-		Name:        plugin.Name,
-		Version:     plugin.Version,
-		Description: plugin.Description.String,
-	}
-}

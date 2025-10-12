@@ -22,7 +22,5 @@ func (w *WaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	switch url {
 	case "application-icon":
 		HandleApplicationIcon(res, req)
-	case "plugin-entry":
-		HandlePluginEntry(res, req)
 	}
 }

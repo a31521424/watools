@@ -10,14 +10,6 @@ export function GetOperatorCommandsApi() {
   return window['go']['coordinator']['WaAppCoordinator']['GetOperatorCommandsApi']();
 }
 
-export function GetPluginExecEntryApi(arg1) {
-  return window['go']['coordinator']['WaAppCoordinator']['GetPluginExecEntryApi'](arg1);
-}
-
-export function GetPluginsApi() {
-  return window['go']['coordinator']['WaAppCoordinator']['GetPluginsApi']();
-}
-
 export function HideAppApi() {
   return window['go']['coordinator']['WaAppCoordinator']['HideAppApi']();
 }

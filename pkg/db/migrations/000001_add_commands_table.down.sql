@@ -1,3 +1,2 @@
 DROP TABLE IF EXISTS applications;
 DROP TABLE IF EXISTS metadata;
-DROP TABLE IF EXISTS plugins;

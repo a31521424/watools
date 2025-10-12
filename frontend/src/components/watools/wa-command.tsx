@@ -9,8 +9,6 @@ import {useDebounce} from "@uidotdev/usehooks";
 import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
-import {WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
-import {useLocation} from "wouter";
 
 
 export const WaCommand = () => {
@@ -21,7 +19,6 @@ export const WaCommand = () => {
     const commandListRef = useRef<HTMLDivElement>(null)
     const debounceInput = useDebounce(input, 50)
     const firstSelectedKeyRef = useRef<string>('')
-    const [location, navigate] = useLocation()
 
     // Reset selected key when search input changes
     useEffect(() => {
@@ -146,16 +143,6 @@ export const WaCommand = () => {
                     }
                 }}
             />
-            <WaPluginCommandGroup searchKey={debounceInput} OnTriggerCommand={entry => {
-                console.log('on trigger entry', entry)
-                if (entry.exec) {
-                    clearInput()
-                    entry.exec(debounceInput)
-                    HideAppApi()
-                } else {
-                    navigate(`/plugins/${entry.entryID}`, {state: {input: debounceInput}})
-                }
-            }}/>
         </CommandList>
     </Command>
 }

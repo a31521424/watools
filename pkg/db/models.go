@@ -23,11 +23,3 @@ type Metadata struct {
 	Key   string
 	Value sql.NullString
 }
-
-type Plugin struct {
-	ID          string
-	PackageID   string
-	Name        string
-	Version     string
-	Description sql.NullString
-}
