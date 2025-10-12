@@ -67,7 +67,15 @@ func (w *WaLaunchApp) updateApplications() {
 		id := command.ID
 		fi, err := os.Stat(command.Path)
 		if err != nil {
-			logger.Error(err, fmt.Sprintf("Failed to stat command %s", command.Path))
+			if os.IsNotExist(err) {
+				logger.Error(err, fmt.Sprintf("Command is not exists %s", command.Path))
+				err := dbInstance.DeleteCommand(w.ctx, id)
+				if err != nil {
+					logger.Error(err, fmt.Sprintf("Failed to delete command %s", id))
+				}
+			} else {
+				logger.Error(err, fmt.Sprintf("Failed to stat command %s", command.Path))
+			}
 			continue
 		}
 		if fi.ModTime().Format(time.DateTime) == command.DirUpdatedAt.Format(time.DateTime) {
