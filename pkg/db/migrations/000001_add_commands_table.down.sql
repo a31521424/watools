@@ -1,2 +1,3 @@
-DROP TABLE IF EXISTS applications;
+DROP TABLE IF EXISTS application;
+DROP TABLE IF EXISTS plugin_state;
 DROP TABLE IF EXISTS metadata;

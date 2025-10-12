@@ -12,7 +12,7 @@ import (
 )
 
 const createApplication = `-- name: CreateApplication :one
-INSERT INTO applications (id, name, description, category, path, icon_path, dir_updated_at)
+INSERT INTO application (id, name, description, category, path, icon_path, dir_updated_at)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 RETURNING id, name, description, category, path, icon_path, updated_at, dir_updated_at
 `
@@ -53,7 +53,7 @@ func (q *Queries) CreateApplication(ctx context.Context, arg CreateApplicationPa
 
 const deleteApplication = `-- name: DeleteApplication :exec
 DELETE
-FROM applications
+FROM application
 WHERE id IN (/*SLICE:ids*/?)
 `
 
@@ -74,7 +74,7 @@ func (q *Queries) DeleteApplication(ctx context.Context, ids []string) error {
 
 const getApplicationIsUpdatedDir = `-- name: GetApplicationIsUpdatedDir :one
 SELECT id, name, description, category, path, icon_path, updated_at, dir_updated_at
-FROM applications
+FROM application
 WHERE dir_updated_at != ?1
   AND path = ?2
 LIMIT 1
@@ -103,7 +103,7 @@ func (q *Queries) GetApplicationIsUpdatedDir(ctx context.Context, arg GetApplica
 
 const getApplications = `-- name: GetApplications :many
 SELECT id, name, description, category, path, icon_path, updated_at, dir_updated_at
-FROM applications
+FROM application
 `
 
 func (q *Queries) GetApplications(ctx context.Context) ([]Application, error) {
@@ -140,7 +140,7 @@ func (q *Queries) GetApplications(ctx context.Context) ([]Application, error) {
 
 const getExpiredApplications = `-- name: GetExpiredApplications :many
 SELECT id, name, description, category, path, icon_path, updated_at, dir_updated_at
-FROM applications
+FROM application
 WHERE updated_at < ?1
 `
 
@@ -177,7 +177,7 @@ func (q *Queries) GetExpiredApplications(ctx context.Context, updatedAt string) 
 }
 
 const updateApplicationPartial = `-- name: UpdateApplicationPartial :exec
-UPDATE applications
+UPDATE application
 SET name           = COALESCE(?1, name),
     description    = COALESCE(?2, description),
     category       = COALESCE(?3, category),
