@@ -340,7 +340,7 @@ func (h *defaultAppEventHandler) OnAppRemoved(path string) error {
 	commands := h.db.GetCommands(h.ctx)
 	for _, command := range commands {
 		if command.Path == path {
-			err := h.db.DeleteCommand(h.ctx, command.ID)
+			err := h.db.DeleteCommands(h.ctx, []string{command.ID})
 			if err == nil {
 				h.emitApplicationChanged()
 			}

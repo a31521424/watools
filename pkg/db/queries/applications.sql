@@ -15,7 +15,7 @@ WHERE updated_at < @updated_at;
 -- name: DeleteApplication :exec
 DELETE
 FROM applications
-WHERE id = @id;
+WHERE id IN (sqlc.slice('ids'));
 
 -- name: UpdateApplicationPartial :exec
 UPDATE applications

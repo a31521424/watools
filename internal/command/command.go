@@ -62,6 +62,7 @@ func (w *WaLaunchApp) updateApplications() {
 	seen := make(map[string]struct{})
 	var updateCommands []*models.ApplicationCommand
 	var insertCommands []*models.ApplicationCommand
+	var removeCommands []*models.ApplicationCommand
 	for _, command := range commands {
 		seen[command.Path] = struct{}{}
 		id := command.ID
@@ -69,10 +70,7 @@ func (w *WaLaunchApp) updateApplications() {
 		if err != nil {
 			if os.IsNotExist(err) {
 				logger.Error(err, fmt.Sprintf("Command is not exists %s", command.Path))
-				err := dbInstance.DeleteCommand(w.ctx, id)
-				if err != nil {
-					logger.Error(err, fmt.Sprintf("Failed to delete command %s", id))
-				}
+				removeCommands = append(removeCommands, command)
 			} else {
 				logger.Error(err, fmt.Sprintf("Failed to stat command %s", command.Path))
 			}
@@ -85,10 +83,7 @@ func (w *WaLaunchApp) updateApplications() {
 		command, err := application.ParseApplication(command.Path)
 		if err != nil {
 			logger.Error(err, "Failed to parse application")
-			err := dbInstance.DeleteCommand(w.ctx, id)
-			if err != nil {
-				logger.Error(err, fmt.Sprintf("Failed to delete command %s", id))
-			}
+			removeCommands = append(removeCommands, command)
 			continue
 		}
 		command.ID = id
@@ -98,6 +93,13 @@ func (w *WaLaunchApp) updateApplications() {
 	err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
 	if err != nil {
 		logger.Error(err, "Failed to batch update updated commands to db")
+	}
+	logger.Info(fmt.Sprintf("Delete commands result: removed %d / total %d", len(removeCommands), len(commands)))
+	err = dbInstance.DeleteCommands(w.ctx, lo.Map(removeCommands, func(command *models.ApplicationCommand, _ int) string {
+		return command.ID
+	}))
+	if err != nil {
+		logger.Error(err, "Failed to delete commands")
 	}
 
 	logger.Info("Checking commands from disk")
@@ -119,7 +121,7 @@ func (w *WaLaunchApp) updateApplications() {
 	if err != nil {
 		logger.Error(err, "Failed to batch insert new commands to db")
 	}
-	if len(insertCommands)+len(updateCommands) > 0 {
+	if len(insertCommands)+len(updateCommands)+len(removeCommands) > 0 {
 		runtime.EventsEmit(w.ctx, "watools.applicationChanged")
 	}
 }

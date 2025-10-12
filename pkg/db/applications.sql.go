@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 )
 
 const createApplication = `-- name: CreateApplication :one
@@ -53,11 +54,21 @@ func (q *Queries) CreateApplication(ctx context.Context, arg CreateApplicationPa
 const deleteApplication = `-- name: DeleteApplication :exec
 DELETE
 FROM applications
-WHERE id = ?1
+WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) DeleteApplication(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, deleteApplication, id)
+func (q *Queries) DeleteApplication(ctx context.Context, ids []string) error {
+	query := deleteApplication
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
 	return err
 }
 

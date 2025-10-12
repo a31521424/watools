@@ -191,11 +191,11 @@ func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.Appli
 	})
 }
 
-func (d *WaDB) DeleteCommand(ctx context.Context, id string) error {
-	logger.Info(fmt.Sprintf("Deleting command %s", id))
+func (d *WaDB) DeleteCommands(ctx context.Context, ids []string) error {
+	logger.Info(fmt.Sprintf("Deleting command %v", ids))
 	return d.withTx(ctx, func(tx *sql.Tx) error {
 		txQuery := d.query.WithTx(tx)
-		if err := txQuery.DeleteApplication(ctx, id); err != nil {
+		if err := txQuery.DeleteApplication(ctx, ids); err != nil {
 			return fmt.Errorf("failed to delete command: %w", err)
 		}
 		return tx.Commit()
