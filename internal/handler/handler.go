@@ -17,10 +17,14 @@ func (w *WaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if !strings.HasPrefix(req.URL.Path, "/api") {
 		return
 	}
-	url := strings.TrimPrefix(req.URL.Path, "/api")
-	url = strings.TrimPrefix(url, "/")
-	switch url {
-	case "application-icon":
-		HandleApplicationIcon(res, req)
+
+	url := req.URL.Path
+
+	if strings.HasPrefix(url, "/api/application-icon") {
+		applicationIconRoute(res, req)
+	} else if strings.HasPrefix(url, "/api/plugin") {
+		pluginRoute(res, req)
+	} else {
+		http.NotFound(res, req)
 	}
 }

@@ -27,7 +27,7 @@ func getPngIconCachePath(iconPath string) string {
 	return iconCachePath
 }
 
-func HandleApplicationIcon(res http.ResponseWriter, req *http.Request) {
+func applicationIconRoute(res http.ResponseWriter, req *http.Request) {
 	IconPath := req.URL.Query().Get("path")
 	pngIconPath := getPngIconCachePath(IconPath)
 	if pngIconPath == "" {
