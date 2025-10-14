@@ -52,8 +52,10 @@ func (w *WaLaunchApp) Shutdown(ctx context.Context) {
 }
 
 func (w *WaLaunchApp) asyncUpdateApplications(delay time.Duration) {
-	time.Sleep(delay)
-	go w.updateApplications()
+	go func() {
+		time.Sleep(delay)
+		w.updateApplications()
+	}()
 }
 
 func (w *WaLaunchApp) updateApplications() {
