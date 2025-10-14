@@ -8,7 +8,12 @@ import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {useDebounce} from "@uidotdev/usehooks";
 import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
-import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
+import {
+    GetPluginsApi,
+    HideAppApi,
+    HideOrShowAppApi,
+    TriggerCommandApi,
+} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 
 
 export const WaCommand = () => {
@@ -27,6 +32,11 @@ export const WaCommand = () => {
             firstSelectedKeyRef.current = ''
         }
     }, [debounceInput])
+    useEffect(() => {
+        GetPluginsApi().then(plugins => {
+            console.log('Loaded plugins:', plugins)
+        })
+    }, []);
 
     useWindowFocus((focused) => {
         if (!focused) {

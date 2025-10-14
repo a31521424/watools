@@ -9,3 +9,5 @@ frontend/dist
 .cache/
 
 .claude/
+
+fronted-plugin

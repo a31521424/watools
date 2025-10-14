@@ -215,3 +215,14 @@ func (d *WaDB) GetCommandIsUpdatedDir(ctx context.Context, path string, dirUpdat
 	}
 	return ConvertApplicationCommand(command)
 }
+
+func (d *WaDB) GetPlugins(ctx context.Context) []*models.PluginState {
+	dbPlugins, err := d.query.GetPlugins(ctx)
+	if err != nil {
+		logger.Error(err, "Failed to get plugins")
+		return nil
+	}
+	return lo.Map(dbPlugins, func(item PluginState, _ int) *models.PluginState {
+		return ConvertPluginState(item)
+	})
+}
