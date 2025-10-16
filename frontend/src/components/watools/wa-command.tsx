@@ -8,12 +8,8 @@ import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {useDebounce} from "@uidotdev/usehooks";
 import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
-import {
-    GetPluginsApi,
-    HideAppApi,
-    HideOrShowAppApi,
-    TriggerCommandApi,
-} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
+import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
+import {usePluginStore} from "@/stores";
 
 
 export const WaCommand = () => {
@@ -24,6 +20,7 @@ export const WaCommand = () => {
     const commandListRef = useRef<HTMLDivElement>(null)
     const debounceInput = useDebounce(input, 50)
     const firstSelectedKeyRef = useRef<string>('')
+    const {fetchPlugins} = usePluginStore()
 
     // Reset selected key when search input changes
     useEffect(() => {
@@ -33,9 +30,7 @@ export const WaCommand = () => {
         }
     }, [debounceInput])
     useEffect(() => {
-        GetPluginsApi().then(plugins => {
-            console.log('Loaded plugins:', plugins)
-        })
+        void fetchPlugins()
     }, []);
 
     useWindowFocus((focused) => {
@@ -72,7 +67,7 @@ export const WaCommand = () => {
         if (isPanelOpen) {
             clearInput()
         } else {
-            HideOrShowAppApi()
+            void HideOrShowAppApi()
         }
     }
 
@@ -102,7 +97,7 @@ export const WaCommand = () => {
     const onTriggerCommand = (command: CommandType) => {
         clearInput()
         TriggerCommandApi(command.triggerId, command.category).then(() => {
-            HideAppApi()
+            void HideAppApi()
         })
     }
     const scrollToTop = () => {
