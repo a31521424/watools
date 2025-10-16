@@ -15,7 +15,11 @@ export type Plugin = {
     version: string
     author: string
     uiEnabled: boolean
+
+    enabled: boolean
+    storage: Record<string, any>
+    lastUsedTime: Date | null
+    usedCount: number
+
     entry: PluginEntry[]
-    icon: PluginIcon
-    isActive: boolean
 }

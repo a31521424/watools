@@ -59,7 +59,6 @@ func (p *PluginState) ToFullInfoMap() map[string]interface{} {
 	mapData, err = utils.MergeStructToMap([]interface{}{p, metadata})
 	if err != nil {
 		logger.Error(err, "Failed to marshal plugin state")
-		return mapData
 	}
 	return mapData
 }

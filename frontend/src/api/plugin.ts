@@ -14,11 +14,16 @@ export const getPlugins = async (): Promise<Plugin[]> => {
             version: plugin.version || '',
             author: plugin.author || '',
             uiEnabled: plugin.uiEnabled || false,
-            entry: plugin.entry || [],
-            icon: plugin.icon || null,
-            isActive: plugin.isActive || false,
+
+            enabled: plugin.enabled || false,
+            storage: plugin.storage || {},
+            lastUsedTime: plugin.lastUsedTime ? new Date(plugin.lastUsedTime) : new Date(0),
+            usedCount: plugin.usedCount || 0,
+
+            entry: [],
         }))
     }
+
 
     return plugins
 }

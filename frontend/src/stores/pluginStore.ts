@@ -11,7 +11,7 @@ interface PluginState {
     refreshPlugins: () => Promise<void>
     fetchPluginsAsync: () => void  // fire-and-forget version
     getPluginById: (packageId: string) => Plugin | undefined
-    getActivePlugins: () => Plugin[]
+    getEnabledPlugins: () => Plugin[]
     getPluginsByType: (type: "executable" | "ui") => Plugin[]
 }
 
@@ -49,8 +49,8 @@ export const usePluginStore = create<PluginState>((set, get) => ({
         return get().plugins.find(plugin => plugin.packageId === packageId)
     },
 
-    getActivePlugins: () => {
-        return get().plugins.filter(plugin => plugin.isActive)
+    getEnabledPlugins: () => {
+        return get().plugins.filter(plugin => plugin.enabled)
     },
 
     getPluginsByType: (type: "executable" | "ui") => {
