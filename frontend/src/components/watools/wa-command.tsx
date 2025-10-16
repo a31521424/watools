@@ -7,9 +7,11 @@ import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {useDebounce} from "@uidotdev/usehooks";
 import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
+import {WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 import {usePluginStore} from "@/stores";
+import {Logger} from "@/lib/logger";
 
 
 export const WaCommand = () => {
@@ -100,6 +102,16 @@ export const WaCommand = () => {
             void HideAppApi()
         })
     }
+
+    const onTriggerPluginCommand = async (entry: any, input: string) => {
+        clearInput()
+        try {
+            await entry.execute(input)
+            void HideAppApi()
+        } catch (error) {
+            Logger.error(`Failed to execute plugin command: ${error}`)
+        }
+    }
     const scrollToTop = () => {
         if (commandListRef.current) {
             commandListRef.current.scrollTo({top: 0})
@@ -126,6 +138,17 @@ export const WaCommand = () => {
             ref={commandListRef}
             className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}
         >
+            <WaPluginCommandGroup
+                searchKey={debounceInput}
+                onTriggerPluginCommand={onTriggerPluginCommand}
+                onSearchSuccess={(currentSelectedKey) => {
+                    scrollToTop()
+                    if (currentSelectedKey && !firstSelectedKeyRef.current) {
+                        firstSelectedKeyRef.current = currentSelectedKey
+                        setSelectedKey(currentSelectedKey)
+                    }
+                }}
+            />
             <WaApplicationCommandGroup
                 searchKey={debounceInput}
                 onTriggerCommand={onTriggerCommand}
