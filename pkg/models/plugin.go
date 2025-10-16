@@ -18,6 +18,7 @@ type PluginMetadata struct {
 	Version     string `json:"version"`
 	Author      string `json:"author"`
 	UIEnabled   bool   `json:"uiEnabled"`
+	Entry       string `json:"entry"`
 }
 
 type PluginState struct {
@@ -61,4 +62,13 @@ func (p *PluginState) ToFullInfoMap() map[string]interface{} {
 		logger.Error(err, "Failed to marshal plugin state")
 	}
 	return mapData
+}
+
+func (p *PluginState) GetJsEntryUrl() string {
+	metadata, err := p.GetMetadata()
+	if err != nil {
+		logger.Error(err, "Failed to get plugin metadata")
+		return ""
+	}
+	return fmt.Sprintf("/api/plugin/%s/%s", p.PackageID, metadata.Entry)
 }

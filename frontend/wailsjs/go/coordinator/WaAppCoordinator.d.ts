@@ -5,6 +5,8 @@ export function GetApplicationCommandsApi():Promise<Array<any>>;
 
 export function GetOperatorCommandsApi():Promise<Array<any>>;
 
+export function GetPluginJsEntryUrlApi(arg1:string):Promise<string>;
+
 export function GetPluginsApi():Promise<Array<Record<string, any>>>;
 
 export function HideAppApi():Promise<void>;

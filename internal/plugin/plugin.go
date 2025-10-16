@@ -44,3 +44,13 @@ func (p *WaPlugin) GetPlugins() []map[string]interface{} {
 		return item.ToFullInfoMap()
 	})
 }
+
+func (p *WaPlugin) GetJsEntryUrl(packageID string) string {
+	plugin, find := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
+		return item.PackageID == packageID
+	})
+	if !find {
+		return ""
+	}
+	return plugin.GetJsEntryUrl()
+}

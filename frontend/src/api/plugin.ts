@@ -1,5 +1,5 @@
 import {Plugin} from "@/schemas/plugin"
-import {GetPluginsApi} from "../../wailsjs/go/coordinator/WaAppCoordinator"
+import {GetPluginJsEntryUrlApi, GetPluginsApi} from "../../wailsjs/go/coordinator/WaAppCoordinator"
 
 export const getPlugins = async (): Promise<Plugin[]> => {
     const pluginsData = await GetPluginsApi()
@@ -23,6 +23,20 @@ export const getPlugins = async (): Promise<Plugin[]> => {
             entry: [],
         }))
     }
+
+    await Promise.all(plugins.map(async (plugin) => {
+        try {
+            const entryUrl = await GetPluginJsEntryUrlApi(plugin.packageId)
+            if (entryUrl) {
+                const module = await import(/* @vite-ignore */ entryUrl)
+                if (module && module.default && Array.isArray(module.default)) {
+                    plugin.entry = module.default
+                }
+            }
+        } catch (error) {
+            console.error(`Failed to load plugin entry for ${plugin.packageId}:`, error)
+        }
+    }))
 
 
     return plugins

@@ -88,4 +88,8 @@ func (w *WaAppCoordinator) GetPluginsApi() []map[string]interface{} {
 	return w.waPluginApp.GetPlugins()
 }
 
+func (w *WaAppCoordinator) GetPluginJsEntryUrlApi(packageID string) string {
+	return w.waPluginApp.GetJsEntryUrl(packageID)
+}
+
 // end region plugin
