@@ -28,7 +28,7 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
         const enabledPlugins = getEnabledPlugins()
         const allEntries: PluginCommandEntry[] = []
 
-        // 收集所有启用插件的 entry
+        // Collect all enabled plugin entries
         enabledPlugins.forEach(plugin => {
             plugin.entry.forEach((entry, index) => {
                 allEntries.push({
@@ -40,7 +40,7 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
             })
         })
 
-        // 匹配输入
+        // Match input
         const matched = allEntries.filter(entry => {
             try {
                 return entry.match(props.searchKey)
@@ -50,14 +50,14 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
             }
         })
 
-        // 按优先级排序：executable 类型优先
+        // Sort by priority: executable type first
         matched.sort((a, b) => {
             if (a.type === 'executable' && b.type === 'ui') return -1
             if (a.type === 'ui' && b.type === 'executable') return 1
             return 0
         })
 
-        setMatchedEntries(matched.slice(0, 5)) // 限制显示5个结果
+        setMatchedEntries(matched.slice(0, 5)) // Limit display to 5 results
     }, [props.searchKey, getEnabledPlugins])
 
     useEffect(() => {
