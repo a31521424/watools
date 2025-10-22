@@ -13,6 +13,7 @@ import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs
 import {usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
 import {useLocation} from "wouter";
+import {isDevMode} from "@/lib/env";
 
 
 export const WaCommand = () => {
@@ -60,6 +61,16 @@ export const WaCommand = () => {
             inputRef.current.focus()
         }
     })
+
+    useWindowFocus((focused) => {
+        if (!focused) {
+            if (isDevMode()) {
+                return
+            }
+            HideAppApi()
+        }
+    })
+
 
     const isPanelOpen = input.length > 0
     const clearInput = () => {
