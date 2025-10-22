@@ -41,7 +41,7 @@ func (p *WaPlugin) loadPlugins() {
 
 func (p *WaPlugin) GetPlugins() []map[string]interface{} {
 	return lo.Map(p.pluginStates, func(item *models.PluginState, index int) map[string]interface{} {
-		return item.ToFullInfoMap()
+		return item.GetFullInfo()
 	})
 }
 

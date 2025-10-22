@@ -50,7 +50,7 @@ func (p *PluginState) GetMetadata() (*PluginMetadata, error) {
 	return &metadata, nil
 }
 
-func (p *PluginState) ToFullInfoMap() map[string]interface{} {
+func (p *PluginState) GetFullInfo() map[string]interface{} {
 	var mapData map[string]interface{}
 	metadata, err := p.GetMetadata()
 	if err != nil {

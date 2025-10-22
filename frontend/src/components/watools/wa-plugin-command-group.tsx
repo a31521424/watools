@@ -2,6 +2,7 @@ import {useEffect, useState} from "react";
 import {CommandGroup, CommandItem} from "@/components/ui/command";
 import {usePluginStore} from "@/stores";
 import {PluginEntry} from "@/schemas/plugin";
+import {WaIcon} from "@/components/watools/wa-icon";
 
 type PluginCommandEntry = PluginEntry & {
     packageId: string
@@ -82,7 +83,7 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
                         props.onTriggerPluginCommand(entry, props.searchKey)
                     }}
                 >
-                    <span className="text-lg">{entry.icon || '🔌'}</span>
+                    <WaIcon value={entry.icon} size={16}/>
                     <div className="flex flex-col">
                         <span>{entry.pluginName}</span>
                         <span className="text-sm text-gray-500">{entry.subTitle}</span>

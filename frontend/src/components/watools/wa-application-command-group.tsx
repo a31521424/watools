@@ -54,6 +54,8 @@ export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps)
         onTriggerCommand={props.onTriggerCommand}
         onSearchSuccess={props.onSearchSuccess}
         fuseOptions={WaBaseCommandFuseConfig}
-        renderItemIcon={command => <WaIcon iconPath={command.iconPath} size={16}/>}
+        renderItemIcon={command => <WaIcon
+            iconPath={`/api/application-icon?path=${encodeURIComponent(command.iconPath)}`} size={16}/>
+        }
     />
 }
