@@ -32,12 +32,12 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
 
         // Collect all enabled plugin entries
         enabledPlugins.forEach(plugin => {
-            plugin.entry.forEach((entry, index) => {
+            plugin.entry.forEach((entry) => {
                 allEntries.push({
                     ...entry,
                     packageId: plugin.packageId,
                     pluginName: plugin.name,
-                    triggerId: `${plugin.packageId}_${index}`,
+                    triggerId: `${plugin.packageId}_${entry.subTitle}`,
                     homeUrl: plugin.homeUrl
                 })
             })

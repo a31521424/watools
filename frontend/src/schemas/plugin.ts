@@ -6,6 +6,7 @@ export type PluginEntry = {
     match: (input: string) => boolean
     execute?: (input: string) => Promise<void>
     icon: PluginIcon
+    file?: string
 }
 
 export type Plugin = {

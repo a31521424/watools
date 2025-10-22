@@ -12,6 +12,7 @@ import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 import {usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
+import {useLocation} from "wouter";
 
 
 export const WaCommand = () => {
@@ -23,6 +24,7 @@ export const WaCommand = () => {
     const debounceInput = useDebounce(input, 50)
     const firstSelectedKeyRef = useRef<string>('')
     const {fetchPlugins} = usePluginStore()
+    const [_, navigate] = useLocation()
 
     // Reset selected key when search input changes
     useEffect(() => {
@@ -106,7 +108,7 @@ export const WaCommand = () => {
     const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: string) => {
         clearInput()
         if (entry.type === 'ui') {
-            console.log('Triggering plugin UI command:', entry.subTitle, entry.homeUrl)
+            navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
         } else if (entry.type === 'executable') {
             try {
                 entry.execute && await entry.execute(input)
