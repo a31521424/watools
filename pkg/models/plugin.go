@@ -50,6 +50,10 @@ func (p *PluginState) GetMetadata() (*PluginMetadata, error) {
 	return &metadata, nil
 }
 
+func (p *PluginState) getPluginHomeUrl() string {
+	return path.Join("/api/plugin/", p.PackageID)
+}
+
 func (p *PluginState) GetFullInfo() map[string]interface{} {
 	var mapData map[string]interface{}
 	metadata, err := p.GetMetadata()
@@ -57,7 +61,13 @@ func (p *PluginState) GetFullInfo() map[string]interface{} {
 		logger.Error(err, "Failed to get plugin metadata")
 		return mapData
 	}
-	mapData, err = utils.MergeStructToMap([]interface{}{p, metadata})
+	mapData, err = utils.MergeStructToMap([]interface{}{
+		p,
+		metadata,
+		map[string]interface{}{
+			"homeUrl": p.getPluginHomeUrl(),
+		},
+	})
 	if err != nil {
 		logger.Error(err, "Failed to marshal plugin state")
 	}
@@ -70,5 +80,6 @@ func (p *PluginState) GetJsEntryUrl() string {
 		logger.Error(err, "Failed to get plugin metadata")
 		return ""
 	}
-	return fmt.Sprintf("/api/plugin/%s/%s", p.PackageID, metadata.Entry)
+	homeUrl := p.getPluginHomeUrl()
+	return path.Join(homeUrl, metadata.Entry)
 }

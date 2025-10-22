@@ -20,6 +20,8 @@ export const getPlugins = async (): Promise<Plugin[]> => {
             lastUsedTime: plugin.lastUsedTime ? new Date(plugin.lastUsedTime) : new Date(0),
             usedCount: plugin.usedCount || 0,
 
+            homeUrl: plugin.homeUrl || '',
+
             entry: [],
         }))
     }

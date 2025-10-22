@@ -4,10 +4,11 @@ import {usePluginStore} from "@/stores";
 import {PluginEntry} from "@/schemas/plugin";
 import {WaIcon} from "@/components/watools/wa-icon";
 
-type PluginCommandEntry = PluginEntry & {
+export type PluginCommandEntry = PluginEntry & {
     packageId: string
     pluginName: string
     triggerId: string
+    homeUrl: string
 }
 
 type WaPluginCommandGroupProps = {
@@ -36,7 +37,8 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
                     ...entry,
                     packageId: plugin.packageId,
                     pluginName: plugin.name,
-                    triggerId: `${plugin.packageId}_${index}`
+                    triggerId: `${plugin.packageId}_${index}`,
+                    homeUrl: plugin.homeUrl
                 })
             })
         })

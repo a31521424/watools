@@ -7,7 +7,7 @@ import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {useDebounce} from "@uidotdev/usehooks";
 import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
-import {WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
+import {PluginCommandEntry, WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 import {usePluginStore} from "@/stores";
@@ -103,14 +103,19 @@ export const WaCommand = () => {
         })
     }
 
-    const onTriggerPluginCommand = async (entry: any, input: string) => {
+    const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: string) => {
         clearInput()
-        try {
-            await entry.execute(input)
-            void HideAppApi()
-        } catch (error) {
-            Logger.error(`Failed to execute plugin command: ${error}`)
+        if (entry.type === 'ui') {
+            console.log('Triggering plugin UI command:', entry.subTitle, entry.homeUrl)
+        } else if (entry.type === 'executable') {
+            try {
+                entry.execute && await entry.execute(input)
+                void HideAppApi()
+            } catch (error) {
+                Logger.error(`Failed to execute plugin command: ${error}`)
+            }
         }
+
     }
     const scrollToTop = () => {
         if (commandListRef.current) {

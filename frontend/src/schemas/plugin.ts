@@ -4,7 +4,7 @@ export type PluginEntry = {
     type: "executable" | "ui"
     subTitle: string
     match: (input: string) => boolean
-    execute: (input: string) => Promise<void>
+    execute?: (input: string) => Promise<void>
     icon: PluginIcon
 }
 
@@ -20,6 +20,8 @@ export type Plugin = {
     storage: Record<string, any>
     lastUsedTime: Date | null
     usedCount: number
+
+    homeUrl: string
 
     entry: PluginEntry[]
 }
