@@ -1,10 +1,15 @@
 type PluginIcon = string | null
 
+export type PluginInput = {
+    type: "text" | "clipboard"
+    value: string
+}
+
 export type PluginEntry = {
     type: "executable" | "ui"
     subTitle: string
-    match: (input: string) => boolean
-    execute?: (input: string) => Promise<void>
+    match: (input: PluginInput) => boolean
+    execute?: (input: PluginInput) => Promise<void>
     icon: PluginIcon
     file?: string
 }

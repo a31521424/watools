@@ -14,6 +14,7 @@ import {usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
 import {useLocation} from "wouter";
 import {isDevMode} from "@/lib/env";
+import {PluginInput} from "@/schemas/plugin";
 
 
 export const WaCommand = () => {
@@ -26,6 +27,7 @@ export const WaCommand = () => {
     const firstSelectedKeyRef = useRef<string>('')
     const {fetchPlugins} = usePluginStore()
     const [_, navigate] = useLocation()
+    const [isClipboardInput, setIsClipboardInput] = useState<boolean>(false);
 
     // Reset selected key when search input changes
     useEffect(() => {
@@ -43,6 +45,7 @@ export const WaCommand = () => {
             return
         }
         ClipboardGetText().then(text => {
+            setIsClipboardInput(true)
             text = text.trim()
             if (text.length > 1500) {
                 text = text.substring(0, 1500) + '...'
@@ -116,7 +119,7 @@ export const WaCommand = () => {
         })
     }
 
-    const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: string) => {
+    const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: PluginInput) => {
         clearInput()
         if (entry.type === 'ui') {
             navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
@@ -135,6 +138,10 @@ export const WaCommand = () => {
             commandListRef.current.scrollTo({top: 0})
         }
     }
+    const pluginInput: PluginInput = {
+        type: isClipboardInput ? "clipboard" : "text",
+        value: isClipboardInput ? "" : debounceInput
+    };
     return <Command
         value={selectedKey}
         shouldFilter={false}
@@ -147,7 +154,10 @@ export const WaCommand = () => {
         <WaComplexInput
             ref={inputRef}
             autoFocus
-            onValueChange={setInput}
+            onValueChange={value => {
+                setInput(value)
+                setIsClipboardInput(false)
+            }}
             className="text-gray-800 text-xl"
             classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}
             value={input}
@@ -157,7 +167,7 @@ export const WaCommand = () => {
             className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}
         >
             <WaPluginCommandGroup
-                searchKey={debounceInput}
+                input={pluginInput}
                 onTriggerPluginCommand={onTriggerPluginCommand}
                 onSearchSuccess={(currentSelectedKey) => {
                     scrollToTop()

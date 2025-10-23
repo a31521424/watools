@@ -53,7 +53,7 @@ export const WaPlugin = () => {
     return <div className="flex-1 overflow-hidden">
         {pluginUrl && <iframe
             ref={iframeRef}
-            className="w-full h-full min-h-[400px]"
+            className="w-svw h-svh min-h-[500px]"
             src={pluginUrl} onLoad={handleIframeLoad}
         />}
         {!pluginUrl && 'loading...'}

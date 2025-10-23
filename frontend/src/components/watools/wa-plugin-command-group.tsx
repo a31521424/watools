@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react";
 import {CommandGroup, CommandItem} from "@/components/ui/command";
 import {usePluginStore} from "@/stores";
-import {PluginEntry} from "@/schemas/plugin";
+import {PluginEntry, PluginInput} from "@/schemas/plugin";
 import {WaIcon} from "@/components/watools/wa-icon";
 
 export type PluginCommandEntry = PluginEntry & {
@@ -12,8 +12,8 @@ export type PluginCommandEntry = PluginEntry & {
 }
 
 type WaPluginCommandGroupProps = {
-    searchKey: string
-    onTriggerPluginCommand: (entry: PluginCommandEntry, input: string) => void
+    input: PluginInput
+    onTriggerPluginCommand: (entry: PluginCommandEntry, input: PluginInput) => void
     onSearchSuccess: (selectedKey?: string) => void
 }
 
@@ -22,7 +22,7 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
     const [matchedEntries, setMatchedEntries] = useState<PluginCommandEntry[]>([])
 
     useEffect(() => {
-        if (!props.searchKey) {
+        if (!props.input) {
             setMatchedEntries([])
             return
         }
@@ -46,7 +46,7 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
         // Match input
         const matched = allEntries.filter(entry => {
             try {
-                return entry.match(props.searchKey)
+                return entry.match(props.input)
             } catch (error) {
                 console.error(`Plugin match error for ${entry.packageId}:`, error)
                 return false
@@ -61,7 +61,7 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
         })
 
         setMatchedEntries(matched.slice(0, 5)) // Limit display to 5 results
-    }, [props.searchKey, getEnabledPlugins])
+    }, [props.input, getEnabledPlugins])
 
     useEffect(() => {
         setTimeout(() => {
@@ -69,7 +69,7 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
         }, 0)
     }, [matchedEntries, props])
 
-    if (!props.searchKey || matchedEntries.length === 0) {
+    if (matchedEntries.length === 0) {
         return null
     }
 
@@ -82,7 +82,7 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
                     className='gap-x-4'
                     onSelect={() => {
                         console.log('Triggering plugin command:', entry)
-                        props.onTriggerPluginCommand(entry, props.searchKey)
+                        props.onTriggerPluginCommand(entry, props.input)
                     }}
                 >
                     <WaIcon value={entry.icon} size={16}/>
