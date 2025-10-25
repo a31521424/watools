@@ -30,14 +30,15 @@ export const WaCommand = () => {
         displayValue: inputDisplayValue,
         valueType: inputValueType,
         setValue: setInputValue,
+        setValueAuto: setInputValueAuto,
         clearValue: clearInputValue,
-        lastCopiedValue
     } = useAppStore()
+    const isPanelOpen = inputValue.length > 0
 
     const pluginInput: AppInput = useMemo(() => ({
         value: inputValue,
         valueType: inputValueType,
-    }), [inputValue])
+    }), [inputValue, inputValueType])
 
     // Reset selected key when search input changes
     useEffect(() => {
@@ -46,6 +47,7 @@ export const WaCommand = () => {
             firstSelectedKeyRef.current = ''
         }
     }, [inputValue])
+
     useEffect(() => {
         void fetchPlugins()
     }, []);
@@ -55,22 +57,14 @@ export const WaCommand = () => {
             return
         }
         ClipboardGetText().then(text => {
-            text = text.trim()
-            if (text.length > 1500) {
-                text = text.substring(0, 1500) + '...'
-            }
-            if (text && text !== lastCopiedValue && !inputValue) {
-                setInputValue(text, "clipboard")
-                setTimeout(() => {
-                    if (inputRef.current) {
-                        inputRef.current.select()
-                    }
-                }, 50)
-            }
+            setInputValueAuto(text, "clipboard", () => setTimeout(() => {
+                if (!inputRef.current) {
+                    return
+                }
+                inputRef.current.select()
+            }, 100))
         })
-        if (inputRef.current) {
-            inputRef.current.focus()
-        }
+        inputRef.current?.focus()
     })
 
     useWindowFocus((focused) => {
@@ -83,56 +77,48 @@ export const WaCommand = () => {
     })
 
 
-    const isPanelOpen = inputValue.length > 0
+    const handlePaste = (e: React.ClipboardEvent) => {
+        e.preventDefault()
+        try {
+            let text = e.clipboardData.getData('text').trim()
+            setInputValue(text, "clipboard", () => setTimeout(() => {
+                if (!inputRef.current) {
+                    return
+                }
+                inputRef.current.scrollLeft = inputRef.current.scrollWidth
+            }, 0))
+        } catch (e) {
+            Logger.error(`Handle paste error: ${e}`)
+        }
+    }
 
-    const onClickEscape = () => {
+    const onClickEscape = useCallback(() => {
         console.log('onClickEscape', isPanelOpen)
         if (isPanelOpen) {
             clearInputValue()
         } else {
             void HideOrShowAppApi()
         }
-    }
+    }, [isPanelOpen])
 
 
-    const handleHotkey = useCallback((e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-            e.preventDefault()
-            e.stopPropagation()
-            onClickEscape()
-        } else if (e.key === "Tab") {
-            e.preventDefault()
-            e.stopPropagation()
-            if (inputRef.current) {
-                inputRef.current.focus()
-            }
-        }
-    }, [inputValue])
-
-    const handlePaste = (e: React.ClipboardEvent) => {
-        e.preventDefault()
-        try {
-            let text = e.clipboardData.getData('text').trim()
-            if (text.length > 1500) {
-                text = text.substring(0, 1500) + '...'
-            }
-            if (inputRef.current) {
-                inputRef.current.value = text
-                inputRef.current.focus()
-                inputRef.current.setSelectionRange(text.length, text.length)
-                inputRef.current.scrollLeft = inputRef.current.scrollWidth
-            }
-            setInputValue(text, "clipboard")
-        } catch (e) {
-            Logger.error(`Handle paste error: ${e}`)
-        }
-    }
     useEffect(() => {
+        const handleHotkey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                e.preventDefault()
+                e.stopPropagation()
+                onClickEscape()
+            } else if (e.key === "Tab") {
+                e.preventDefault()
+                e.stopPropagation()
+                inputRef.current?.focus()
+            }
+        }
         window.addEventListener("keydown", handleHotkey)
         return () => {
             window.removeEventListener("keydown", handleHotkey)
         }
-    }, [handleHotkey])
+    }, [onClickEscape])
 
 
     const onTriggerCommand = (command: CommandType) => {

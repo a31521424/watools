@@ -1,12 +1,25 @@
 import {create} from "zustand";
 import {AppInputValueType} from "@/schemas/app";
 
-interface AppStore {
+type AppState = {
     displayValue: string
+    compressedDisplay: boolean
     value: string
     valueType: AppInputValueType
     lastCopiedValue: string | null
-    setValue: (value: string, type: AppInputValueType) => void
+}
+
+const initialState: AppState = {
+    displayValue: '',
+    compressedDisplay: false,
+    value: '',
+    valueType: 'text',
+    lastCopiedValue: null,
+}
+
+type AppStore = AppState & {
+    setValue: (value: string, type: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => void
+    setValueAuto: (value: string, type: AppInputValueType, onSuccess?: () => void) => void
     getValue: () => string
     clearValue: () => void
 
@@ -30,21 +43,47 @@ export const useAppStore = create<AppStore>((set, get) => {
     }, 100)
 
     return {
-        displayValue: '',
-        value: '',
-        valueType: 'text',
-        lastCopiedValue: null,
-        setValue: (value: string, valueType: AppInputValueType) => {
-            const copiedValue = valueType === "clipboard" ? value : null
-            set({displayValue: value, valueType, lastCopiedValue: copiedValue})
+        ...initialState,
+        setValue: (value: string, valueType: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => {
+            console.log("AppStore setValue", {valueType, value})
+            value = value.trim()
             if (valueType === "text") {
+                set({displayValue: value, valueType: valueType, lastCopiedValue: null})
                 debouncedSetValue(value)
-            } else {
-                set({value})
+            } else if (valueType === "clipboard") {
+                if (!value.length) {
+                    return
+                }
+
+                let displayValue = value
+                let compressedDisplay = false
+                if (isAuto && displayValue.length > 2000) {
+                    displayValue = displayValue.slice(0, 30) + '  ......  ' + displayValue.slice(-30)
+                    compressedDisplay = true
+                }
+                if (value) {
+                    set({displayValue: displayValue, value, valueType, lastCopiedValue: value, compressedDisplay})
+                }
             }
-            console.log('setValue called with', {value, valueType})
+            if (onSuccess) {
+                onSuccess()
+            }
+
+        },
+        // Set value by clipboard auto only when there is no similar value
+        setValueAuto: (value: string, valueType: AppInputValueType, onSuccess?: () => void) => {
+            if (get().value) {
+                return
+            }
+            if (value.length < 800000 && value == get().lastCopiedValue) {
+                return
+            }
+            get().setValue(value, valueType, onSuccess, true)
         },
         getValue: () => get().value,
-        clearValue: () => set({value: '', valueType: 'text'}),
+        clearValue: () => {
+            const {lastCopiedValue, ...reset} = initialState
+            set(reset)
+        },
     }
 })
