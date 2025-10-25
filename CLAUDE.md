@@ -67,6 +67,13 @@ Key features:
 - `components/ui/`: Reusable shadcn/ui components
 - `api/`: Wails backend communication layer
 - `lib/search.ts`: Fuzzy search with Fuse.js and Pinyin support for Chinese
+- `stores/`: Zustand state management stores
+
+### Plugin System (`pkg/models/plugin.go`, `internal/plugin/`)
+- **Plugin Types**: Execute plugins (backend) and UI plugins (iframe-based)
+- **Plugin API**: Selective Wails runtime exposure to iframe plugins via function mounting
+- **Content Handling**: Unified input system supporting text, images, files with smart transmission strategies
+- **Plugin Matching**: Dynamic content-based plugin discovery and execution
 
 ## Development Workflow
 
@@ -168,6 +175,18 @@ sqlc generate
 3. Use Tailwind classes, leverage `cn()` utility for conditional styling
 4. State management through Zustand stores
 
+### Plugin Development
+1. **UI Plugins**: Create iframe-based plugins with access to limited Wails runtime API
+2. **Execute Plugins**: Backend plugins with full system access via Go coordinator
+3. **Content Processing**: Handle various input types (text, images, files) with 50KB boundary for performance
+4. **API Exposure**: Use function mounting to iframe `window` object for secure runtime access
+
+### Input System Design
+1. **Unified Input Sources**: Manual typing, clipboard auto-read, paste events, mixed input
+2. **Content Type Detection**: Automatic classification of text, long text, images, files
+3. **Performance Optimization**: Direct transmission for small content (< 50KB), function access for large content
+4. **Snapshot Mechanism**: Preserve input content consistency between plugin matching and execution
+
 ## Configuration Files
 
 - `wails.json`: Wails project configuration
@@ -187,3 +206,15 @@ sqlc generate
 - Use `wails dev` for live reload and browser devtools access
 - Go backend logs via zerolog (structured JSON output)
 - Frontend debugging through Chrome DevTools when in dev mode
+
+### State Management Best Practices
+- **Zustand Patterns**: Use direct state access for reactivity, avoid computed functions in stores
+- **Performance**: Use `useMemo` for object creation to prevent infinite re-renders
+- **Debouncing**: Implement UI responsiveness with business logic debouncing (separate concerns)
+- **Content Transmission**: Follow 50KB rule - direct pass for small content, function access for large content
+
+### Plugin System Patterns
+- **Security**: Whitelist safe Wails runtime APIs (clipboard, window controls, browser operations)
+- **Content Strategy**: Serialize small content, provide URLs for large binary content
+- **Function Mounting**: Direct iframe window attachment for maximum performance
+- **Input Processing**: Snapshot clipboard content at application activation to ensure consistency
