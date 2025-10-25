@@ -1,8 +1,9 @@
 import {useEffect, useState} from "react";
 import {CommandGroup, CommandItem} from "@/components/ui/command";
 import {usePluginStore} from "@/stores";
-import {PluginEntry, PluginInput} from "@/schemas/plugin";
+import {PluginEntry} from "@/schemas/plugin";
 import {WaIcon} from "@/components/watools/wa-icon";
+import {AppInput} from "@/schemas/app";
 
 export type PluginCommandEntry = PluginEntry & {
     packageId: string
@@ -12,8 +13,8 @@ export type PluginCommandEntry = PluginEntry & {
 }
 
 type WaPluginCommandGroupProps = {
-    input: PluginInput
-    onTriggerPluginCommand: (entry: PluginCommandEntry, input: PluginInput) => void
+    input: AppInput
+    onTriggerPluginCommand: (entry: PluginCommandEntry, input: AppInput) => void
     onSearchSuccess: (selectedKey?: string) => void
 }
 
@@ -22,7 +23,7 @@ export const WaPluginCommandGroup = (props: WaPluginCommandGroupProps) => {
     const [matchedEntries, setMatchedEntries] = useState<PluginCommandEntry[]>([])
 
     useEffect(() => {
-        if (!props.input) {
+        if (!props.input.value) {
             setMatchedEntries([])
             return
         }

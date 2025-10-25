@@ -1,11 +1,10 @@
 import {WaComplexInput} from "@/components/watools/wa-complex-input";
 import {Command, CommandList} from "@/components/ui/command";
-import {useCallback, useEffect, useRef, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {WaApplicationCommandGroup} from "@/components/watools/wa-application-command-group";
 import {cn} from "@/lib/utils";
 import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
-import {useDebounce} from "@uidotdev/usehooks";
 import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
 import {PluginCommandEntry, WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
@@ -14,28 +13,39 @@ import {usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
 import {useLocation} from "wouter";
 import {isDevMode} from "@/lib/env";
-import {PluginInput} from "@/schemas/plugin";
+
+import {AppInput} from "@/schemas/app";
+import {useAppStore} from "@/stores/appStore";
 
 
 export const WaCommand = () => {
-    const [input, setInput] = useState<string>('')
     const inputRef = useRef<HTMLInputElement>(null)
-    const lastClipboardText = useRef<string>('')
     const [selectedKey, setSelectedKey] = useState<string>('')
     const commandListRef = useRef<HTMLDivElement>(null)
-    const debounceInput = useDebounce(input, 50)
     const firstSelectedKeyRef = useRef<string>('')
     const {fetchPlugins} = usePluginStore()
     const [_, navigate] = useLocation()
-    const [isClipboardInput, setIsClipboardInput] = useState<boolean>(false);
+    const {
+        value: inputValue,
+        displayValue: inputDisplayValue,
+        valueType: inputValueType,
+        setValue: setInputValue,
+        clearValue: clearInputValue,
+        lastCopiedValue
+    } = useAppStore()
+
+    const pluginInput: AppInput = useMemo(() => ({
+        value: inputValue,
+        valueType: inputValueType,
+    }), [inputValue])
 
     // Reset selected key when search input changes
     useEffect(() => {
-        if (debounceInput) {
+        if (inputValue) {
             setSelectedKey('')
             firstSelectedKeyRef.current = ''
         }
-    }, [debounceInput])
+    }, [inputValue])
     useEffect(() => {
         void fetchPlugins()
     }, []);
@@ -45,14 +55,12 @@ export const WaCommand = () => {
             return
         }
         ClipboardGetText().then(text => {
-            setIsClipboardInput(true)
             text = text.trim()
             if (text.length > 1500) {
                 text = text.substring(0, 1500) + '...'
             }
-            if (text && text !== lastClipboardText.current && !debounceInput) {
-                setInput(text)
-                lastClipboardText.current = text
+            if (text && text !== lastCopiedValue && !inputValue) {
+                setInputValue(text, "clipboard")
                 setTimeout(() => {
                     if (inputRef.current) {
                         inputRef.current.select()
@@ -70,20 +78,17 @@ export const WaCommand = () => {
             if (isDevMode()) {
                 return
             }
-            HideAppApi()
+            void HideAppApi()
         }
     })
 
 
-    const isPanelOpen = input.length > 0
-    const clearInput = () => {
-        setInput('')
-    }
+    const isPanelOpen = inputValue.length > 0
 
     const onClickEscape = () => {
         console.log('onClickEscape', isPanelOpen)
         if (isPanelOpen) {
-            clearInput()
+            clearInputValue()
         } else {
             void HideOrShowAppApi()
         }
@@ -102,8 +107,26 @@ export const WaCommand = () => {
                 inputRef.current.focus()
             }
         }
-    }, [input])
+    }, [inputValue])
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        e.preventDefault()
+        try {
+            let text = e.clipboardData.getData('text').trim()
+            if (text.length > 1500) {
+                text = text.substring(0, 1500) + '...'
+            }
+            if (inputRef.current) {
+                inputRef.current.value = text
+                inputRef.current.focus()
+                inputRef.current.setSelectionRange(text.length, text.length)
+                inputRef.current.scrollLeft = inputRef.current.scrollWidth
+            }
+            setInputValue(text, "clipboard")
+        } catch (e) {
+            Logger.error(`Handle paste error: ${e}`)
+        }
+    }
     useEffect(() => {
         window.addEventListener("keydown", handleHotkey)
         return () => {
@@ -113,14 +136,14 @@ export const WaCommand = () => {
 
 
     const onTriggerCommand = (command: CommandType) => {
-        clearInput()
+        clearInputValue()
         TriggerCommandApi(command.triggerId, command.category).then(() => {
             void HideAppApi()
         })
     }
 
-    const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: PluginInput) => {
-        clearInput()
+    const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: AppInput) => {
+        clearInputValue()
         if (entry.type === 'ui') {
             navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
         } else if (entry.type === 'executable') {
@@ -138,29 +161,20 @@ export const WaCommand = () => {
             commandListRef.current.scrollTo({top: 0})
         }
     }
-    const pluginInput: PluginInput = {
-        type: isClipboardInput ? "clipboard" : "text",
-        value: isClipboardInput ? "" : debounceInput
-    };
     return <Command
         value={selectedKey}
         shouldFilter={false}
         loop
         className="rounded-lg border shadow-md w-full p-2"
-        onValueChange={value => {
-            console.log('onValueChange', value)
-        }}
     >
         <WaComplexInput
             ref={inputRef}
             autoFocus
-            onValueChange={value => {
-                setInput(value)
-                setIsClipboardInput(false)
-            }}
+            onValueChange={value => setInputValue(value, "text")}
+            onPaste={handlePaste}
             className="text-gray-800 text-xl"
             classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}
-            value={input}
+            value={inputDisplayValue}
         />
         <CommandList
             ref={commandListRef}
@@ -178,7 +192,7 @@ export const WaCommand = () => {
                 }}
             />
             <WaApplicationCommandGroup
-                searchKey={debounceInput}
+                searchKey={inputValue}
                 onTriggerCommand={onTriggerCommand}
                 onSearchSuccess={(currentSelectedKey) => {
                     scrollToTop()
@@ -189,7 +203,7 @@ export const WaCommand = () => {
                 }}
             />
             <WaOperationCommandGroup
-                searchKey={debounceInput}
+                searchKey={inputValue}
                 onTriggerCommand={onTriggerCommand}
                 onSearchSuccess={(currentSelectedKey) => {
                     scrollToTop()
