@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/samber/mo"
 )
 
 type CommandCategory string
@@ -34,18 +35,20 @@ type CommandRunner interface {
 }
 
 type Command struct {
-	TriggerID   string          `json:"triggerId"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Category    CommandCategory `json:"category"`
+	TriggerID   string               `json:"triggerId"`
+	Name        string               `json:"name"`
+	Description mo.Option[string]    `json:"description"`
+	Category    CommandCategory      `json:"category"`
+	LastUsedAt  mo.Option[time.Time] `json:"lastUsedAt"`
+	UsedCount   int64                `json:"usedCount"`
 }
 
 type ApplicationCommand struct {
 	Command
-	IconPath     string    `json:"iconPath,omitempty"`
-	Path         string    `json:"path"`
-	ID           string    `json:"id"`
-	DirUpdatedAt time.Time `json:"dirUpdatedAt"`
+	IconPath     mo.Option[string] `json:"iconPath,omitempty"`
+	Path         string            `json:"path"`
+	ID           string            `json:"id"`
+	DirUpdatedAt time.Time         `json:"dirUpdatedAt"`
 }
 
 func (a *ApplicationCommand) GetTriggerID() string {
@@ -68,21 +71,21 @@ func (a *ApplicationCommand) GetMetadata() *Command {
 	return &a.Command
 }
 
-func NewApplicationCommand(name string, description string, path string, iconPath string, id string, dirUpdatedAt time.Time) *ApplicationCommand {
+func NewApplicationCommand(name string, description mo.Option[string], path string, iconPath mo.Option[string], id mo.Option[string], dirUpdatedAt time.Time) *ApplicationCommand {
 	category := CategoryApplication
-	if id == "" {
-		id = uuid.New().String()
+	if id.IsNone() {
+		id = mo.Some(uuid.New().String())
 	}
 	return &ApplicationCommand{
 		Command: Command{
-			TriggerID:   fmt.Sprintf("%s-%s-%s", category, name, id),
+			TriggerID:   fmt.Sprintf("%s-%s-%s", category, name, id.MustGet()),
 			Name:        name,
 			Description: description,
 			Category:    category,
 		},
 		IconPath:     iconPath,
 		Path:         path,
-		ID:           id,
+		ID:           id.MustGet(),
 		DirUpdatedAt: dirUpdatedAt,
 	}
 }
@@ -111,7 +114,7 @@ func NewOperationCommand(name string, description string, icon string, onTrigger
 		Command: Command{
 			TriggerID:   fmt.Sprintf("%s-%s", category, name),
 			Name:        name,
-			Description: description,
+			Description: mo.Some(description),
 			Category:    category,
 		},
 		Icon:      icon,

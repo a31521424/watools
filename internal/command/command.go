@@ -15,6 +15,7 @@ import (
 	"watools/pkg/models"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -147,8 +148,8 @@ func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
 		}
 	}
 	for _, command := range commands {
-		if command.IconPath == "" {
-			command.IconPath = application.GetDefaultIconPath()
+		if command.IconPath.IsNone() {
+			command.IconPath = mo.Some(application.GetDefaultIconPath())
 		}
 	}
 	return commands

@@ -7,14 +7,13 @@ export const getApplicationCommands = async (): Promise<CommandGroupType<Applica
     console.log('fetch application commands', commands)
 
     let filterCommands: ApplicationCommandType[] = []
-    if (commands) {
-        filterCommands = commands.map(command => ({
-            ...command,
-            category: 'Application',
-            nameInitial: isContainNonAscii(command.name) ? toPinyinInitial(command.name) : null,
-            pathName: command.path.split('/').pop() || ''
-        }))
-    }
+    filterCommands = commands.map(command => ({
+        ...command,
+        lastUsedAt: command.lastUsedAt ? new Date(command.lastUsedAt) : null,
+        category: 'Application',
+        nameInitial: isContainNonAscii(command.name) ? toPinyinInitial(command.name) : null,
+        pathName: command.path.split('/').pop() || ''
+    }))
     return {
         category: 'Application',
         commands: filterCommands

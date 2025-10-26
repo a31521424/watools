@@ -15,6 +15,7 @@ import (
 	"watools/pkg/models"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	_ "modernc.org/sqlite"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -148,7 +149,7 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Appli
 				Category:     string(command.Category),
 				Path:         command.Path,
 				IconPath:     command.IconPath,
-				DirUpdatedAt: command.DirUpdatedAt.Format(time.DateTime),
+				DirUpdatedAt: command.DirUpdatedAt,
 			}); err != nil {
 				return err
 			}
@@ -160,7 +161,7 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Appli
 
 func (d *WaDB) GetExpiredCommands(ctx context.Context) []*models.ApplicationCommand {
 	expiredTime := time.Now().Add(-time.Hour * 24)
-	dbCommands, err := d.query.GetExpiredApplications(ctx, expiredTime.Format(time.DateTime))
+	dbCommands, err := d.query.GetExpiredApplications(ctx, expiredTime)
 	if err != nil {
 		logger.Error(err, "Failed to get expired commands")
 		return nil
@@ -177,12 +178,12 @@ func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.Appli
 		for _, command := range commands {
 			if err := txQuery.UpdateApplicationPartial(ctx, UpdateApplicationPartialParams{
 				ID:           command.ID,
-				Name:         nullString(command.Name),
-				Path:         nullString(command.Path),
-				IconPath:     nullString(command.IconPath),
-				Category:     nullString(string(command.Category)),
-				Description:  nullString(command.Description),
-				DirUpdatedAt: nullString(command.DirUpdatedAt.Format(time.DateTime)),
+				DirUpdatedAt: command.DirUpdatedAt,
+				Name:         mo.Some(command.Name),
+				Description:  command.Description,
+				Category:     mo.Some(string(command.Category)),
+				Path:         mo.Some(command.Path),
+				IconPath:     command.IconPath,
 			}); err != nil {
 				return fmt.Errorf("failed to update command: %w", err)
 			}
@@ -205,7 +206,7 @@ func (d *WaDB) DeleteCommands(ctx context.Context, ids []string) error {
 func (d *WaDB) GetCommandIsUpdatedDir(ctx context.Context, path string, dirUpdatedAt time.Time) *models.ApplicationCommand {
 	command, err := d.query.GetApplicationIsUpdatedDir(ctx, GetApplicationIsUpdatedDirParams{
 		Path:         path,
-		DirUpdatedAt: dirUpdatedAt.Format(time.DateTime),
+		DirUpdatedAt: dirUpdatedAt,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

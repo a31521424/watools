@@ -8,3 +8,30 @@ sql:
         package: "db"
         out: "./pkg/db"
         sql_package: "database/sql"
+        overrides:
+          - db_type: "TEXT"
+            nullable: true
+            go_type: "github.com/samber/mo.Option[string]"
+          - db_type: "INTEGER"
+            nullable: true
+            go_type: "github.com/samber/mo.Option[int64]"
+          - db_type: "REAL"
+            nullable: true
+            go_type: "github.com/samber/mo.Option[float64]"
+          - db_type: "BLOB"
+            nullable: true
+            go_type: "github.com/samber/mo.Option[[]byte]"
+
+          # time fields
+          - column: "application.updated_at"
+            go_type: "time.Time"
+          - column: "application.dir_updated_at"
+            go_type: "time.Time"
+
+#           Optional time fields
+          - column: "application.last_used_at"
+            nullable: true
+            go_type: "watools/pkg/models.OptionTime"
+          - column: "plugin_state.last_used_at"
+            nullable: true
+            go_type: "watools/pkg/models.OptionTime"

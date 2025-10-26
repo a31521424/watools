@@ -13,6 +13,7 @@ import (
 	"watools/pkg/logger"
 	"watools/pkg/models"
 
+	"github.com/samber/mo"
 	"howett.net/plist"
 )
 
@@ -26,7 +27,9 @@ type InfoPList struct {
 }
 
 func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
-	var commandName, commandDescription, commandIconPath, commandID string
+	var commandName string
+	var commandDescription, commandIconPath mo.Option[string]
+
 	fi, err := os.Stat(appPath)
 	if err != nil {
 		return nil
@@ -66,12 +69,12 @@ func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
 		if !strings.HasSuffix(iconName, ".icns") {
 			iconName += ".icns"
 		}
-		commandIconPath = filepath.Join(appPath, "Contents", "Resources", iconName)
-		if _, err := os.Stat(commandIconPath); os.IsNotExist(err) {
-			commandIconPath = ""
+		commandIconPath = mo.Some(filepath.Join(appPath, "Contents", "Resources", iconName))
+		if _, err := os.Stat(commandIconPath.MustGet()); os.IsNotExist(err) {
+			commandIconPath = mo.None[string]()
 		}
 	}
-	if infoPlist.BundleIconName != "" && commandIconPath == "" {
+	if infoPlist.BundleIconName != "" && commandIconPath.IsNone() {
 		assetsCarPath := filepath.Join(appPath, "Contents", "Resources", "Assets.car")
 		outputIcnsFolder := filepath.Join(config.ProjectCacheDir(), "icns")
 		if err := os.MkdirAll(outputIcnsFolder, 0755); err != nil {
@@ -83,11 +86,11 @@ func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
 			if _, err := cmd.CombinedOutput(); err != nil {
 				logger.Error(err, fmt.Sprintf("Failed to generate icns for app: %s", commandName))
 			} else {
-				commandIconPath = outputIcnsPath
+				commandIconPath = mo.Some(outputIcnsPath)
 			}
 		}
 	}
-	commandDescription = infoPlist.HumanReadableCopyright
+	commandDescription = mo.TupleToOption(infoPlist.HumanReadableCopyright, infoPlist.HumanReadableCopyright != "")
 	if _, err := exec.LookPath("mdls"); err == nil {
 		cmd := exec.Command("mdls", "-name", "kMDItemDisplayName", "-raw", appPath)
 		output, err := cmd.Output()
@@ -98,7 +101,7 @@ func parseAppBundleInfoPlist(appPath string) *models.ApplicationCommand {
 			}
 		}
 	}
-	return models.NewApplicationCommand(commandName, commandDescription, appPath, commandIconPath, commandID, dirUpdatedAt)
+	return models.NewApplicationCommand(commandName, commandDescription, appPath, commandIconPath, mo.None[string](), dirUpdatedAt)
 }
 
 type AppPathInfo struct {

@@ -9,6 +9,8 @@ import (
 	"watools/config"
 	"watools/pkg/logger"
 	"watools/pkg/utils"
+
+	"github.com/samber/mo"
 )
 
 type PluginMetadata struct {
@@ -25,8 +27,8 @@ type PluginState struct {
 	PackageID    string                 `json:"packageId"`
 	Enabled      bool                   `json:"enabled"`
 	Storage      map[string]interface{} `json:"storage"`
-	LastUsedTime time.Time              `json:"lastUsedTime"`
-	UsedCount    int                    `json:"usedCount"`
+	LastUsedTime mo.Option[time.Time]   `json:"lastUsedTime"`
+	UsedCount    int64                  `json:"usedCount"`
 }
 
 func (p *PluginState) GetMetadata() (*PluginMetadata, error) {

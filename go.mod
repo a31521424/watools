@@ -11,6 +11,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.51.0
+	github.com/samber/mo v1.16.0
 	github.com/wailsapp/wails/v2 v2.10.2
 	golang.design/x/hotkey v0.4.1
 	howett.net/plist v1.0.1
