@@ -1,10 +1,8 @@
-import {useEffect, useState} from "react";
-import {ApplicationCommandType, CommandGroupType, CommandType} from "@/schemas/command";
-import {WaBaseCommandGroup} from "@/components/watools/wa-base-command-group";
-import {IFuseOptions} from "fuse.js";
-import {getApplicationCommands} from "@/api/command";
+import {useEffect, useMemo} from "react";
+import {ApplicationCommandType, CommandType} from "@/schemas/command";
+import {CommandGroup, CommandItem} from "@/components/ui/command";
 import {WaIcon} from "@/components/watools/wa-icon";
-import {EventsOff, EventsOn} from "../../../wailsjs/runtime";
+import {useApplicationCommandStore} from "@/stores/applicationCommandStore";
 
 type WaApplicationCommandGroupProps = {
     searchKey: string
@@ -12,50 +10,77 @@ type WaApplicationCommandGroupProps = {
     onSearchSuccess: (selectedKey?: string) => void
 }
 
-const WaBaseCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {
-    threshold: 0.3,
-    minMatchCharLength: 1,
-    useExtendedSearch: true,
-    ignoreLocation: true,
-    keys: [{
-        name: 'name',
-        weight: 1.0
-    }, {
-        name: 'nameInitial',
-        weight: 0.8
-    }, {
-        name: 'pathName',
-        weight: 0.6
-    }]
-}
-
 
 export const WaApplicationCommandGroup = (props: WaApplicationCommandGroupProps) => {
-    const [applicationCommandGroup, setApplicationCommandGroup] = useState<CommandGroupType<ApplicationCommandType> | null>(null)
+    const {
+        commandGroup,
+        isLoading,
+        loadCommands,
+        searchCommands,
+        updateCommandUsage,
+        startListening,
+        stopListening
+    } = useApplicationCommandStore()
+
     useEffect(() => {
-        getApplicationCommands().then(setApplicationCommandGroup)
-        EventsOn('watools.applicationChanged', () => {
-            getApplicationCommands().then(setApplicationCommandGroup)
-        })
-        return () => {
-            EventsOff('watools.applicationChanged')
+        const initializeCommands = async () => {
+            try {
+                await loadCommands()
+            } catch (error) {
+                console.error('Failed to load commands:', error)
+            }
         }
-    }, [])
-    if (!props.searchKey) {
-        return null
+
+        void initializeCommands()
+        startListening()
+        return () => {
+            stopListening()
+        }
+    }, [loadCommands, startListening, stopListening])
+
+    const filteredCommands = useMemo(() => {
+        if (!props.searchKey || !commandGroup) {
+            return []
+        }
+        return searchCommands(props.searchKey, 5)
+    }, [props.searchKey, commandGroup, searchCommands])
+
+    useEffect(() => {
+        console.log('on Search Success', filteredCommands.length)
+        setTimeout(() => {
+            props.onSearchSuccess(filteredCommands.length > 0 ? filteredCommands[0].triggerId : undefined)
+        }, 0)
+    }, [filteredCommands, props.onSearchSuccess])
+
+    const handleTriggerCommand = async (command: ApplicationCommandType) => {
+        await updateCommandUsage(command.id)
+        props.onTriggerCommand(command)
     }
-    if (!applicationCommandGroup) {
+
+    if (!props.searchKey || isLoading) {
         return null
     }
 
-    return <WaBaseCommandGroup<ApplicationCommandType>
-        searchKey={props.searchKey}
-        commandGroup={applicationCommandGroup}
-        onTriggerCommand={props.onTriggerCommand}
-        onSearchSuccess={props.onSearchSuccess}
-        fuseOptions={WaBaseCommandFuseConfig}
-        renderItemIcon={command => <WaIcon
-            iconPath={`/api/application-icon?path=${encodeURIComponent(command.iconPath)}`} size={16}/>
-        }
-    />
+    if (filteredCommands.length === 0) {
+        return null
+    }
+
+    return <CommandGroup key="Application" heading="Application">
+        {filteredCommands.map(command => (
+            <CommandItem
+                key={command.triggerId}
+                value={command.triggerId}
+                className='gap-x-4'
+                onSelect={() => {
+                    void handleTriggerCommand(command)
+                }}
+            >
+                <WaIcon
+                    iconPath={`/api/application-icon?path=${encodeURIComponent(command.iconPath)}`}
+                    size={16}
+                />
+                <span>{command.name}</span>
+            </CommandItem>
+        ))}
+    </CommandGroup>
 }

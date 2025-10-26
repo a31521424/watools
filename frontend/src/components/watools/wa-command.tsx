@@ -9,13 +9,12 @@ import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command
 import {PluginCommandEntry, WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
-import {usePluginStore} from "@/stores";
+import {useAppStore, usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
 import {useLocation} from "wouter";
 import {isDevMode} from "@/lib/env";
 
 import {AppInput} from "@/schemas/app";
-import {useAppStore} from "@/stores/appStore";
 
 
 export const WaCommand = () => {
