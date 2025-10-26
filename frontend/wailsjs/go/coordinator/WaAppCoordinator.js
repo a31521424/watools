@@ -29,3 +29,7 @@ export function HideOrShowAppApi() {
 export function TriggerCommandApi(arg1, arg2) {
   return window['go']['coordinator']['WaAppCoordinator']['TriggerCommandApi'](arg1, arg2);
 }
+
+export function UpdateApplicationUsageApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['UpdateApplicationUsageApi'](arg1);
+}

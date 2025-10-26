@@ -1,6 +1,6 @@
 import {ApplicationCommandType, CommandGroupType, OperationCommandType} from "@/schemas/command";
 import {isContainNonAscii, toPinyinInitial} from "@/lib/search";
-import {GetApplicationCommandsApi, GetOperatorCommandsApi} from "../../wailsjs/go/coordinator/WaAppCoordinator";
+import {GetApplicationCommandsApi, GetOperatorCommandsApi, UpdateApplicationUsageApi} from "../../wailsjs/go/coordinator/WaAppCoordinator";
 
 export const getApplicationCommands = async (): Promise<CommandGroupType<ApplicationCommandType>> => {
     const commands = await GetApplicationCommandsApi()
@@ -34,4 +34,18 @@ export const getOperationCommands = async (): Promise<CommandGroupType<Operation
         category: 'Operation',
         commands: filterCommands
     }
+}
+
+export const updateApplicationUsage = async (usageUpdates: Array<{
+    id: string
+    lastUsedAt: Date
+    usedCount: number
+}>): Promise<void> => {
+    const updates = usageUpdates.map(update => ({
+        id: update.id,
+        lastUsedAt: update.lastUsedAt.toISOString(),
+        usedCount: update.usedCount
+    }))
+
+    await UpdateApplicationUsageApi(updates)
 }

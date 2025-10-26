@@ -262,3 +262,8 @@ func (w *WaLaunchApp) GetWatchMetrics() *watcher.WatcherMetrics {
 	}
 	return w.watchManager.GetMetrics()
 }
+
+func (w *WaLaunchApp) UpdateApplicationUsage(usageUpdates []models.ApplicationUsageUpdate) error {
+	dbInstance := db.GetWaDB()
+	return dbInstance.BatchUpdateApplicationUsage(w.ctx, usageUpdates)
+}

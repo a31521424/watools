@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/samber/mo"
+	"watools/pkg/models"
 )
 
 const createApplication = `-- name: CreateApplication :one
@@ -218,5 +219,24 @@ func (q *Queries) UpdateApplicationPartial(ctx context.Context, arg UpdateApplic
 		arg.DirUpdatedAt,
 		arg.ID,
 	)
+	return err
+}
+
+const updateApplicationUsage = `-- name: UpdateApplicationUsage :exec
+UPDATE application
+SET last_used_at = ?1,
+    used_count   = ?2,
+    updated_at   = datetime('now', 'localtime')
+WHERE id = ?3
+`
+
+type UpdateApplicationUsageParams struct {
+	LastUsedAt models.OptionTime
+	UsedCount  int64
+	ID         string
+}
+
+func (q *Queries) UpdateApplicationUsage(ctx context.Context, arg UpdateApplicationUsageParams) error {
+	_, err := q.db.ExecContext(ctx, updateApplicationUsage, arg.LastUsedAt, arg.UsedCount, arg.ID)
 	return err
 }

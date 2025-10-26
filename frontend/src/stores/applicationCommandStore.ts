@@ -1,6 +1,6 @@
 import {create} from "zustand";
 import {ApplicationCommandType, CommandGroupType} from "@/schemas/command";
-import {getApplicationCommands} from "@/api/command";
+import {getApplicationCommands, updateApplicationUsage} from "@/api/command";
 import {EventsOff, EventsOn} from "../../wailsjs/runtime";
 import Fuse, {IFuseOptions} from "fuse.js";
 
@@ -84,7 +84,13 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
             if (updateBuffer.size === 0) return
 
             try {
-                console.log('Debounced flush updates (API not implemented):', Array.from(updateBuffer.entries()))
+                const updates = Array.from(updateBuffer.entries()).map(([id, data]) => ({
+                    id,
+                    lastUsedAt: data.lastUsedAt,
+                    usedCount: data.usedCount
+                }))
+
+                await updateApplicationUsage(updates)
                 set({ updateBuffer: new Map() })
             } catch (error) {
                 console.error('Failed to flush buffer updates:', error)
@@ -157,7 +163,13 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
         if (updateBuffer.size === 0) return
 
         try {
-            console.log('Manual flush updates (API not implemented):', Array.from(updateBuffer.entries()))
+            const updates = Array.from(updateBuffer.entries()).map(([id, data]) => ({
+                id,
+                lastUsedAt: data.lastUsedAt,
+                usedCount: data.usedCount
+            }))
+
+            await updateApplicationUsage(updates)
             set({ updateBuffer: new Map() })
         } catch (error) {
             console.error('Failed to flush buffer updates:', error)

@@ -28,6 +28,13 @@ SET name           = COALESCE(sqlc.narg(name), name),
     updated_at     = datetime('now', 'localtime')
 WHERE id = @id;
 
+-- name: UpdateApplicationUsage :exec
+UPDATE application
+SET last_used_at = @last_used_at,
+    used_count   = @used_count,
+    updated_at   = datetime('now', 'localtime')
+WHERE id = @id;
+
 -- name: GetApplicationIsUpdatedDir :one
 SELECT *
 FROM application

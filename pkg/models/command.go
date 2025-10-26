@@ -121,3 +121,9 @@ func NewOperationCommand(name string, description string, icon string, onTrigger
 		onTrigger: onTrigger,
 	}
 }
+
+type ApplicationUsageUpdate struct {
+	ID         string
+	LastUsedAt time.Time
+	UsedCount  int
+}

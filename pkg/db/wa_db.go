@@ -227,3 +227,20 @@ func (d *WaDB) GetPlugins(ctx context.Context) []*models.PluginState {
 		return ConvertPluginState(item)
 	})
 }
+
+func (d *WaDB) BatchUpdateApplicationUsage(ctx context.Context, usageUpdates []models.ApplicationUsageUpdate) error {
+	logger.Info(fmt.Sprintf("Updating usage for %d applications", len(usageUpdates)))
+	return d.withTx(ctx, func(tx *sql.Tx) error {
+		txQuery := d.query.WithTx(tx)
+		for _, update := range usageUpdates {
+			if err := txQuery.UpdateApplicationUsage(ctx, UpdateApplicationUsageParams{
+				ID:         update.ID,
+				LastUsedAt: models.ToOptionTime(update.LastUsedAt),
+				UsedCount:  int64(update.UsedCount),
+			}); err != nil {
+				return fmt.Errorf("failed to update application usage: %w", err)
+			}
+		}
+		return tx.Commit()
+	})
+}
