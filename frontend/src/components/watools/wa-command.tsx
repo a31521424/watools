@@ -77,20 +77,19 @@ export const WaCommand = () => {
         onTriggerPluginCommand
     });
 
-    // Combine and sort all items
+    // Combine and sort all items by usedCount only
     const combinedItems = useMemo((): BaseItemProps[] => {
         const allItems = [
+            ...pluginItems,
             ...applicationItems,
             ...operationItems,
-            ...pluginItems
         ];
 
-        // Sort by score (higher is better match)
+        // Sort by usedCount (higher is better)
         return allItems.sort((a, b) => {
-            if (a.score !== b.score) {
-                return b.score - a.score;
-            }
-            return 0;
+            const usedCountA = a.usedCount || 0;
+            const usedCountB = b.usedCount || 0;
+            return usedCountB - usedCountA;
         });
     }, [applicationItems, operationItems, pluginItems]);
 

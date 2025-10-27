@@ -6,23 +6,37 @@ export interface BaseItemProps {
   triggerId: string;
   name: string;
   icon: ReactNode;
-  score: number;
+  usedCount?: number;
+  subtitle?: string;
+  badge?: string;
   onSelect: () => void;
   children?: ReactNode;
 }
 
-export const WaBaseItem = ({ triggerId, icon, name, onSelect, children }: BaseItemProps) => {
+export const WaBaseItem = ({ triggerId, icon, name, subtitle, badge, onSelect, children }: BaseItemProps) => {
   return (
     <CommandItem
       key={triggerId}
       value={triggerId}
-      className='gap-x-4'
+      className='gap-x-4 py-3'
       onSelect={onSelect}
     >
-      {icon}
-      <div className="flex flex-col flex-1">
-        <span>{name}</span>
-        {children}
+      <div className="shrink-0">
+        {icon}
+      </div>
+      <div className="flex flex-1 items-center justify-between min-w-0">
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm font-medium truncate">{name}</span>
+          {subtitle && (
+            <span className="text-xs text-muted-foreground truncate">{subtitle}</span>
+          )}
+          {children}
+        </div>
+        {badge && (
+          <span className="text-xs text-muted-foreground bg-border px-2 py-1 rounded shrink-0 ml-2">
+            {badge}
+          </span>
+        )}
       </div>
     </CommandItem>
   );

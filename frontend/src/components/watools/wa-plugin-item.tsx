@@ -40,7 +40,7 @@ export const usePluginItems = ({input, onTriggerPluginCommand}: UsePluginItemsPa
         return entries;
     }, [enabledPlugins]);
 
-    const filteredItems = useMemo((): BaseItemProps[] => {
+    return useMemo((): BaseItemProps[] => {
         if (!input.value || allPluginEntries.length === 0) {
             return [];
         }
@@ -55,30 +55,36 @@ export const usePluginItems = ({input, onTriggerPluginCommand}: UsePluginItemsPa
         });
 
         matchedEntries.sort((a, b) => {
+            const pluginA = enabledPlugins.find(p => p.packageId === a.packageId);
+            const pluginB = enabledPlugins.find(p => p.packageId === b.packageId);
+
+            const usedCountA = pluginA?.usedCount || 0;
+            const usedCountB = pluginB?.usedCount || 0;
+
+            if (usedCountA !== usedCountB) {
+                return usedCountB - usedCountA;
+            }
+
             if (a.type === 'executable' && b.type === 'ui') return -1;
             if (a.type === 'ui' && b.type === 'executable') return 1;
             return 0;
         });
 
-        return matchedEntries.slice(0, 5).map(entry => ({
-            id: entry.triggerId,
-            triggerId: entry.triggerId,
-            name: entry.pluginName,
-            icon: <WaIcon value={entry.icon} size={16}/>,
-            score: entry.type === 'executable' ? 0.9 : 0.8,
-            onSelect: () => {
-                onTriggerPluginCommand(entry, input);
-            },
-            children: (
-                <div className="flex items-center justify-between w-full">
-                    <span className="text-sm text-gray-500">{entry.subTitle}</span>
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
-                        {entry.type}
-                    </span>
-                </div>
-            )
-        }));
-    }, [input, allPluginEntries, onTriggerPluginCommand]);
+        return matchedEntries.slice(0, 5).map(entry => {
+            const plugin = enabledPlugins.find(p => p.packageId === entry.packageId);
 
-    return filteredItems;
+            return {
+                id: entry.triggerId,
+                triggerId: entry.triggerId,
+                name: entry.pluginName,
+                icon: <WaIcon value={entry.icon} size={16}/>,
+                usedCount: plugin?.usedCount || 0,
+                subtitle: entry.subTitle,
+                badge: entry.type,
+                onSelect: () => {
+                    onTriggerPluginCommand(entry, input);
+                }
+            };
+        });
+    }, [input, allPluginEntries, onTriggerPluginCommand]);
 };
