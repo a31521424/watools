@@ -20,7 +20,7 @@ import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
 export const WaCommand = () => {
     const inputRef = useRef<HTMLInputElement>(null)
     const commandListRef = useRef<HTMLDivElement>(null)
-    const {fetchPlugins, updatePluginUsage} = usePluginStore()
+    const {updatePluginUsage} = usePluginStore()
     const [_, navigate] = useLocation()
     const {
         value: inputValue,

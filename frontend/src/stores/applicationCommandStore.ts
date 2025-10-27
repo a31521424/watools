@@ -56,6 +56,7 @@ const DEBOUNCE_DELAY = 60000
 export const useApplicationCommandStore = create<ApplicationCommandStore>((set, get) => {
     let isListening = false
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
+    let isInitialized = false
 
     const createFuseInstance = (commands: ApplicationCommandType[]) => {
         const sortedCommands = [...commands].sort((a, b) => {
@@ -99,11 +100,15 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
     }
 
     const loadCommands = async () => {
+        if (isInitialized) return
+
         set({ isLoading: true })
         try {
             const commandGroup = await getApplicationCommands()
             const fuse = createFuseInstance(commandGroup.commands)
             set({ commandGroup, fuse, isLoading: false })
+            isInitialized = true
+            startListening()
         } catch (error) {
             console.error('Failed to load application commands:', error)
             set({ isLoading: false })
@@ -190,7 +195,7 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
         EventsOff('watools.applicationChanged')
     }
 
-    return {
+    const store = {
         ...initialState,
         loadCommands,
         refreshCommands,
@@ -200,4 +205,9 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
         startListening,
         stopListening
     }
+
+    // Auto-initialize data immediately
+    void loadCommands()
+
+    return store
 })
