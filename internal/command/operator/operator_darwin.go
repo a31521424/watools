@@ -42,9 +42,6 @@ func GetOperations() []*models.OperationCommand {
 			desktopPath := filepath.Join(currentUser.HomeDir, "Desktop", "screenshot.png")
 			return exec.Command("screencapture", "-C", desktopPath).Run()
 		}),
-		models.NewOperationCommand("Force Quit Front App", "Force quit the frontmost application", "x-circle", func() error {
-			return exec.Command("osascript", "-e", "tell application \"System Events\" to keystroke \"q\" using {command down, option down}").Run()
-		}),
 		models.NewOperationCommand("Toggle Mission Control", "Show Mission Control", "layout-grid", func() error {
 			return exec.Command("osascript", "-e", "tell application \"System Events\" to key code 160").Run()
 		}),

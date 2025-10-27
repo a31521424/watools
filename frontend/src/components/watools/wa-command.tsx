@@ -1,20 +1,21 @@
 import {WaComplexInput} from "@/components/watools/wa-complex-input";
-import {Command, CommandList} from "@/components/ui/command";
+import {Command, CommandList, CommandGroup} from "@/components/ui/command";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {WaApplicationCommandGroup} from "@/components/watools/wa-application-command-group";
 import {cn} from "@/lib/utils";
 import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
-import {WaOperationCommandGroup} from "@/components/watools/wa-operation-command-group";
-import {PluginCommandEntry, WaPluginCommandGroup} from "@/components/watools/wa-plugin-command-group";
+import {PluginCommandEntry} from "@/components/watools/wa-plugin-item";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 import {useAppStore, usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
 import {useLocation} from "wouter";
 import {isDevMode} from "@/lib/env";
-
 import {AppInput} from "@/schemas/app";
+import {useApplicationItems} from "@/components/watools/wa-application-item";
+import {useOperationItems} from "@/components/watools/wa-operation-item";
+import {usePluginItems} from "@/components/watools/wa-plugin-item";
+import {WaBaseItem, BaseItemProps} from "@/components/watools/wa-base-item";
 
 
 export const WaCommand = () => {
@@ -39,6 +40,60 @@ export const WaCommand = () => {
         valueType: inputValueType,
     }), [inputValue, inputValueType])
 
+    const onTriggerCommand = (command: CommandType) => {
+        clearInputValue()
+        TriggerCommandApi(command.triggerId, command.category).then(() => {
+            void HideAppApi()
+        })
+    }
+
+    const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: AppInput) => {
+        clearInputValue()
+        if (entry.type === 'ui') {
+            navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
+        } else if (entry.type === 'executable') {
+            try {
+                entry.execute && await entry.execute(input)
+                void HideAppApi()
+            } catch (error) {
+                Logger.error(`Failed to execute plugin command: ${error}`)
+            }
+        }
+    }
+
+    // Get items from hooks directly
+    const applicationItems = useApplicationItems({
+        searchKey: inputValue,
+        onTriggerCommand
+    });
+
+    const operationItems = useOperationItems({
+        searchKey: inputValue,
+        onTriggerCommand
+    });
+
+    const pluginItems = usePluginItems({
+        input: pluginInput,
+        onTriggerPluginCommand
+    });
+
+    // Combine and sort all items
+    const combinedItems = useMemo((): BaseItemProps[] => {
+        const allItems = [
+            ...applicationItems,
+            ...operationItems,
+            ...pluginItems
+        ];
+
+        // Sort by score (higher is better match)
+        return allItems.sort((a, b) => {
+            if (a.score !== b.score) {
+                return b.score - a.score;
+            }
+            return 0;
+        });
+    }, [applicationItems, operationItems, pluginItems]);
+
     // Reset selected key when search input changes
     useEffect(() => {
         if (inputValue) {
@@ -46,6 +101,15 @@ export const WaCommand = () => {
             firstSelectedKeyRef.current = ''
         }
     }, [inputValue])
+
+    // Update selected key when items change
+    useEffect(() => {
+        if (combinedItems.length > 0 && !firstSelectedKeyRef.current) {
+            const firstTriggerId = combinedItems[0].triggerId;
+            firstSelectedKeyRef.current = firstTriggerId;
+            setSelectedKey(firstTriggerId);
+        }
+    }, [combinedItems]);
 
     useEffect(() => {
         void fetchPlugins()
@@ -92,14 +156,12 @@ export const WaCommand = () => {
     }
 
     const onClickEscape = useCallback(() => {
-        console.log('onClickEscape', isPanelOpen)
         if (isPanelOpen) {
             clearInputValue()
         } else {
             void HideOrShowAppApi()
         }
     }, [isPanelOpen])
-
 
     useEffect(() => {
         const handleHotkey = (e: KeyboardEvent) => {
@@ -119,33 +181,6 @@ export const WaCommand = () => {
         }
     }, [onClickEscape])
 
-
-    const onTriggerCommand = (command: CommandType) => {
-        clearInputValue()
-        TriggerCommandApi(command.triggerId, command.category).then(() => {
-            void HideAppApi()
-        })
-    }
-
-    const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: AppInput) => {
-        clearInputValue()
-        if (entry.type === 'ui') {
-            navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
-        } else if (entry.type === 'executable') {
-            try {
-                entry.execute && await entry.execute(input)
-                void HideAppApi()
-            } catch (error) {
-                Logger.error(`Failed to execute plugin command: ${error}`)
-            }
-        }
-
-    }
-    const scrollToTop = () => {
-        if (commandListRef.current) {
-            commandListRef.current.scrollTo({top: 0})
-        }
-    }
     return <Command
         value={selectedKey}
         shouldFilter={false}
@@ -165,39 +200,11 @@ export const WaCommand = () => {
             ref={commandListRef}
             className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}
         >
-            <WaPluginCommandGroup
-                input={pluginInput}
-                onTriggerPluginCommand={onTriggerPluginCommand}
-                onSearchSuccess={(currentSelectedKey) => {
-                    scrollToTop()
-                    if (currentSelectedKey && !firstSelectedKeyRef.current) {
-                        firstSelectedKeyRef.current = currentSelectedKey
-                        setSelectedKey(currentSelectedKey)
-                    }
-                }}
-            />
-            <WaApplicationCommandGroup
-                searchKey={inputValue}
-                onTriggerCommand={onTriggerCommand}
-                onSearchSuccess={(currentSelectedKey) => {
-                    scrollToTop()
-                    if (currentSelectedKey && !firstSelectedKeyRef.current) {
-                        firstSelectedKeyRef.current = currentSelectedKey
-                        setSelectedKey(currentSelectedKey)
-                    }
-                }}
-            />
-            <WaOperationCommandGroup
-                searchKey={inputValue}
-                onTriggerCommand={onTriggerCommand}
-                onSearchSuccess={(currentSelectedKey) => {
-                    scrollToTop()
-                    if (currentSelectedKey && !firstSelectedKeyRef.current) {
-                        firstSelectedKeyRef.current = currentSelectedKey
-                        setSelectedKey(currentSelectedKey)
-                    }
-                }}
-            />
+            <CommandGroup>
+                {combinedItems.map(item => (
+                    <WaBaseItem key={item.triggerId} {...item} />
+                ))}
+            </CommandGroup>
         </CommandList>
     </Command>
 }

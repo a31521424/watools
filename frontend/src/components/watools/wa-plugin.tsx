@@ -14,7 +14,6 @@ export const WaPlugin = () => {
 
     const handleHotkey = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
-            console.log('WaPlugin handleHotkey Escape')
             e.preventDefault()
             e.stopPropagation()
             navigate('/')

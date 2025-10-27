@@ -24,7 +24,6 @@ export const WaBaseCommandGroup = <T extends CommandType>(props: WaBaseCommandGr
         }
     }, [props.commandGroup, props.searchKey])
     useEffect(() => {
-        console.log('on Search Success', filterCommandGroup.commands.length)
         setTimeout(() => {
             props.onSearchSuccess(filterCommandGroup.commands.length > 0 ? filterCommandGroup.commands[0].triggerId : undefined)
         }, 0)
