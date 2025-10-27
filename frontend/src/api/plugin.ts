@@ -1,5 +1,5 @@
 import {Plugin} from "@/schemas/plugin"
-import {GetPluginJsEntryUrlApi, GetPluginsApi} from "../../wailsjs/go/coordinator/WaAppCoordinator"
+import {GetPluginJsEntryUrlApi, GetPluginsApi, UpdatePluginUsageApi} from "../../wailsjs/go/coordinator/WaAppCoordinator"
 
 export const getPlugins = async (): Promise<Plugin[]> => {
     const pluginsData = await GetPluginsApi()
@@ -42,4 +42,13 @@ export const getPlugins = async (): Promise<Plugin[]> => {
 
 
     return plugins
+}
+
+export const updatePluginUsage = async (updates: Array<{ packageId: string; lastUsedAt: Date; usedCount: number }>) => {
+    const formattedUpdates = updates.map(update => ({
+        packageId: update.packageId,
+        lastUsedAt: update.lastUsedAt.toISOString(),
+        usedCount: update.usedCount
+    }));
+    return UpdatePluginUsageApi(formattedUpdates);
 }

@@ -116,4 +116,27 @@ func (w *WaAppCoordinator) GetPluginJsEntryUrlApi(packageID string) string {
 	return w.waPluginApp.GetJsEntryUrl(packageID)
 }
 
+func (w *WaAppCoordinator) UpdatePluginUsageApi(usageUpdates []map[string]interface{}) error {
+	updates := make([]models.PluginUsageUpdate, len(usageUpdates))
+	for i, update := range usageUpdates {
+		packageID, _ := update["packageId"].(string)
+		lastUsedAtStr, _ := update["lastUsedAt"].(string)
+		usedCount, _ := update["usedCount"].(float64)
+
+		lastUsedAt, err := time.Parse(time.RFC3339, lastUsedAtStr)
+		if err != nil {
+			logger.Error(err, "Failed to parse lastUsedAt")
+			continue
+		}
+
+		updates[i] = models.PluginUsageUpdate{
+			PackageID:  packageID,
+			LastUsedAt: lastUsedAt,
+			UsedCount:  int(usedCount),
+		}
+	}
+
+	return w.waPluginApp.UpdatePluginUsage(updates)
+}
+
 // end region plugin

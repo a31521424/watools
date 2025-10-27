@@ -54,3 +54,8 @@ func (p *WaPlugin) GetJsEntryUrl(packageID string) string {
 	}
 	return plugin.GetJsEntryUrl()
 }
+
+func (p *WaPlugin) UpdatePluginUsage(updates []models.PluginUsageUpdate) error {
+	dbInstance := db.GetWaDB()
+	return dbInstance.BatchUpdatePluginUsage(p.ctx, updates)
+}

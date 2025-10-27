@@ -31,6 +31,12 @@ type PluginState struct {
 	UsedCount  int64                  `json:"usedCount"`
 }
 
+type PluginUsageUpdate struct {
+	PackageID  string
+	LastUsedAt time.Time
+	UsedCount  int
+}
+
 func (p *PluginState) GetMetadata() (*PluginMetadata, error) {
 	var metadata PluginMetadata
 	manifestPath := path.Join(config.ProjectCacheDir(), "plugins", p.PackageID, "manifest.json")

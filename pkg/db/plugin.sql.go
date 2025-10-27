@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"watools/pkg/models"
 )
 
 const getPlugins = `-- name: GetPlugins :many
@@ -41,4 +43,21 @@ func (q *Queries) GetPlugins(ctx context.Context) ([]PluginState, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updatePluginUsage = `-- name: UpdatePluginUsage :exec
+UPDATE plugin_state
+SET last_used_at = ?, used_count = ?
+WHERE package_id = ?
+`
+
+type UpdatePluginUsageParams struct {
+	LastUsedAt models.OptionTime
+	UsedCount  int64
+	PackageID  string
+}
+
+func (q *Queries) UpdatePluginUsage(ctx context.Context, arg UpdatePluginUsageParams) error {
+	_, err := q.db.ExecContext(ctx, updatePluginUsage, arg.LastUsedAt, arg.UsedCount, arg.PackageID)
+	return err
 }

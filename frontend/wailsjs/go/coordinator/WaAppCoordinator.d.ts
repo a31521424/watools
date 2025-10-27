@@ -16,3 +16,5 @@ export function HideOrShowAppApi():Promise<void>;
 export function TriggerCommandApi(arg1:string,arg2:string):Promise<void>;
 
 export function UpdateApplicationUsageApi(arg1:Array<Record<string, any>>):Promise<void>;
+
+export function UpdatePluginUsageApi(arg1:Array<Record<string, any>>):Promise<void>;

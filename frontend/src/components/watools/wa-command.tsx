@@ -23,7 +23,7 @@ export const WaCommand = () => {
     const [selectedKey, setSelectedKey] = useState<string>('')
     const commandListRef = useRef<HTMLDivElement>(null)
     const firstSelectedKeyRef = useRef<string>('')
-    const {fetchPlugins} = usePluginStore()
+    const {fetchPlugins, updatePluginUsage} = usePluginStore()
     const [_, navigate] = useLocation()
     const {
         value: inputValue,
@@ -49,6 +49,14 @@ export const WaCommand = () => {
 
     const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: AppInput) => {
         clearInputValue()
+
+        // Update plugin usage statistics
+        try {
+            await updatePluginUsage(entry.packageId)
+        } catch (error) {
+            Logger.error(`Failed to update plugin usage: ${error}`)
+        }
+
         if (entry.type === 'ui') {
             navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
         } else if (entry.type === 'executable') {

@@ -33,3 +33,7 @@ export function TriggerCommandApi(arg1, arg2) {
 export function UpdateApplicationUsageApi(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['UpdateApplicationUsageApi'](arg1);
 }
+
+export function UpdatePluginUsageApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['UpdatePluginUsageApi'](arg1);
+}

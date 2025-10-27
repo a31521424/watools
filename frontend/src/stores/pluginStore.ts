@@ -1,6 +1,6 @@
 import {create} from 'zustand'
 import {Plugin} from '@/schemas/plugin'
-import {getPlugins} from "@/api/plugin";
+import {getPlugins, updatePluginUsage} from "@/api/plugin";
 import {Logger} from "@/lib/logger";
 
 interface PluginState {
@@ -13,6 +13,7 @@ interface PluginState {
     getPluginById: (packageId: string) => Plugin | undefined
     getEnabledPlugins: () => Plugin[]
     getPluginsByType: (type: "executable" | "ui") => Plugin[]
+    updatePluginUsage: (packageId: string) => Promise<void>
 }
 
 export const usePluginStore = create<PluginState>((set, get) => ({
@@ -58,5 +59,40 @@ export const usePluginStore = create<PluginState>((set, get) => ({
         return get().plugins.filter(plugin =>
             plugin.entry.some(entry => entry.type === type)
         )
+    },
+
+    updatePluginUsage: async (packageId: string) => {
+        const plugin = get().getPluginById(packageId);
+        if (!plugin) return;
+
+        const now = new Date();
+        const newUsedCount = plugin.usedCount + 1;
+
+        // Update local state immediately for UI responsiveness
+        set(state => ({
+            plugins: state.plugins.map(p =>
+                p.packageId === packageId
+                    ? { ...p, usedCount: newUsedCount, lastUsedAt: now }
+                    : p
+            )
+        }));
+
+        try {
+            await updatePluginUsage([{
+                packageId,
+                lastUsedAt: now,
+                usedCount: newUsedCount
+            }]);
+        } catch (error) {
+            Logger.error(`Failed to update plugin usage: ${error}`);
+            // Revert on error
+            set(state => ({
+                plugins: state.plugins.map(p =>
+                    p.packageId === packageId
+                        ? { ...p, usedCount: plugin.usedCount, lastUsedAt: plugin.lastUsedAt }
+                        : p
+                )
+            }));
+        }
     }
 }))
