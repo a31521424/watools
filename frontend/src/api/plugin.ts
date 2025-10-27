@@ -3,7 +3,6 @@ import {GetPluginJsEntryUrlApi, GetPluginsApi, UpdatePluginUsageApi} from "../..
 
 export const getPlugins = async (): Promise<Plugin[]> => {
     const pluginsData = await GetPluginsApi()
-    console.log('fetch plugins', pluginsData)
 
     let plugins: Plugin[] = []
     if (pluginsData) {

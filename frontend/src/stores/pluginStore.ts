@@ -25,7 +25,6 @@ export const usePluginStore = create<PluginState>((set, get) => ({
         set({isLoading: true, error: null})
         try {
             const plugins = await getPlugins()
-            console.log('Fetched plugins:', plugins)
             set({plugins, isLoading: false})
         } catch (error) {
             Logger.error(`Failed to fetch plugins: ${error}`)

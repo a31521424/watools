@@ -1,10 +1,10 @@
 import {WaComplexInput} from "@/components/watools/wa-complex-input";
-import {Command, CommandList, CommandGroup} from "@/components/ui/command";
+import {Command, CommandList} from "@/components/ui/command";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {cn} from "@/lib/utils";
 import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
-import {PluginCommandEntry} from "@/components/watools/wa-plugin-item";
+import {PluginCommandEntry, usePluginItems} from "@/components/watools/wa-plugin-item";
 import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 import {useAppStore, usePluginStore} from "@/stores";
@@ -14,15 +14,12 @@ import {isDevMode} from "@/lib/env";
 import {AppInput} from "@/schemas/app";
 import {useApplicationItems} from "@/components/watools/wa-application-item";
 import {useOperationItems} from "@/components/watools/wa-operation-item";
-import {usePluginItems} from "@/components/watools/wa-plugin-item";
-import {WaBaseItem, BaseItemProps} from "@/components/watools/wa-base-item";
+import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
 
 
 export const WaCommand = () => {
     const inputRef = useRef<HTMLInputElement>(null)
-    const [selectedKey, setSelectedKey] = useState<string>('')
     const commandListRef = useRef<HTMLDivElement>(null)
-    const firstSelectedKeyRef = useRef<string>('')
     const {fetchPlugins, updatePluginUsage} = usePluginStore()
     const [_, navigate] = useLocation()
     const {
@@ -40,14 +37,14 @@ export const WaCommand = () => {
         valueType: inputValueType,
     }), [inputValue, inputValueType])
 
-    const onTriggerCommand = (command: CommandType) => {
+    const onTriggerCommand = useCallback((command: CommandType) => {
         clearInputValue()
         TriggerCommandApi(command.triggerId, command.category).then(() => {
             void HideAppApi()
         })
-    }
+    }, [clearInputValue])
 
-    const onTriggerPluginCommand = async (entry: PluginCommandEntry, input: AppInput) => {
+    const onTriggerPluginCommand = useCallback(async (entry: PluginCommandEntry, input: AppInput) => {
         clearInputValue()
 
         // Update plugin usage statistics
@@ -67,7 +64,7 @@ export const WaCommand = () => {
                 Logger.error(`Failed to execute plugin command: ${error}`)
             }
         }
-    }
+    }, [clearInputValue, updatePluginUsage, navigate])
 
     // Get items from hooks directly
     const applicationItems = useApplicationItems({
@@ -100,23 +97,6 @@ export const WaCommand = () => {
             return usedCountB - usedCountA;
         });
     }, [applicationItems, operationItems, pluginItems]);
-
-    // Reset selected key when search input changes
-    useEffect(() => {
-        if (inputValue) {
-            setSelectedKey('')
-            firstSelectedKeyRef.current = ''
-        }
-    }, [inputValue])
-
-    // Update selected key when items change
-    useEffect(() => {
-        if (combinedItems.length > 0 && !firstSelectedKeyRef.current) {
-            const firstTriggerId = combinedItems[0].triggerId;
-            firstSelectedKeyRef.current = firstTriggerId;
-            setSelectedKey(firstTriggerId);
-        }
-    }, [combinedItems]);
 
     useEffect(() => {
         void fetchPlugins()
@@ -188,6 +168,10 @@ export const WaCommand = () => {
         }
     }, [onClickEscape])
 
+    const selectedKey = useMemo(() => {
+        return combinedItems.length > 0 ? combinedItems[0].triggerId : ""
+    }, [combinedItems])
+
     return <Command
         value={selectedKey}
         shouldFilter={false}
@@ -207,11 +191,9 @@ export const WaCommand = () => {
             ref={commandListRef}
             className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}
         >
-            <CommandGroup>
-                {combinedItems.map(item => (
-                    <WaBaseItem key={item.triggerId} {...item} />
-                ))}
-            </CommandGroup>
+            {combinedItems.map(item => (
+                <WaBaseItem key={item.triggerId} {...item} />
+            ))}
         </CommandList>
     </Command>
 }
