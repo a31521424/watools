@@ -24,11 +24,11 @@ type PluginMetadata struct {
 }
 
 type PluginState struct {
-	PackageID    string                 `json:"packageId"`
-	Enabled      bool                   `json:"enabled"`
-	Storage      map[string]interface{} `json:"storage"`
-	LastUsedTime mo.Option[time.Time]   `json:"lastUsedTime"`
-	UsedCount    int64                  `json:"usedCount"`
+	PackageID  string                 `json:"packageId"`
+	Enabled    bool                   `json:"enabled"`
+	Storage    map[string]interface{} `json:"storage"`
+	LastUsedAt mo.Option[time.Time]   `json:"lastUsedAt"`
+	UsedCount  int64                  `json:"usedCount"`
 }
 
 func (p *PluginState) GetMetadata() (*PluginMetadata, error) {

@@ -21,7 +21,7 @@ export type Plugin = {
 
     enabled: boolean
     storage: Record<string, any>
-    lastUsedTime: Date | null
+    lastUsedAt: Date | null
     usedCount: number
 
     homeUrl: string

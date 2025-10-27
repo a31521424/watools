@@ -17,7 +17,7 @@ export const getPlugins = async (): Promise<Plugin[]> => {
 
             enabled: plugin.enabled || false,
             storage: plugin.storage || {},
-            lastUsedTime: plugin.lastUsedTime ? new Date(plugin.lastUsedTime) : new Date(0),
+            lastUsedAt: plugin.lastUsedAt ? new Date(plugin.lastUsedAt) : new Date(0),
             usedCount: plugin.usedCount || 0,
 
             homeUrl: plugin.homeUrl || '',

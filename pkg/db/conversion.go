@@ -22,10 +22,10 @@ func ConvertPluginState(plugin PluginState) *models.PluginState {
 		}
 	}
 	return &models.PluginState{
-		PackageID:    plugin.PackageID,
-		Enabled:      plugin.Enabled,
-		Storage:      storage,
-		LastUsedTime: plugin.LastUsedAt,
-		UsedCount:    plugin.UsedCount,
+		PackageID:  plugin.PackageID,
+		Enabled:    plugin.Enabled,
+		Storage:    storage,
+		LastUsedAt: plugin.LastUsedAt,
+		UsedCount:  plugin.UsedCount,
 	}
 }
