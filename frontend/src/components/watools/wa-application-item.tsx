@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from "react";
+import {useMemo} from "react";
 import {CommandType} from "@/schemas/command";
 import {WaIcon} from "@/components/watools/wa-icon";
 import {useApplicationCommandStore} from "@/stores/applicationCommandStore";
@@ -13,30 +13,12 @@ export const useApplicationItems = ({searchKey, onTriggerCommand}: UseApplicatio
     const {
         commandGroup,
         isLoading,
-        loadCommands,
         searchCommands,
-        updateCommandUsage,
-        startListening,
-        stopListening
+        updateCommandUsage
     } = useApplicationCommandStore();
 
-    useEffect(() => {
-        const initializeCommands = async () => {
-            try {
-                await loadCommands();
-            } catch (error) {
-                console.error('Failed to load commands:', error);
-            }
-        };
 
-        void initializeCommands();
-        startListening();
-        return () => {
-            stopListening();
-        };
-    }, [loadCommands, startListening, stopListening]);
-
-    const filteredItems = useMemo((): BaseItemProps[] => {
+    return useMemo((): BaseItemProps[] => {
         if (!searchKey || !commandGroup || isLoading) {
             return [];
         }
@@ -60,6 +42,4 @@ export const useApplicationItems = ({searchKey, onTriggerCommand}: UseApplicatio
             }
         }));
     }, [searchKey, commandGroup, searchCommands, isLoading, updateCommandUsage, onTriggerCommand]);
-
-    return filteredItems;
 };
