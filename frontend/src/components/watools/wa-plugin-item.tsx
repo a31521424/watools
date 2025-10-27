@@ -1,4 +1,4 @@
-import {useMemo} from "react";
+import {useEffect, useMemo} from "react";
 import {usePluginStore} from "@/stores";
 import {PluginEntry} from "@/schemas/plugin";
 import {WaIcon} from "@/components/watools/wa-icon";
@@ -18,11 +18,15 @@ type UsePluginItemsParams = {
 }
 
 export const usePluginItems = ({input, onTriggerPluginCommand}: UsePluginItemsParams) => {
-    const {getEnabledPlugins, plugins} = usePluginStore();
+    const {getEnabledPlugins, plugins, fetchPlugins} = usePluginStore();
+
+    useEffect(() => {
+        void fetchPlugins()
+    }, []);
 
     const enabledPlugins = useMemo(() => {
         return getEnabledPlugins();
-    }, [getEnabledPlugins, plugins]);
+    }, [plugins]);
 
     const allPluginEntries = useMemo(() => {
         const entries: PluginCommandEntry[] = [];

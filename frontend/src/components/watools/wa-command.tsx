@@ -98,9 +98,6 @@ export const WaCommand = () => {
         });
     }, [applicationItems, operationItems, pluginItems]);
 
-    useEffect(() => {
-        void fetchPlugins()
-    }, []);
 
     useWindowFocus((focused) => {
         if (!focused) {

@@ -9,7 +9,6 @@ interface PluginState {
     error: string | null
     fetchPlugins: () => Promise<void>
     refreshPlugins: () => Promise<void>
-    fetchPluginsAsync: () => void  // fire-and-forget version
     getPluginById: (packageId: string) => Plugin | undefined
     getEnabledPlugins: () => Plugin[]
     getPluginsByType: (type: "executable" | "ui") => Plugin[]
@@ -39,12 +38,6 @@ export const usePluginStore = create<PluginState>((set, get) => ({
         await get().fetchPlugins()
     },
 
-    fetchPluginsAsync: () => {
-        // Fire-and-forget version with error handling
-        get().fetchPlugins().catch(error => {
-            console.error('Background plugin fetch failed:', error)
-        })
-    },
 
     getPluginById: (packageId: string) => {
         return get().plugins.find(plugin => plugin.packageId === packageId)
