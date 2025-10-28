@@ -1,6 +1,6 @@
 import {WaComplexInput} from "@/components/watools/wa-complex-input";
 import {Command, CommandList} from "@/components/ui/command";
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef} from "react";
 import {cn} from "@/lib/utils";
 import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
@@ -109,7 +109,7 @@ export const WaCommand = () => {
                     return
                 }
                 inputRef.current.select()
-            }, 100))
+            }, 0))
         })
         inputRef.current?.focus()
     })
