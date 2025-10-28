@@ -47,6 +47,10 @@ export const WaPlugin = () => {
             return
         }
         iframeWindow.addEventListener('keydown', handleHotkey)
+
+        // TODO: better way to expose runtime api to iframe
+        // @ts-ignore
+        iframeWindow.runtime = window.runtime
     }
 
     return <div className="flex-1 overflow-hidden">
