@@ -16,10 +16,11 @@ export const useOperationItems = ({searchKey, onTriggerCommand}: UseOperationIte
     const operationFuse = useMemo(() => {
         if (operationCommands.length === 0) return null;
         return new Fuse(operationCommands, {
-            threshold: 0.3,
+            threshold: 0.4,
             minMatchCharLength: 1,
             useExtendedSearch: true,
             ignoreLocation: true,
+            shouldSort: false,
             keys: [{name: 'name', weight: 1.0}]
         });
     }, [operationCommands]);
@@ -38,7 +39,7 @@ export const useOperationItems = ({searchKey, onTriggerCommand}: UseOperationIte
             return [];
         }
 
-        const results = operationFuse.search(searchKey, {limit: 10});
+        const results = operationFuse.search(searchKey, {limit: 5});
         return results.map(result => {
             const command = result.item;
             return {

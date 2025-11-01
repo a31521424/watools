@@ -5,10 +5,11 @@ import {EventsOff, EventsOn} from "../../wailsjs/runtime";
 import Fuse, {IFuseOptions} from "fuse.js";
 
 export const WaApplicationCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {
-    threshold: 0.3,
+    threshold: 0.4,
     minMatchCharLength: 1,
     useExtendedSearch: true,
     ignoreLocation: true,
+    shouldSort: false,
     keys: [{
         name: 'name',
         weight: 1.0

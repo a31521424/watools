@@ -23,7 +23,7 @@ export const useApplicationItems = ({searchKey, onTriggerCommand}: UseApplicatio
             return [];
         }
 
-        const commands = searchCommands(searchKey, 15);
+        const commands = searchCommands(searchKey, 10);
         return commands.map(command => ({
             id: command.id,
             triggerId: command.triggerId,

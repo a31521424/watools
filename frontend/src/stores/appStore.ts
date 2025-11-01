@@ -40,7 +40,7 @@ const createDebounce = (fn: (...args: any[]) => void, delay: number) => {
 export const useAppStore = create<AppStore>((set, get) => {
     const debouncedSetValue = createDebounce((value: string) => {
         set({value})
-    }, 100)
+    }, 50)
 
     return {
         ...initialState,

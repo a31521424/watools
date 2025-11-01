@@ -70,7 +70,7 @@ export const usePluginItems = ({input, onTriggerPluginCommand}: UsePluginItemsPa
             return 0;
         });
 
-        return matchedEntries.slice(0, 5).map(entry => {
+        return matchedEntries.slice(0, 3).map(entry => {
             const plugin = enabledPlugins.find(p => p.packageId === entry.packageId);
 
             return {
