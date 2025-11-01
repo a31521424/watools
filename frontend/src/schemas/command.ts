@@ -20,6 +20,7 @@ export type ApplicationCommandType = CommandType & {
     // calculated
     nameInitial: string | null
     pathName: string
+    isUserApp: boolean
 
     lastUsedAt: Date | null
     usedCount: number

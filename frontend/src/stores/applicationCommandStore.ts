@@ -61,14 +61,24 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
 
     const createFuseInstance = (commands: ApplicationCommandType[]) => {
         const sortedCommands = [...commands].sort((a, b) => {
+            // Prioritize user applications over system applications
+            if (a.isUserApp !== b.isUserApp) {
+                return a.isUserApp ? -1 : 1
+            }
+
+            // Then sort by usage count
             if (a.usedCount !== b.usedCount) {
                 return b.usedCount - a.usedCount
             }
+
+            // Then by last used time
             if (a.lastUsedAt && b.lastUsedAt) {
                 return b.lastUsedAt.getTime() - a.lastUsedAt.getTime()
             }
             if (a.lastUsedAt && !b.lastUsedAt) return -1
             if (!a.lastUsedAt && b.lastUsedAt) return 1
+
+            // Finally by name alphabetically
             return a.name.localeCompare(b.name)
         })
 

@@ -49,6 +49,7 @@ type ApplicationCommand struct {
 	Path         string            `json:"path"`
 	ID           string            `json:"id"`
 	DirUpdatedAt time.Time         `json:"dirUpdatedAt"`
+	IsUserApp    bool              `json:"isUserApp"` // Computed field, not stored in DB
 }
 
 func (a *ApplicationCommand) GetTriggerID() string {
@@ -87,6 +88,7 @@ func NewApplicationCommand(name string, description mo.Option[string], path stri
 		Path:         path,
 		ID:           id.MustGet(),
 		DirUpdatedAt: dirUpdatedAt,
+		IsUserApp:    isUserApplication(path),
 	}
 }
 
