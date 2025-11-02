@@ -50,7 +50,9 @@ export const WaPlugin = () => {
 
         // TODO: better way to expose runtime api to iframe
         // @ts-ignore
-        iframeWindow.runtime = window.runtime
+        iframeWindow.wails = window.runtime
+        // @ts-ignore
+        iframeWindow.watools = window.watools
     }
 
     return <div className="flex-1 overflow-hidden">
