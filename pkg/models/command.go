@@ -77,7 +77,7 @@ func NewApplicationCommand(name string, description mo.Option[string], path stri
 	if id.IsNone() {
 		id = mo.Some(uuid.New().String())
 	}
-	return &ApplicationCommand{
+	cmd := &ApplicationCommand{
 		Command: Command{
 			TriggerID:   fmt.Sprintf("%s-%s-%s", category, name, id.MustGet()),
 			Name:        name,
@@ -88,8 +88,9 @@ func NewApplicationCommand(name string, description mo.Option[string], path stri
 		Path:         path,
 		ID:           id.MustGet(),
 		DirUpdatedAt: dirUpdatedAt,
-		IsUserApp:    isUserApplication(path),
 	}
+	cmd.IsUserApp = cmd.IsUserApplication()
+	return cmd
 }
 
 type OperationCommand struct {
