@@ -50,7 +50,7 @@ export const WaPlugin = () => {
 
         // TODO: better way to expose runtime api to iframe
         // @ts-ignore
-        iframeWindow.wails = window.runtime
+        iframeWindow.runtime = window.runtime
         // @ts-ignore
         iframeWindow.watools = window.watools
     }
