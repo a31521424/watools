@@ -76,10 +76,10 @@ export const usePluginItems = ({input, onTriggerPluginCommand}: UsePluginItemsPa
             return {
                 id: entry.triggerId,
                 triggerId: entry.triggerId,
-                name: entry.pluginName,
+                title: entry.subTitle,
                 icon: <WaIcon value={entry.icon} size={16}/>,
                 usedCount: plugin?.usedCount || 0,
-                subtitle: entry.subTitle,
+                subtitle: entry.pluginName,
                 badge: entry.type,
                 onSelect: () => {
                     onTriggerPluginCommand(entry, input);

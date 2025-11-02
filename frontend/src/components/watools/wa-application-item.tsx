@@ -27,7 +27,7 @@ export const useApplicationItems = ({searchKey, onTriggerCommand}: UseApplicatio
         return commands.map(command => ({
             id: command.id,
             triggerId: command.triggerId,
-            name: command.name,
+            title: command.name,
             icon: (
                 <WaIcon
                     iconPath={`/api/application-icon?path=${encodeURIComponent(command.iconPath)}`}

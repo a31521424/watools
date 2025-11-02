@@ -45,7 +45,7 @@ export const useOperationItems = ({searchKey, onTriggerCommand}: UseOperationIte
             return {
                 id: command.triggerId,
                 triggerId: command.triggerId,
-                name: command.name,
+                title: command.name,
                 icon: <WaIcon value={command.icon} size={16}/>,
                 usedCount: 0,
                 subtitle: command.description,

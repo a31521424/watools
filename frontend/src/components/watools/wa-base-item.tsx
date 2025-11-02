@@ -4,7 +4,7 @@ import { CommandItem } from "@/components/ui/command";
 export interface BaseItemProps {
   id: string;
   triggerId: string;
-  name: string;
+  title: string;
   icon: ReactNode;
   usedCount?: number;
   subtitle?: string;
@@ -13,7 +13,7 @@ export interface BaseItemProps {
   children?: ReactNode;
 }
 
-export const WaBaseItem = ({ triggerId, icon, name, subtitle, badge, onSelect, children }: BaseItemProps) => {
+export const WaBaseItem = ({ triggerId, icon, title, subtitle, badge, onSelect, children }: BaseItemProps) => {
   return (
     <CommandItem
       key={triggerId}
@@ -26,7 +26,7 @@ export const WaBaseItem = ({ triggerId, icon, name, subtitle, badge, onSelect, c
       </div>
       <div className="flex flex-1 items-center justify-between min-w-0">
         <div className="flex flex-col min-w-0">
-          <span className="text-sm font-medium truncate">{name}</span>
+          <span className="text-sm font-medium truncate">{title}</span>
           {subtitle && (
             <span className="text-xs text-muted-foreground truncate">{subtitle}</span>
           )}

@@ -29,7 +29,7 @@ export const usePluginStore = create<PluginState>((set, get) => {
         }
 
         debounceTimer = setTimeout(async () => {
-            const { updateBuffer } = get()
+            const {updateBuffer} = get()
 
             if (updateBuffer.size === 0) return
 
@@ -41,7 +41,7 @@ export const usePluginStore = create<PluginState>((set, get) => {
                 }))
 
                 await updatePluginUsage(updates)
-                set({ updateBuffer: new Map() })
+                set({updateBuffer: new Map()})
             } catch (error) {
                 Logger.error(`Failed to flush plugin buffer updates: ${error}`)
             }
@@ -56,6 +56,7 @@ export const usePluginStore = create<PluginState>((set, get) => {
             const plugins = await getPlugins()
             set({plugins, isLoading: false})
             isInitialized = true
+            console.log('fetched plugins', plugins)
         } catch (error) {
             Logger.error(`Failed to fetch plugins: ${error}`)
             set({
@@ -94,7 +95,7 @@ export const usePluginStore = create<PluginState>((set, get) => {
         set(state => ({
             plugins: state.plugins.map(p =>
                 p.packageId === packageId
-                    ? { ...p, usedCount: newUsedCount, lastUsedAt: now }
+                    ? {...p, usedCount: newUsedCount, lastUsedAt: now}
                     : p
             ),
             updateBuffer: new Map(state.updateBuffer).set(packageId, {
@@ -113,7 +114,7 @@ export const usePluginStore = create<PluginState>((set, get) => {
             debounceTimer = null;
         }
 
-        const { updateBuffer } = get();
+        const {updateBuffer} = get();
         if (updateBuffer.size === 0) return;
 
         try {
@@ -124,7 +125,7 @@ export const usePluginStore = create<PluginState>((set, get) => {
             }));
 
             await updatePluginUsage(updates);
-            set({ updateBuffer: new Map() });
+            set({updateBuffer: new Map()});
         } catch (error) {
             Logger.error(`Failed to flush plugin buffer updates: ${error}`);
         }
