@@ -1,6 +1,7 @@
 import {useLocation, useSearchParams} from "wouter";
 import {useEffect, useRef, useState} from "react";
 import {usePluginStore} from "@/stores";
+import {WaApi} from "@/api/api";
 
 export const WaPlugin = () => {
     const [searchParams] = useSearchParams()
@@ -31,7 +32,7 @@ export const WaPlugin = () => {
         if (!plugin) {
             return
         }
-        const url = `${plugin.homeUrl}/${file}`
+        const url = `${plugin.homeUrl}/${file}?t=${Date.now()}`
         setPluginUrl(url)
         return () => {
             setPluginUrl(null)
@@ -52,7 +53,7 @@ export const WaPlugin = () => {
         // @ts-ignore
         iframeWindow.runtime = window.runtime
         // @ts-ignore
-        iframeWindow.watools = window.watools
+        iframeWindow.watools = WaApi
     }
 
     return <div className="flex-1 overflow-hidden">

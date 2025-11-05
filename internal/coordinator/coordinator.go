@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 	"watools/config"
+	"watools/internal/api"
 	"watools/internal/app"
 	"watools/internal/command"
 	"watools/internal/plugin"
@@ -17,6 +18,7 @@ type WaAppCoordinator struct {
 	waApp       *app.WaApp
 	waLaunchApp *command.WaLaunchApp
 	waPluginApp *plugin.WaPlugin
+	waApi       *api.WaApi
 }
 
 var (
@@ -30,6 +32,7 @@ func GetWaAppCoordinator() *WaAppCoordinator {
 			waApp:       app.GetWaApp(),
 			waLaunchApp: command.GetWaLaunch(),
 			waPluginApp: plugin.GetWaPlugin(),
+			waApi:       api.GetWaApi(),
 		}
 	})
 	return waAppCoordinatorInstance
@@ -140,3 +143,11 @@ func (w *WaAppCoordinator) UpdatePluginUsageApi(usageUpdates []map[string]interf
 }
 
 // end region plugin
+
+// region api
+
+func (w *WaAppCoordinator) OpenFolder(path string) {
+	w.waApi.OpenFolderWithPath(path)
+}
+
+// end region api

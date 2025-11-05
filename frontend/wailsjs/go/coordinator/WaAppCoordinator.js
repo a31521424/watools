@@ -26,6 +26,10 @@ export function HideOrShowAppApi() {
   return window['go']['coordinator']['WaAppCoordinator']['HideOrShowAppApi']();
 }
 
+export function OpenFolder(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['OpenFolder'](arg1);
+}
+
 export function TriggerCommandApi(arg1, arg2) {
   return window['go']['coordinator']['WaAppCoordinator']['TriggerCommandApi'](arg1, arg2);
 }

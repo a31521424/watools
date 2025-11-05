@@ -2,11 +2,21 @@ import {WaCommand} from "./wa-command";
 import {resizeWindowHeight, useElementResize} from "@/hooks/useElementResize";
 import {Route} from "wouter";
 import {WaPlugin} from "@/components/watools/wa-plugin";
+import {useEffect} from "react";
+import {WaApi} from "@/api/api";
 
 const Watools = () => {
     const windowRef = useElementResize<HTMLDivElement>({
         onResize: resizeWindowHeight
     })
+    useEffect(() => {
+        // @ts-ignore
+        window.watools = WaApi
+        return () => {
+            // @ts-ignore
+            delete window.watools
+        }
+    }, []);
 
 
     return <div ref={windowRef} className="bg-white w-full rounded-xl overflow-x-hidden scrollbar-hide border-0">
