@@ -45,7 +45,6 @@ export const useAppStore = create<AppStore>((set, get) => {
     return {
         ...initialState,
         setValue: (value: string, valueType: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => {
-            console.log("AppStore setValue", {valueType, value})
             value = value.trim()
             if (valueType === "text") {
                 set({displayValue: value, valueType: valueType, lastCopiedValue: null})

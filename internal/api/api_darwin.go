@@ -2,18 +2,25 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
-	"watools/pkg/logger"
+	"path/filepath"
+	"strings"
 )
 
 func (a *WaApi) OpenFolderWithPath(path string) {
+	if strings.HasPrefix(path, "~/") {
+		path = strings.TrimPrefix(path, "~/")
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return
+		}
+		path = filepath.Join(homeDir, path)
+	}
 	stat, err := os.Stat(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return
 	}
-	logger.Info(fmt.Sprintf("Opening folder %s, isDir %s", path, stat.IsDir()))
 	if !stat.IsDir() {
 		_ = exec.Command("open", "-R", path).Start()
 	} else {
