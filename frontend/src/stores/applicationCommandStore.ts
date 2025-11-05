@@ -57,7 +57,7 @@ const DEBOUNCE_DELAY = 60000
 export const useApplicationCommandStore = create<ApplicationCommandStore>((set, get) => {
     let isListening = false
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
-    let isInitialized = false
+    let isLoading = false
 
     const createFuseInstance = (commands: ApplicationCommandType[]) => {
         const sortedCommands = [...commands].sort((a, b) => {
@@ -91,7 +91,7 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
         }
 
         debounceTimer = setTimeout(async () => {
-            const { updateBuffer } = get()
+            const {updateBuffer} = get()
 
             if (updateBuffer.size === 0) return
 
@@ -103,7 +103,7 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
                 }))
 
                 await updateApplicationUsage(updates)
-                set({ updateBuffer: new Map() })
+                set({updateBuffer: new Map()})
             } catch (error) {
                 console.error('Failed to flush buffer updates:', error)
             }
@@ -111,37 +111,39 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
     }
 
     const loadCommands = async () => {
-        if (isInitialized) return
+        if (isLoading) return
 
-        set({ isLoading: true })
+        set({isLoading: true})
         try {
             const commandGroup = await getApplicationCommands()
             const fuse = createFuseInstance(commandGroup.commands)
-            set({ commandGroup, fuse, isLoading: false })
-            isInitialized = true
+            set({commandGroup, fuse, isLoading: false})
             startListening()
         } catch (error) {
             console.error('Failed to load application commands:', error)
-            set({ isLoading: false })
+            set({isLoading: false})
+        } finally {
+            set({isLoading: false})
         }
     }
 
     const refreshCommands = async () => {
+        console.log('Application commands changed, refreshing...')
         await loadCommands()
     }
 
     const searchCommands = (searchKey: string, limit: number = 5): ApplicationCommandType[] => {
-        const { fuse } = get()
+        const {fuse} = get()
         if (!fuse || !searchKey.trim()) {
             return []
         }
 
-        return fuse.search(searchKey, { limit }).map(result => result.item)
+        return fuse.search(searchKey, {limit}).map(result => result.item)
     }
 
     const updateCommandUsage = async (commandId: string) => {
         const state = get()
-        const { commandGroup, updateBuffer } = state
+        const {commandGroup, updateBuffer} = state
 
         if (!commandGroup) return
 
@@ -155,12 +157,12 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
         command.usedCount = newUsedCount
 
         const newBuffer = new Map(updateBuffer)
-        newBuffer.set(commandId, { lastUsedAt: now, usedCount: newUsedCount })
+        newBuffer.set(commandId, {lastUsedAt: now, usedCount: newUsedCount})
 
         const fuse = createFuseInstance(commandGroup.commands)
 
         set({
-            commandGroup: { ...commandGroup },
+            commandGroup: {...commandGroup},
             fuse,
             updateBuffer: newBuffer
         })
@@ -174,7 +176,7 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
             debounceTimer = null
         }
 
-        const { updateBuffer } = get()
+        const {updateBuffer} = get()
 
         if (updateBuffer.size === 0) return
 
@@ -186,7 +188,7 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
             }))
 
             await updateApplicationUsage(updates)
-            set({ updateBuffer: new Map() })
+            set({updateBuffer: new Map()})
         } catch (error) {
             console.error('Failed to flush buffer updates:', error)
         }
