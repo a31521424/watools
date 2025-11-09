@@ -5,8 +5,8 @@ import {EventsOff, EventsOn} from "../../wailsjs/runtime";
 import Fuse, {IFuseOptions} from "fuse.js";
 
 export const WaApplicationCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {
-    threshold: 0.4,
-    minMatchCharLength: 1,
+    threshold: 0.15,
+    minMatchCharLength: 2,
     useExtendedSearch: true,
     ignoreLocation: true,
     shouldSort: false,
@@ -15,16 +15,10 @@ export const WaApplicationCommandFuseConfig: IFuseOptions<ApplicationCommandType
         weight: 1.0
     }, {
         name: 'nameInitial',
-        weight: 0.8
+        weight: 0.9
     }, {
         name: 'pathName',
         weight: 0.6
-    }, {
-        name: 'lastUsedAt',
-        weight: 0.4
-    }, {
-        name: 'usedCount',
-        weight: 0.3
     }]
 }
 
@@ -121,7 +115,6 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
             startListening()
         } catch (error) {
             console.error('Failed to load application commands:', error)
-            set({isLoading: false})
         } finally {
             set({isLoading: false})
         }
