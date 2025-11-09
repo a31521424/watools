@@ -20,6 +20,7 @@ import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
 export const WaCommand = () => {
     const inputRef = useRef<HTMLInputElement>(null)
     const commandListRef = useRef<HTMLDivElement>(null)
+    const [selectedKey, setSelectedKey] = React.useState<string>("")
     const {updatePluginUsage} = usePluginStore()
     const [_, navigate] = useLocation()
     const {
@@ -165,8 +166,13 @@ export const WaCommand = () => {
         }
     }, [onClickEscape])
 
-    const selectedKey = useMemo(() => {
-        return combinedItems.length > 0 ? combinedItems[0].triggerId : ""
+    useEffect(() => {
+        if (combinedItems.length > 0) {
+            setSelectedKey(combinedItems[0].triggerId)
+        } else {
+            setSelectedKey("")
+        }
+
     }, [combinedItems])
 
     return <Command
