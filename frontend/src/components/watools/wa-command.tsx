@@ -20,6 +20,7 @@ import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
 export const WaCommand = () => {
     const inputRef = useRef<HTMLInputElement>(null)
     const commandListRef = useRef<HTMLDivElement>(null)
+    const [isPasted, setIsPasted] = React.useState<boolean>(false)
     const [selectedKey, setSelectedKey] = React.useState<string>("")
     const {updatePluginUsage} = usePluginStore()
     const [_, navigate] = useLocation()
@@ -125,21 +126,6 @@ export const WaCommand = () => {
     })
 
 
-    const handlePaste = (e: React.ClipboardEvent) => {
-        e.preventDefault()
-        try {
-            let text = e.clipboardData.getData('text').trim()
-            setInputValue(text, "clipboard", () => setTimeout(() => {
-                if (!inputRef.current) {
-                    return
-                }
-                inputRef.current.scrollLeft = inputRef.current.scrollWidth
-            }, 0))
-        } catch (e) {
-            Logger.error(`Handle paste error: ${e}`)
-        }
-    }
-
     const onClickEscape = useCallback(() => {
         if (isPanelOpen) {
             clearInputValue()
@@ -183,8 +169,16 @@ export const WaCommand = () => {
         <WaComplexInput
             ref={inputRef}
             autoFocus
-            onValueChange={value => setInputValue(value, "text")}
-            onPaste={handlePaste}
+            onValueChange={value => {
+                console.log('Input value changed:', value, 'isPasted:', isPasted)
+                if (!isPasted) {
+                    setInputValue(value, "text")
+                } else {
+                    setInputValue(value, "clipboard")
+                    setIsPasted(false)
+                }
+            }}
+            onPaste={() => setIsPasted(true)}
             className="text-gray-800 text-xl"
             classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}
             value={inputDisplayValue}

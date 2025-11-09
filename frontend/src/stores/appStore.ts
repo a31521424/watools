@@ -53,9 +53,6 @@ export const useAppStore = create<AppStore>((set, get) => {
                 if (!value.length) {
                     return
                 }
-                if (!isAuto) {
-                    value = get().value + value
-                }
 
                 let displayValue = value
                 let compressedDisplay = false
