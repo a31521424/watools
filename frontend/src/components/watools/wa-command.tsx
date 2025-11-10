@@ -170,7 +170,6 @@ export const WaCommand = () => {
             ref={inputRef}
             autoFocus
             onValueChange={value => {
-                console.log('Input value changed:', value, 'isPasted:', isPasted)
                 if (!isPasted) {
                     setInputValue(value, "text")
                 } else {

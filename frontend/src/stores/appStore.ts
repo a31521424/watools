@@ -47,7 +47,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         setValue: (value: string, valueType: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => {
             value = value.trim()
             if (valueType === "text") {
-                set({displayValue: value, valueType: valueType, lastCopiedValue: null})
+                set({displayValue: value, valueType: valueType})
                 debouncedSetValue(value)
             } else if (valueType === "clipboard") {
                 if (!value.length) {
