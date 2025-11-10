@@ -5,7 +5,6 @@ import {cn} from "@/lib/utils";
 import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {PluginCommandEntry, usePluginItems} from "@/components/watools/wa-plugin-item";
-import {ClipboardGetText} from "../../../wailsjs/runtime";
 import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 import {useAppStore, usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
@@ -15,6 +14,7 @@ import {AppInput} from "@/schemas/app";
 import {useApplicationItems} from "@/components/watools/wa-application-item";
 import {useOperationItems} from "@/components/watools/wa-operation-item";
 import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
+import {getClipboardContent} from "@/api/app";
 
 
 export const WaCommand = () => {
@@ -31,8 +31,11 @@ export const WaCommand = () => {
         setValue: setInputValue,
         setValueAuto: setInputValueAuto,
         clearValue: clearInputValue,
+        setClipboardContent: setInputClipboardContent,
+        imageBase64: inputImageBase64,
+        files: inputFiles,
     } = useAppStore()
-    const isPanelOpen = inputValue.length > 0
+    const isPanelOpen = inputValue.length > 0 || inputImageBase64 != null || inputFiles != null
 
     const pluginInput: AppInput = useMemo(() => ({
         value: inputValue,
@@ -92,6 +95,7 @@ export const WaCommand = () => {
             ...operationItems,
         ];
 
+        console.log('combinedItems before sort:', allItems);
         // Sort by usedCount (higher is better)
         return allItems.sort((a, b) => {
             const usedCountA = a.usedCount || 0;
@@ -105,13 +109,18 @@ export const WaCommand = () => {
         if (!focused) {
             return
         }
-        ClipboardGetText().then(text => {
-            setInputValueAuto(text, "clipboard", () => setTimeout(() => {
-                if (!inputRef.current) {
-                    return
-                }
-                inputRef.current.select()
-            }, 0))
+        getClipboardContent().then(res => {
+            if (!res) {
+                return
+            }
+            if (res.contentType === "text" && res.text) {
+                setInputValueAuto(res.text, "clipboard", () => setTimeout(() => {
+                    if (!inputRef.current) {
+                        return
+                    }
+                    inputRef.current.select()
+                }, 0))
+            }
         })
         inputRef.current?.focus()
     })
@@ -161,6 +170,14 @@ export const WaCommand = () => {
 
     }, [combinedItems])
 
+    const handlePaste = () => {
+        setIsPasted(true)
+        getClipboardContent().then(res => {
+            console.log('Pasted clipboard content:', res);
+            setInputClipboardContent(res)
+        })
+    }
+
     return <Command
         value={selectedKey}
         shouldFilter={false}
@@ -169,6 +186,8 @@ export const WaCommand = () => {
         <WaComplexInput
             ref={inputRef}
             autoFocus
+            imageBase64={inputImageBase64}
+            files={inputFiles}
             onValueChange={value => {
                 if (!isPasted) {
                     setInputValue(value, "text")
@@ -177,7 +196,7 @@ export const WaCommand = () => {
                     setIsPasted(false)
                 }
             }}
-            onPaste={() => setIsPasted(true)}
+            onPaste={handlePaste}
             className="text-gray-800"
             classNames={{wrapper: cn("text-xl", isPanelOpen ? undefined : "!border-none")}}
             value={inputDisplayValue}

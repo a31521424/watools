@@ -6,6 +6,10 @@ export function GetApplicationCommandsApi() {
   return window['go']['coordinator']['WaAppCoordinator']['GetApplicationCommandsApi']();
 }
 
+export function GetClipboardContentApi() {
+  return window['go']['coordinator']['WaAppCoordinator']['GetClipboardContentApi']();
+}
+
 export function GetOperatorCommandsApi() {
   return window['go']['coordinator']['WaAppCoordinator']['GetOperatorCommandsApi']();
 }

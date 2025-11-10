@@ -64,6 +64,10 @@ func (w *WaAppCoordinator) HideOrShowAppApi() {
 	w.waApp.HideOrShowApp()
 }
 
+func (w *WaAppCoordinator) GetClipboardContentApi() (*app.ClipboardContent, error) {
+	return w.waApp.GetClipboardContent()
+}
+
 // end region app
 
 // region command

@@ -1,5 +1,5 @@
 import {create} from "zustand";
-import {AppInputValueType} from "@/schemas/app";
+import {AppInputValueType, ClipboardContent} from "@/schemas/app";
 
 type AppState = {
     displayValue: string
@@ -7,14 +7,17 @@ type AppState = {
     value: string
     valueType: AppInputValueType
     lastCopiedValue: string | null
+    imageBase64: string | null
+    files: string[] | null
 }
-
 const initialState: AppState = {
     displayValue: '',
     compressedDisplay: false,
     value: '',
     valueType: 'text',
     lastCopiedValue: null,
+    imageBase64: null,
+    files: null,
 }
 
 type AppStore = AppState & {
@@ -22,7 +25,7 @@ type AppStore = AppState & {
     setValueAuto: (value: string, type: AppInputValueType, onSuccess?: () => void) => void
     getValue: () => string
     clearValue: () => void
-
+    setClipboardContent: (content: ClipboardContent | null) => void
 }
 
 const createDebounce = (fn: (...args: any[]) => void, delay: number) => {
@@ -79,8 +82,31 @@ export const useAppStore = create<AppStore>((set, get) => {
             }
             get().setValue(value, valueType, onSuccess, true)
         },
+        setClipboardContent: (content: ClipboardContent | null) => {
+            if (!content) {
+                return
+            }
+            if (content.contentType === "image" && content.imageBase64) {
+                set({
+                    imageBase64: content.imageBase64,
+                    files: null,
+                    value: '',
+                    displayValue: '',
+                    valueType: 'clipboard',
+                })
+            } else if (content.contentType === "files" && content.files) {
+                set({
+                    files: content.files,
+                    imageBase64: content.imageBase64,
+                    value: '',
+                    displayValue: '',
+                    valueType: 'clipboard',
+                })
+            }
+        },
         getValue: () => get().value,
         clearValue: () => {
+            console.log('Clearing app store value')
             const {lastCopiedValue, ...reset} = initialState
             set(reset)
         },
