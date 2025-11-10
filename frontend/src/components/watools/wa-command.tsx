@@ -178,8 +178,8 @@ export const WaCommand = () => {
                 }
             }}
             onPaste={() => setIsPasted(true)}
-            className="text-gray-800 text-xl"
-            classNames={{wrapper: isPanelOpen ? undefined : "!border-none"}}
+            className="text-gray-800"
+            classNames={{wrapper: cn("text-xl", isPanelOpen ? undefined : "!border-none")}}
             value={inputDisplayValue}
         />
         <CommandList

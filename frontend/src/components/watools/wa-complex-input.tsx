@@ -17,7 +17,6 @@ export const WaComplexInput = (
                 className={cn(
                     "bg-transparent border-transparent shadow-none",
                     "focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-transparent",
-                    "md:text-1xl text-2xl",
                     "h-auto w-full",
                     className
                 )}
