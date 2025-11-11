@@ -21,7 +21,7 @@ func (a *WaApi) OpenFolderWithPath(path string) {
 	if errors.Is(err, os.ErrNotExist) {
 		return
 	}
-	if !stat.IsDir() {
+	if !stat.IsDir() || filepath.Ext(path) == ".app" {
 		_ = exec.Command("open", "-R", path).Start()
 	} else {
 		_ = exec.Command("open", path).Start()

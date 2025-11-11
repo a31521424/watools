@@ -23,6 +23,7 @@ type ClipboardAccessor = {
 }
 
 export const usePluginItems = ({input, onTriggerPluginCommand, clipboardAccessor}: UsePluginItemsParams) => {
+    console.log('usePluginItems called with input:', input);
     const {getEnabledPlugins, plugins} = usePluginStore();
 
     const enabledPlugins = useMemo(() => {
@@ -48,7 +49,7 @@ export const usePluginItems = ({input, onTriggerPluginCommand, clipboardAccessor
     const getClipboardContent = useCallback(() => clipboardAccessor?.content ?? null, [clipboardAccessor]);
 
     return useMemo((): BaseItemProps[] => {
-        if (!input.value || allPluginEntries.length === 0) {
+        if ((!input.value && !input.clipboardContentType) || allPluginEntries.length === 0) {
             return [];
         }
 
