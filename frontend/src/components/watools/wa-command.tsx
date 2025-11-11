@@ -230,7 +230,11 @@ export const WaCommand = () => {
         />
         <CommandList
             ref={commandListRef}
-            className={cn("scrollbar-hide", isPanelOpen ? undefined : "hidden")}
+            className={cn(
+                "scrollbar-hide",
+                isPanelOpen ? undefined : "hidden",
+                combinedItems.length ? "mt-2" : null
+            )}
         >
             {combinedItems.map(item => (
                 <WaBaseItem key={item.triggerId} {...item} />
