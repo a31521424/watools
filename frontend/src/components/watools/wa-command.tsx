@@ -123,7 +123,6 @@ export const WaCommand = () => {
             ...operationItems,
         ];
 
-        console.log('combinedItems before sort:', allItems);
         // Sort by usedCount (higher is better)
         return allItems.sort((a, b) => {
             const usedCountA = a.usedCount || 0;

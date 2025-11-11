@@ -6,7 +6,7 @@ export type PluginEntry = {
     type: "executable" | "ui"
     subTitle: string
     match: (input: AppInput, getClipboardContent: () => AppClipboardContent | null) => boolean
-    execute?: (input: AppInput) => Promise<void>
+    execute?: (input: AppInput, getClipboardContent: () => AppClipboardContent | null) => Promise<void>
     icon: PluginIcon
     file?: string
 }

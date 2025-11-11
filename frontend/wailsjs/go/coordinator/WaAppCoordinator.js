@@ -34,6 +34,10 @@ export function OpenFolder(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['OpenFolder'](arg1);
 }
 
+export function SaveBase64Image(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['SaveBase64Image'](arg1);
+}
+
 export function TriggerCommandApi(arg1, arg2) {
   return window['go']['coordinator']['WaAppCoordinator']['TriggerCommandApi'](arg1, arg2);
 }

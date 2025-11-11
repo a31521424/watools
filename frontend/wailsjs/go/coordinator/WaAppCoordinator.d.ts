@@ -18,6 +18,8 @@ export function HideOrShowAppApi():Promise<void>;
 
 export function OpenFolder(arg1:string):Promise<void>;
 
+export function SaveBase64Image(arg1:string):Promise<string>;
+
 export function TriggerCommandApi(arg1:string,arg2:string):Promise<void>;
 
 export function UpdateApplicationUsageApi(arg1:Array<Record<string, any>>):Promise<void>;

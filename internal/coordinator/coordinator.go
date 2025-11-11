@@ -154,4 +154,8 @@ func (w *WaAppCoordinator) OpenFolder(path string) {
 	w.waApi.OpenFolderWithPath(path)
 }
 
+func (w *WaAppCoordinator) SaveBase64Image(base64Data string) string {
+	return w.waApi.SaveBase64Image(base64Data)
+}
+
 // end region api
