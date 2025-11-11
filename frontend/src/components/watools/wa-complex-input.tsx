@@ -34,12 +34,14 @@ export const WaComplexInput = (
                 })}
             </div>
         } else if (imageBase64 != null) {
-            return <img
-                draggable={false}
-                className="aspect-square max-h-full select-none border-dotted rounded p-1"
-                src={`data:image/png;base64,${imageBase64}`}
-                alt="Input Image"
-            />
+            return <div className="h-full w-auto shrink-0 p-1 border-2 border-dotted object-contain">
+                <img
+                    draggable={false}
+                    className="max-h-full select-none"
+                    src={`data:image/png;base64,${imageBase64}`}
+                    alt="Input Image"
+                />
+            </div>
         }
         return null
     }, [imageBase64, files])
