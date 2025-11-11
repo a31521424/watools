@@ -1,5 +1,5 @@
 import {create} from "zustand";
-import {AppInputValueType, ClipboardContent} from "@/schemas/app";
+import {AppClipboardContent, AppClipboardContentType, AppInputValueType} from "@/schemas/app";
 
 type AppState = {
     displayValue: string
@@ -9,6 +9,7 @@ type AppState = {
     lastCopiedValue: string | null
     imageBase64: string | null
     files: string[] | null
+    clipboardContentType: AppClipboardContentType | null
 }
 const initialState: AppState = {
     displayValue: '',
@@ -18,6 +19,7 @@ const initialState: AppState = {
     lastCopiedValue: null,
     imageBase64: null,
     files: null,
+    clipboardContentType: null,
 }
 
 type AppStore = AppState & {
@@ -25,7 +27,7 @@ type AppStore = AppState & {
     setValueAuto: (value: string, type: AppInputValueType, onSuccess?: () => void) => void
     getValue: () => string
     clearValue: () => void
-    setClipboardContent: (content: ClipboardContent | null) => void
+    setClipboardContent: (content: AppClipboardContent | null) => void
 }
 
 const createDebounce = (fn: (...args: any[]) => void, delay: number) => {
@@ -82,7 +84,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             }
             get().setValue(value, valueType, onSuccess, true)
         },
-        setClipboardContent: (content: ClipboardContent | null) => {
+        setClipboardContent: (content: AppClipboardContent | null) => {
             if (!content) {
                 return
             }
@@ -90,6 +92,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 set({
                     imageBase64: content.imageBase64,
                     files: null,
+                    clipboardContentType: content.contentType,
                     value: '',
                     displayValue: '',
                     valueType: 'clipboard',
@@ -98,6 +101,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 set({
                     files: content.files,
                     imageBase64: content.imageBase64,
+                    clipboardContentType: content.contentType,
                     value: '',
                     displayValue: '',
                     valueType: 'clipboard',

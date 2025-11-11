@@ -1,11 +1,11 @@
-import {AppInput} from "@/schemas/app";
+import {AppClipboardContent, AppInput} from "@/schemas/app";
 
 type PluginIcon = string | null
 
 export type PluginEntry = {
     type: "executable" | "ui"
     subTitle: string
-    match: (input: AppInput) => boolean
+    match: (input: AppInput, getClipboardContent: () => AppClipboardContent | null) => boolean
     execute?: (input: AppInput) => Promise<void>
     icon: PluginIcon
     file?: string

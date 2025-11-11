@@ -1,12 +1,12 @@
 import {GetClipboardContentApi} from "../../wailsjs/go/coordinator/WaAppCoordinator";
-import {ClipboardContent} from "@/schemas/app";
+import {AppClipboardContent} from "@/schemas/app";
 
-export const getClipboardContent = async (): Promise<ClipboardContent | null> => {
+export const getClipboardContent = async (): Promise<AppClipboardContent | null> => {
     const content = await GetClipboardContentApi()
     if (content.contentType === "empty") {
         return null
     }
-    const data: ClipboardContent = {
+    const data: AppClipboardContent = {
         contentType: content.contentType as "text" | "image" | "files",
         text: null,
         imageBase64: null,

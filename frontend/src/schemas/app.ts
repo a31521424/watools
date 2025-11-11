@@ -2,12 +2,13 @@ export type AppInputValueType = "text" | "clipboard"
 export type AppInput = {
     valueType: AppInputValueType
     value: string
+    clipboardContentType?: AppClipboardContentType
 }
 
-export type ClipboardContentType = "text" | "image" | "files"
+export type AppClipboardContentType = "text" | "image" | "files"
 
-export type ClipboardContent = {
-    contentType: ClipboardContentType
+export type AppClipboardContent = {
+    contentType: AppClipboardContentType
     text: string | null
     imageBase64: string | null
     files: string[] | null

@@ -10,9 +10,6 @@ export const WaComplexInput = (
         files: string[] | null
     }
 ) => {
-    useEffect(() => {
-        console.log('WaComplexInput imageBase64 changed:', imageBase64);
-    }, [imageBase64]);
     const previewAssets = useMemo(() => {
         if (files != null) {
             return <div className="flex h-full w-auto max-w-[65%] gap-x-1 overflow-x-hidden shrink-0">

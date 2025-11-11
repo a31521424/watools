@@ -10,7 +10,7 @@ import {useAppStore, usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
 import {useLocation} from "wouter";
 import {isDevMode} from "@/lib/env";
-import {AppInput} from "@/schemas/app";
+import {AppClipboardContent, AppInput} from "@/schemas/app";
 import {useApplicationItems} from "@/components/watools/wa-application-item";
 import {useOperationItems} from "@/components/watools/wa-operation-item";
 import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
@@ -34,7 +34,9 @@ export const WaCommand = () => {
         setClipboardContent: setInputClipboardContent,
         imageBase64: inputImageBase64,
         files: inputFiles,
+        clipboardContentType: inputClipboardContentType,
     } = useAppStore()
+    // TODO: optimize app store
     const isPanelOpen = inputValue.length > 0 || inputImageBase64 != null || inputFiles != null
     const canClearAssets = inputValue.length === 0 && (inputImageBase64 != null || inputFiles != null)
 
@@ -51,7 +53,8 @@ export const WaCommand = () => {
     const pluginInput: AppInput = useMemo(() => ({
         value: inputValue,
         valueType: inputValueType,
-    }), [inputValue, inputValueType])
+        clipboardContentType: inputClipboardContentType ?? undefined,
+    }), [inputValue, inputValueType, inputClipboardContentType])
 
     const onTriggerCommand = useCallback((command: CommandType) => {
         clearInputValue()
@@ -60,7 +63,7 @@ export const WaCommand = () => {
         })
     }, [clearInputValue])
 
-    const onTriggerPluginCommand = useCallback(async (entry: PluginCommandEntry, input: AppInput) => {
+    const onTriggerPluginCommand = useCallback(async (entry: PluginCommandEntry, input: AppInput, getClipboardContent: () => AppClipboardContent | null) => {
         clearInputValue()
 
         // Update plugin usage statistics
@@ -74,7 +77,7 @@ export const WaCommand = () => {
             navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
         } else if (entry.type === 'executable') {
             try {
-                entry.execute && await entry.execute(input)
+                entry.execute && await entry.execute(input, getClipboardContent)
                 void HideAppApi()
             } catch (error) {
                 Logger.error(`Failed to execute plugin command: ${error}`)
@@ -93,9 +96,23 @@ export const WaCommand = () => {
         onTriggerCommand
     });
 
+    // TODO: optimize plugin, make item match and execute gather together
     const pluginItems = usePluginItems({
         input: pluginInput,
-        onTriggerPluginCommand
+        onTriggerPluginCommand,
+        clipboardAccessor: {
+            get content() {
+                if (!inputClipboardContentType) {
+                    return null
+                }
+                return {
+                    contentType: inputClipboardContentType,
+                    text: inputValue,
+                    imageBase64: inputImageBase64,
+                    files: inputFiles,
+                }
+            }
+        }
     });
 
     // Combine and sort all items by usedCount only

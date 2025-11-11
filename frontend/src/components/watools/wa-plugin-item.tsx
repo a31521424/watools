@@ -1,8 +1,8 @@
-import {useMemo} from "react";
+import {useCallback, useMemo} from "react";
 import {usePluginStore} from "@/stores";
 import {PluginEntry} from "@/schemas/plugin";
 import {WaIcon} from "@/components/watools/wa-icon";
-import {AppInput} from "@/schemas/app";
+import {AppClipboardContent, AppInput} from "@/schemas/app";
 import {BaseItemProps} from "@/components/watools/wa-base-item";
 
 export type PluginCommandEntry = PluginEntry & {
@@ -14,10 +14,15 @@ export type PluginCommandEntry = PluginEntry & {
 
 type UsePluginItemsParams = {
     input: AppInput;
-    onTriggerPluginCommand: (entry: PluginCommandEntry, input: AppInput) => void;
+    clipboardAccessor?: ClipboardAccessor;
+    onTriggerPluginCommand: (entry: PluginCommandEntry, input: AppInput, getClipboardContent: () => AppClipboardContent | null) => void;
 }
 
-export const usePluginItems = ({input, onTriggerPluginCommand}: UsePluginItemsParams) => {
+type ClipboardAccessor = {
+    readonly content: AppClipboardContent | null;
+}
+
+export const usePluginItems = ({input, onTriggerPluginCommand, clipboardAccessor}: UsePluginItemsParams) => {
     const {getEnabledPlugins, plugins} = usePluginStore();
 
     const enabledPlugins = useMemo(() => {
@@ -40,6 +45,8 @@ export const usePluginItems = ({input, onTriggerPluginCommand}: UsePluginItemsPa
         return entries;
     }, [enabledPlugins]);
 
+    const getClipboardContent = useCallback(() => clipboardAccessor?.content ?? null, [clipboardAccessor]);
+
     return useMemo((): BaseItemProps[] => {
         if (!input.value || allPluginEntries.length === 0) {
             return [];
@@ -47,7 +54,7 @@ export const usePluginItems = ({input, onTriggerPluginCommand}: UsePluginItemsPa
 
         const matchedEntries = allPluginEntries.filter(entry => {
             try {
-                return entry.match(input);
+                return entry.match(input, getClipboardContent);
             } catch (error) {
                 console.error(`Plugin match error for ${entry.packageId}:`, error);
                 return false;
@@ -82,9 +89,9 @@ export const usePluginItems = ({input, onTriggerPluginCommand}: UsePluginItemsPa
                 subtitle: entry.pluginName,
                 badge: entry.type,
                 onSelect: () => {
-                    onTriggerPluginCommand(entry, input);
+                    onTriggerPluginCommand(entry, input, getClipboardContent);
                 }
             };
         });
-    }, [input, allPluginEntries, onTriggerPluginCommand]);
+    }, [input, allPluginEntries, onTriggerPluginCommand, getClipboardContent]);
 };
