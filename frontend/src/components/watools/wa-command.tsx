@@ -36,6 +36,17 @@ export const WaCommand = () => {
         files: inputFiles,
     } = useAppStore()
     const isPanelOpen = inputValue.length > 0 || inputImageBase64 != null || inputFiles != null
+    const canClearAssets = inputValue.length === 0 && (inputImageBase64 != null || inputFiles != null)
+
+    // Use refs to avoid re-registering event listener on every state change
+    const isPanelOpenRef = useRef(isPanelOpen)
+    const canClearAssetsRef = useRef(canClearAssets)
+
+    // Keep refs in sync with current values
+    useEffect(() => {
+        isPanelOpenRef.current = isPanelOpen
+        canClearAssetsRef.current = canClearAssets
+    })
 
     const pluginInput: AppInput = useMemo(() => ({
         value: inputValue,
@@ -135,31 +146,31 @@ export const WaCommand = () => {
     })
 
 
-    const onClickEscape = useCallback(() => {
-        if (isPanelOpen) {
-            clearInputValue()
-        } else {
-            void HideOrShowAppApi()
-        }
-    }, [isPanelOpen])
-
     useEffect(() => {
         const handleHotkey = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
                 e.preventDefault()
                 e.stopPropagation()
-                onClickEscape()
+                if (isPanelOpenRef.current) {
+                    clearInputValue()
+                } else {
+                    void HideOrShowAppApi()
+                }
             } else if (e.key === "Tab") {
                 e.preventDefault()
                 e.stopPropagation()
                 inputRef.current?.focus()
+            } else if (e.key === "Backspace") {
+                if (canClearAssetsRef.current) {
+                    clearInputValue()
+                }
             }
         }
         window.addEventListener("keydown", handleHotkey)
         return () => {
             window.removeEventListener("keydown", handleHotkey)
         }
-    }, [onClickEscape])
+    }, [clearInputValue])
 
     useEffect(() => {
         if (combinedItems.length > 0) {
