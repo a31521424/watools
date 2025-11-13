@@ -38,7 +38,7 @@ func (a *WaApi) SaveBase64Image(base64Data string) string {
 	for _, ddn := range downloadFolder {
 		downloadPath := path.Join(userHomeDir, ddn)
 		if _, err := os.Stat(downloadPath); err == nil {
-			filePath := path.Join(downloadPath, fmt.Sprint("wa-image", time.Now().Unix(), ".png"))
+			filePath := path.Join(downloadPath, fmt.Sprint("wa-image-", time.Now().Unix(), ".png"))
 			err = os.WriteFile(filePath, imgBytes, 0644)
 			if err != nil {
 				continue
