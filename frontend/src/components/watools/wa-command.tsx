@@ -96,15 +96,7 @@ export const WaCommand = () => {
         onTriggerPluginCommand,
         clipboardAccessor: {
             get content() {
-                if (!clipboardContentType) {
-                    return null
-                }
-                return {
-                    contentType: clipboardContentType,
-                    text: value,
-                    imageBase64,
-                    files,
-                }
+                return useAppStore.getState().getClipboardAccessorContent()
             }
         }
     });

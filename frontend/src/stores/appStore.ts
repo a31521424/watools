@@ -30,6 +30,7 @@ type AppStore = AppState & {
     setClipboardContent: (content: AppClipboardContent | null) => void
     isPanelOpen: () => boolean
     canClearAssets: () => boolean
+    getClipboardAccessorContent: () => AppClipboardContent | null
 }
 
 const createDebounce = (fn: (...args: any[]) => void, delay: number) => {
@@ -123,6 +124,18 @@ export const useAppStore = create<AppStore>((set, get) => {
         canClearAssets: () => {
             const state = get()
             return state.value.length === 0 && (state.imageBase64 != null || state.files != null)
+        },
+        getClipboardAccessorContent: () => {
+            const state = get()
+            if (!state.clipboardContentType) {
+                return null
+            }
+            return {
+                contentType: state.clipboardContentType,
+                text: state.value,
+                imageBase64: state.imageBase64,
+                files: state.files,
+            }
         },
     }
 })
