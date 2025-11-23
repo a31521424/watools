@@ -96,7 +96,7 @@ export const WaCommand = () => {
         onTriggerPluginCommand,
         clipboardAccessor: {
             get content() {
-                return useAppStore.getState().getClipboardAccessorContent()
+                return useAppStore.getState().getClipboardContent()
             }
         }
     });
