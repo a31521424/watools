@@ -23,7 +23,6 @@ type ClipboardAccessor = {
 }
 
 export const usePluginItems = ({input, onTriggerPluginCommand, clipboardAccessor}: UsePluginItemsParams) => {
-    console.log('usePluginItems called with input:', input);
     const {getEnabledPlugins, plugins} = usePluginStore();
 
     const enabledPlugins = useMemo(() => {

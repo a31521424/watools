@@ -1,7 +1,7 @@
 import {cn} from "@/lib/utils";
 import {Command as CommandPrimitive} from "cmdk";
 import * as React from "react";
-import {useEffect, useMemo} from "react";
+import {useMemo} from "react";
 
 export const WaComplexInput = (
     {className, classNames, imageBase64, files, ...props}: React.ComponentProps<typeof CommandPrimitive.Input> & {
@@ -20,7 +20,7 @@ export const WaComplexInput = (
                     >
                         {imageBase64 && <img
                             draggable={false}
-                            className="aspect-square max-h-full select-none border-dotted rounded p-1"
+                            className="aspect-square max-h-full select-none rounded p-0 m-0"
                             src={`data:image/png;base64,${imageBase64}`}
                             alt="Input Image"
                         />}
@@ -45,7 +45,7 @@ export const WaComplexInput = (
     return (
         <div
             data-slot="command-input-wrapper"
-            className={cn("flex h-9 gap-x-1 w-full items-center py-2", classNames?.wrapper)}
+            className={cn("flex h-9 gap-x-1 w-full items-center", classNames?.wrapper)}
         >
             {previewAssets}
             <CommandPrimitive.Input
