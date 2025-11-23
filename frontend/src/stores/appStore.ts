@@ -28,6 +28,8 @@ type AppStore = AppState & {
     getValue: () => string
     clearValue: () => void
     setClipboardContent: (content: AppClipboardContent | null) => void
+    isPanelOpen: () => boolean
+    canClearAssets: () => boolean
 }
 
 const createDebounce = (fn: (...args: any[]) => void, delay: number) => {
@@ -113,6 +115,14 @@ export const useAppStore = create<AppStore>((set, get) => {
             console.log('Clearing app store value')
             const {lastCopiedValue, ...reset} = initialState
             set(reset)
+        },
+        isPanelOpen: () => {
+            const state = get()
+            return state.value.length > 0 || state.imageBase64 != null || state.files != null
+        },
+        canClearAssets: () => {
+            const state = get()
+            return state.value.length === 0 && (state.imageBase64 != null || state.files != null)
         },
     }
 })

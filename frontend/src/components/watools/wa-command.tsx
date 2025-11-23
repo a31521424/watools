@@ -24,47 +24,41 @@ export const WaCommand = () => {
     const [selectedKey, setSelectedKey] = React.useState<string>("")
     const {updatePluginUsage} = usePluginStore()
     const [_, navigate] = useLocation()
-    const {
-        value: inputValue,
-        displayValue: inputDisplayValue,
-        valueType: inputValueType,
-        setValue: setInputValue,
-        setValueAuto: setInputValueAuto,
-        clearValue: clearInputValue,
-        setClipboardContent: setInputClipboardContent,
-        imageBase64: inputImageBase64,
-        files: inputFiles,
-        clipboardContentType: inputClipboardContentType,
-    } = useAppStore()
-    // TODO: optimize app store
-    const isPanelOpen = inputValue.length > 0 || inputImageBase64 != null || inputFiles != null
-    const canClearAssets = inputValue.length === 0 && (inputImageBase64 != null || inputFiles != null)
 
-    // Use refs to avoid re-registering event listener on every state change
-    const isPanelOpenRef = useRef(isPanelOpen)
-    const canClearAssetsRef = useRef(canClearAssets)
+    // Subscribe to individual store values using selectors
+    const value = useAppStore(state => state.value)
+    const displayValue = useAppStore(state => state.displayValue)
+    const valueType = useAppStore(state => state.valueType)
+    const imageBase64 = useAppStore(state => state.imageBase64)
+    const files = useAppStore(state => state.files)
+    const clipboardContentType = useAppStore(state => state.clipboardContentType)
 
-    // Keep refs in sync with current values
-    useEffect(() => {
-        isPanelOpenRef.current = isPanelOpen
-        canClearAssetsRef.current = canClearAssets
-    })
+    // Subscribe to methods
+    const setValue = useAppStore(state => state.setValue)
+    const setValueAuto = useAppStore(state => state.setValueAuto)
+    const clearValue = useAppStore(state => state.clearValue)
+    const setClipboardContent = useAppStore(state => state.setClipboardContent)
+
+    // Compute derived state from store values
+    const isPanelOpen = useAppStore(state =>
+        state.value.length > 0 || state.imageBase64 != null || state.files != null
+    )
 
     const pluginInput: AppInput = useMemo(() => ({
-        value: inputValue,
-        valueType: inputValueType,
-        clipboardContentType: inputClipboardContentType ?? undefined,
-    }), [inputValue, inputValueType, inputClipboardContentType])
+        value,
+        valueType,
+        clipboardContentType: clipboardContentType ?? undefined,
+    }), [value, valueType, clipboardContentType])
 
     const onTriggerCommand = useCallback((command: CommandType) => {
-        clearInputValue()
+        clearValue()
         TriggerCommandApi(command.triggerId, command.category).then(() => {
             void HideAppApi()
         })
-    }, [clearInputValue])
+    }, [clearValue])
 
     const onTriggerPluginCommand = useCallback(async (entry: PluginCommandEntry, input: AppInput, getClipboardContent: () => AppClipboardContent | null) => {
-        clearInputValue()
+        clearValue()
 
         // Update plugin usage statistics
         try {
@@ -83,16 +77,16 @@ export const WaCommand = () => {
                 Logger.error(`Failed to execute plugin command: ${error}`)
             }
         }
-    }, [clearInputValue, updatePluginUsage, navigate])
+    }, [clearValue, updatePluginUsage, navigate])
 
     // Get items from hooks directly
     const applicationItems = useApplicationItems({
-        searchKey: inputValue,
+        searchKey: value,
         onTriggerCommand
     });
 
     const operationItems = useOperationItems({
-        searchKey: inputValue,
+        searchKey: value,
         onTriggerCommand
     });
 
@@ -102,14 +96,14 @@ export const WaCommand = () => {
         onTriggerPluginCommand,
         clipboardAccessor: {
             get content() {
-                if (!inputClipboardContentType) {
+                if (!clipboardContentType) {
                     return null
                 }
                 return {
-                    contentType: inputClipboardContentType,
-                    text: inputValue,
-                    imageBase64: inputImageBase64,
-                    files: inputFiles,
+                    contentType: clipboardContentType,
+                    text: value,
+                    imageBase64,
+                    files,
                 }
             }
         }
@@ -141,7 +135,7 @@ export const WaCommand = () => {
                 return
             }
             if (res.contentType === "text" && res.text) {
-                setInputValueAuto(res.text, "clipboard", () => setTimeout(() => {
+                setValueAuto(res.text, "clipboard", () => setTimeout(() => {
                     if (!inputRef.current) {
                         return
                     }
@@ -167,8 +161,8 @@ export const WaCommand = () => {
             if (e.key === "Escape") {
                 e.preventDefault()
                 e.stopPropagation()
-                if (isPanelOpenRef.current) {
-                    clearInputValue()
+                if (useAppStore.getState().isPanelOpen()) {
+                    clearValue()
                 } else {
                     void HideOrShowAppApi()
                 }
@@ -177,8 +171,8 @@ export const WaCommand = () => {
                 e.stopPropagation()
                 inputRef.current?.focus()
             } else if (e.key === "Backspace") {
-                if (canClearAssetsRef.current) {
-                    clearInputValue()
+                if (useAppStore.getState().canClearAssets()) {
+                    clearValue()
                 }
             }
         }
@@ -186,7 +180,7 @@ export const WaCommand = () => {
         return () => {
             window.removeEventListener("keydown", handleHotkey)
         }
-    }, [clearInputValue])
+    }, [clearValue])
 
     useEffect(() => {
         if (combinedItems.length > 0) {
@@ -201,7 +195,7 @@ export const WaCommand = () => {
         setIsPasted(true)
         getClipboardContent().then(res => {
             console.log('Pasted clipboard content:', res);
-            setInputClipboardContent(res)
+            setClipboardContent(res)
         })
     }
 
@@ -213,20 +207,20 @@ export const WaCommand = () => {
         <WaComplexInput
             ref={inputRef}
             autoFocus
-            imageBase64={inputImageBase64}
-            files={inputFiles}
+            imageBase64={imageBase64}
+            files={files}
             onValueChange={value => {
                 if (!isPasted) {
-                    setInputValue(value, "text")
+                    setValue(value, "text")
                 } else {
-                    setInputValue(value, "clipboard")
+                    setValue(value, "clipboard")
                     setIsPasted(false)
                 }
             }}
             onPaste={handlePaste}
             className="text-gray-800"
             classNames={{wrapper: cn("text-xl", isPanelOpen ? undefined : "!border-none")}}
-            value={inputDisplayValue}
+            value={displayValue}
         />
         <CommandList
             ref={commandListRef}
