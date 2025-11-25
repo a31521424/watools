@@ -159,3 +159,53 @@ func (w *WaAppCoordinator) SaveBase64Image(base64Data string) string {
 }
 
 // end region api
+
+// region proxy
+
+// HttpProxyApi provides generic HTTP proxy functionality for plugins
+// This allows plugins to make HTTP requests without CORS restrictions
+func (w *WaAppCoordinator) HttpProxyApi(requestMap map[string]interface{}) (map[string]interface{}, error) {
+	// Parse request from frontend
+	url, _ := requestMap["url"].(string)
+	method, _ := requestMap["method"].(string)
+	body, _ := requestMap["body"].(string)
+	timeout, _ := requestMap["timeout"].(float64)
+
+	// Parse headers
+	headers := make(map[string]string)
+	if headersMap, ok := requestMap["headers"].(map[string]interface{}); ok {
+		for key, value := range headersMap {
+			if strValue, ok := value.(string); ok {
+				headers[key] = strValue
+			}
+		}
+	}
+
+	req := api.HttpProxyRequest{
+		URL:     url,
+		Method:  method,
+		Headers: headers,
+		Body:    body,
+		Timeout: int(timeout),
+	}
+
+	// Call API service
+	result, err := w.waApi.HttpProxy(req)
+	if err != nil {
+		logger.Error(err, "HTTP proxy request failed")
+		return map[string]interface{}{
+			"error":       err.Error(),
+			"status_code": 0,
+		}, err
+	}
+
+	// Return result as map for frontend
+	return map[string]interface{}{
+		"status_code": result.StatusCode,
+		"headers":     result.Headers,
+		"body":        result.Body,
+		"error":       result.Error,
+	}, nil
+}
+
+// end region proxy

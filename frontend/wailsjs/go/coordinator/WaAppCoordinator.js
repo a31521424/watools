@@ -30,6 +30,10 @@ export function HideOrShowAppApi() {
   return window['go']['coordinator']['WaAppCoordinator']['HideOrShowAppApi']();
 }
 
+export function HttpProxyApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['HttpProxyApi'](arg1);
+}
+
 export function OpenFolder(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['OpenFolder'](arg1);
 }

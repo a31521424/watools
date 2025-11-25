@@ -16,6 +16,8 @@ export function HideAppApi():Promise<void>;
 
 export function HideOrShowAppApi():Promise<void>;
 
+export function HttpProxyApi(arg1:Record<string, any>):Promise<Record<string, any>>;
+
 export function OpenFolder(arg1:string):Promise<void>;
 
 export function SaveBase64Image(arg1:string):Promise<string>;
