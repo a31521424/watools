@@ -1,6 +1,6 @@
-import {useCallback, useMemo} from "react";
+import {useMemo} from "react";
 import {usePluginStore} from "@/stores";
-import {PluginEntry} from "@/schemas/plugin";
+import {PluginEntry, PluginContext} from "@/schemas/plugin";
 import {WaIcon} from "@/components/watools/wa-icon";
 import {AppClipboardContent, AppInput} from "@/schemas/app";
 import {BaseItemProps} from "@/components/watools/wa-base-item";
@@ -14,15 +14,11 @@ export type PluginCommandEntry = PluginEntry & {
 
 type UsePluginItemsParams = {
     input: AppInput;
-    clipboardAccessor?: ClipboardAccessor;
-    onTriggerPluginCommand: (entry: PluginCommandEntry, input: AppInput, getClipboardContent: () => AppClipboardContent | null) => void;
+    clipboard: AppClipboardContent | null;
+    onTriggerPluginCommand: (entry: PluginCommandEntry, context: PluginContext) => void;
 }
 
-type ClipboardAccessor = {
-    readonly content: AppClipboardContent | null;
-}
-
-export const usePluginItems = ({input, onTriggerPluginCommand, clipboardAccessor}: UsePluginItemsParams) => {
+export const usePluginItems = ({input, clipboard, onTriggerPluginCommand}: UsePluginItemsParams) => {
     const {getEnabledPlugins, plugins} = usePluginStore();
 
     const enabledPlugins = useMemo(() => {
@@ -45,7 +41,11 @@ export const usePluginItems = ({input, onTriggerPluginCommand, clipboardAccessor
         return entries;
     }, [enabledPlugins]);
 
-    const getClipboardContent = useCallback(() => clipboardAccessor?.content ?? null, [clipboardAccessor]);
+    // Create context object once
+    const context: PluginContext = useMemo(() => ({
+        input,
+        clipboard
+    }), [input, clipboard]);
 
     return useMemo((): BaseItemProps[] => {
         if ((!input.value && !input.clipboardContentType) || allPluginEntries.length === 0) {
@@ -54,7 +54,7 @@ export const usePluginItems = ({input, onTriggerPluginCommand, clipboardAccessor
 
         const matchedEntries = allPluginEntries.filter(entry => {
             try {
-                return entry.match(input, getClipboardContent);
+                return entry.match(context);
             } catch (error) {
                 console.error(`Plugin match error for ${entry.packageId}:`, error);
                 return false;
@@ -89,9 +89,9 @@ export const usePluginItems = ({input, onTriggerPluginCommand, clipboardAccessor
                 subtitle: entry.pluginName,
                 badge: entry.type,
                 onSelect: () => {
-                    onTriggerPluginCommand(entry, input, getClipboardContent);
+                    onTriggerPluginCommand(entry, context);
                 }
             };
         });
-    }, [input, allPluginEntries, onTriggerPluginCommand, getClipboardContent]);
+    }, [input, clipboard, allPluginEntries, onTriggerPluginCommand, context]);
 };

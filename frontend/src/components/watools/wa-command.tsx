@@ -10,11 +10,12 @@ import {useAppStore, usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
 import {useLocation} from "wouter";
 import {isDevMode} from "@/lib/env";
-import {AppClipboardContent, AppInput} from "@/schemas/app";
+import {AppInput} from "@/schemas/app";
 import {useApplicationItems} from "@/components/watools/wa-application-item";
 import {useOperationItems} from "@/components/watools/wa-operation-item";
 import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
 import {getClipboardContent} from "@/api/app";
+import {PluginContext} from "@/schemas/plugin";
 
 
 export const WaCommand = () => {
@@ -57,7 +58,7 @@ export const WaCommand = () => {
         })
     }, [clearValue])
 
-    const onTriggerPluginCommand = useCallback(async (entry: PluginCommandEntry, input: AppInput, getClipboardContent: () => AppClipboardContent | null) => {
+    const onTriggerPluginCommand = useCallback(async (entry: PluginCommandEntry, context: PluginContext) => {
         clearValue()
 
         // Update plugin usage statistics
@@ -71,7 +72,7 @@ export const WaCommand = () => {
             navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
         } else if (entry.type === 'executable') {
             try {
-                entry.execute && await entry.execute(input, getClipboardContent)
+                entry.execute && await entry.execute(context)
                 void HideAppApi()
             } catch (error) {
                 Logger.error(`Failed to execute plugin command: ${error}`)
@@ -90,15 +91,15 @@ export const WaCommand = () => {
         onTriggerCommand
     });
 
-    // TODO: optimize plugin, make item match and execute gather together
+    // Get clipboard content snapshot once
+    const clipboard = useMemo(() => {
+        return useAppStore.getState().getClipboardContent()
+    }, [imageBase64, files, clipboardContentType])
+
     const pluginItems = usePluginItems({
         input: pluginInput,
+        clipboard,
         onTriggerPluginCommand,
-        clipboardAccessor: {
-            get content() {
-                return useAppStore.getState().getClipboardContent()
-            }
-        }
     });
 
     // Combine and sort all items by usedCount only
