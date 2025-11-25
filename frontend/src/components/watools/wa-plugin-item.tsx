@@ -1,6 +1,6 @@
 import {useMemo} from "react";
 import {usePluginStore} from "@/stores";
-import {PluginEntry, PluginContext} from "@/schemas/plugin";
+import {PluginContext, PluginEntry} from "@/schemas/plugin";
 import {WaIcon} from "@/components/watools/wa-icon";
 import {AppClipboardContent, AppInput} from "@/schemas/app";
 import {BaseItemProps} from "@/components/watools/wa-base-item";
@@ -93,5 +93,5 @@ export const usePluginItems = ({input, clipboard, onTriggerPluginCommand}: UsePl
                 }
             };
         });
-    }, [input, clipboard, allPluginEntries, onTriggerPluginCommand, context]);
+    }, [input, clipboard, allPluginEntries, onTriggerPluginCommand, context, enabledPlugins]);
 };
