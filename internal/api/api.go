@@ -111,9 +111,6 @@ func (a *WaApi) HttpProxy(req HttpProxyRequest) (*HttpProxyResponse, error) {
 		}
 	}
 
-	// Send request
-	logger.Info(fmt.Sprintf("Proxying HTTP request: %s %s (timeout: %v)", req.Method, req.URL, client.Timeout))
-
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		logger.Error(err, fmt.Sprintf("HTTP request failed: %s", req.URL))
