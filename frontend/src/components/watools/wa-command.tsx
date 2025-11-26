@@ -13,6 +13,7 @@ import {isDevMode} from "@/lib/env";
 import {AppInput} from "@/schemas/app";
 import {useApplicationItems} from "@/components/watools/wa-application-item";
 import {useOperationItems} from "@/components/watools/wa-operation-item";
+import {useAppFeatureItems} from "@/components/watools/wa-app-feature-item";
 import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
 import {getClipboardContent} from "@/api/app";
 import {PluginContext} from "@/schemas/plugin";
@@ -91,6 +92,10 @@ export const WaCommand = () => {
         onTriggerCommand
     });
 
+    const appFeatureItems = useAppFeatureItems({
+        searchKey: value
+    });
+
     // Get clipboard content snapshot once
     const clipboard = useMemo(() => {
         return useAppStore.getState().getClipboardContent()
@@ -108,6 +113,7 @@ export const WaCommand = () => {
             ...pluginItems,
             ...applicationItems,
             ...operationItems,
+            ...appFeatureItems,
         ];
 
         // Sort by usedCount (higher is better)
@@ -116,7 +122,7 @@ export const WaCommand = () => {
             const usedCountB = b.usedCount || 0;
             return usedCountB - usedCountA;
         });
-    }, [applicationItems, operationItems, pluginItems]);
+    }, [applicationItems, operationItems, pluginItems, appFeatureItems]);
 
 
     useWindowFocus((focused) => {
