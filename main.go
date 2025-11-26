@@ -39,7 +39,7 @@ func main() {
 
 	err := wails.Run(&options.App{
 		Title:     "watools",
-		Width:     800,
+		Width:     1024,
 		Height:    58,
 		Frameless: true,
 		AssetServer: &assetserver.Options{

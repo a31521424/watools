@@ -42,7 +42,7 @@ func (a *WaApp) initWindowSize() {
 		logger.Error(err, "Failed to get screen when init window size")
 		return
 	}
-	width := 800
+	width := 1024
 	height := 56
 	if len(screen) > 0 {
 		// Find primary screen and record its size
@@ -110,8 +110,8 @@ func (a *WaApp) checkAndRepositionIfNeeded() {
 		if width < 400 {
 			width = 400
 		}
-		if width > 800 {
-			width = 800
+		if width > 1024 {
+			width = 1024
 		}
 		height := 56
 

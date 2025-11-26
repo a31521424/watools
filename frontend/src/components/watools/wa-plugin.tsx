@@ -9,6 +9,7 @@ export const WaPlugin = () => {
     const {getPluginById} = usePluginStore()
     const [pluginUrl, setPluginUrl] = useState<string | null>(null)
     const [, navigate] = useLocation()
+    const [iframeHeight, setIframeHeight] = useState<number | null>(null)
 
     const packageId = searchParams.get('packageId') || ''
     const file = searchParams.get('file')
@@ -39,6 +40,7 @@ export const WaPlugin = () => {
         }
     }, [packageId, file]);
 
+
     const handleIframeLoad = () => {
         if (!iframeRef.current) {
             return
@@ -54,11 +56,19 @@ export const WaPlugin = () => {
         iframeWindow.runtime = window.runtime
         // @ts-ignore
         iframeWindow.watools = WaApi
+
+        const height = iframeWindow.document.body.scrollHeight
+        if (height) {
+            setIframeHeight(height)
+        }
     }
 
     return <div className="flex-1 overflow-hidden">
         {pluginUrl && <iframe
             ref={iframeRef}
+            style={{
+                height: iframeHeight ? `${iframeHeight}px` : '100%',
+            }}
             className="w-svw h-svh min-h-[500px]"
             src={pluginUrl} onLoad={handleIframeLoad}
         />}
