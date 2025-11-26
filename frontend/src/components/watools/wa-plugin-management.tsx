@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Sheet, SheetHeader, SheetTitle, SheetDescription, SheetContent, SheetFooter } from '@/components/ui/sheet'
 
-export function PluginManagement() {
+export function WaPluginManagement() {
     const [plugins, setPlugins] = useState<Plugin[]>([])
     const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)

@@ -2,7 +2,7 @@ import {WaCommand} from "./wa-command";
 import {resizeWindowHeight, useElementResize} from "@/hooks/useElementResize";
 import {Route} from "wouter";
 import {WaPlugin} from "@/components/watools/wa-plugin";
-import {PluginManagement} from "@/components/watools/plugin-management";
+import {WaPluginManagement} from "@/components/watools/wa-plugin-management";
 import {useEffect} from "react";
 import {WaApi} from "@/api/api";
 
@@ -28,7 +28,7 @@ const Watools = () => {
             <WaPlugin/>
         </Route>
         <Route path='/plugin-management'>
-            <PluginManagement/>
+            <WaPluginManagement/>
         </Route>
     </div>
 }
