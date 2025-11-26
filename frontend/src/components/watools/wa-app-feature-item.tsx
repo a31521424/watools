@@ -16,13 +16,8 @@ const LOCAL_APP_FEATURES = [
         description: "Manage installed plugins",
         icon: "puzzle",
         navigatePath: "/plugin-management",
-        keywords: ["Plugins"]
+        keywords: ["plugin", "extension", "manage", "installation"]
     },
-    // 未来可以添加更多应用功能，例如：
-    // - Settings / Preferences（设置/偏好）
-    // - About（关于）
-    // - Help / Documentation（帮助/文档）
-    // - Update（更新）
 ];
 
 export const useAppFeatureItems = ({searchKey}: UseAppFeatureItemsParams) => {
