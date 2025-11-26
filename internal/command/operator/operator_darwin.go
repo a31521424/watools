@@ -36,7 +36,7 @@ func GetOperations() []*models.OperationCommand {
 		models.NewOperationCommand("Toggle Mission Control", "Show Mission Control", "layout-grid", func() error {
 			return exec.Command("osascript", "-e", "tell application \"System Events\" to key code 160").Run()
 		}),
-		models.NewOperationCommand("Eject All Volumes", "Eject all removable volumes", "eject", func() error {
+		models.NewOperationCommand("Eject All Volumes", "Eject all removable volumes", "book-up", func() error {
 			return exec.Command("osascript", "-e", "tell application \"Finder\" to eject (every disk whose ejectable is true)").Run()
 		}),
 	}
