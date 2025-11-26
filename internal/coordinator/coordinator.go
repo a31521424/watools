@@ -146,6 +146,21 @@ func (w *WaAppCoordinator) UpdatePluginUsageApi(usageUpdates []map[string]interf
 	return w.waPluginApp.UpdatePluginUsage(updates)
 }
 
+// InstallPluginApi installs a plugin from a .wt file path
+func (w *WaAppCoordinator) InstallPluginApi(wtFilePath string) error {
+	return w.waPluginApp.InstallPlugin(wtFilePath)
+}
+
+// UninstallPluginApi uninstalls a plugin by packageID
+func (w *WaAppCoordinator) UninstallPluginApi(packageID string) error {
+	return w.waPluginApp.UninstallPlugin(packageID)
+}
+
+// TogglePluginApi enables or disables a plugin
+func (w *WaAppCoordinator) TogglePluginApi(packageID string, enabled bool) error {
+	return w.waPluginApp.TogglePlugin(packageID, enabled)
+}
+
 // end region plugin
 
 // region api

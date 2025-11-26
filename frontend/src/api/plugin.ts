@@ -1,5 +1,12 @@
 import {Plugin} from "@/schemas/plugin"
-import {GetPluginJsEntryUrlApi, GetPluginsApi, UpdatePluginUsageApi} from "../../wailsjs/go/coordinator/WaAppCoordinator"
+import {
+    GetPluginJsEntryUrlApi,
+    GetPluginsApi,
+    UpdatePluginUsageApi,
+    InstallPluginApi,
+    UninstallPluginApi,
+    TogglePluginApi
+} from "../../wailsjs/go/coordinator/WaAppCoordinator"
 
 export const getPlugins = async (): Promise<Plugin[]> => {
     const pluginsData = await GetPluginsApi()
@@ -50,4 +57,16 @@ export const updatePluginUsage = async (updates: Array<{ packageId: string; last
         usedCount: update.usedCount
     }));
     return UpdatePluginUsageApi(formattedUpdates);
+}
+
+export const installPlugin = async (wtFilePath: string) => {
+    return InstallPluginApi(wtFilePath)
+}
+
+export const uninstallPlugin = async (packageId: string) => {
+    return UninstallPluginApi(packageId)
+}
+
+export const togglePlugin = async (packageId: string, enabled: boolean) => {
+    return TogglePluginApi(packageId, enabled)
 }

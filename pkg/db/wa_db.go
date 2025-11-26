@@ -228,6 +228,21 @@ func (d *WaDB) GetPlugins(ctx context.Context) []*models.PluginState {
 	})
 }
 
+func (d *WaDB) InsertPlugin(ctx context.Context, params InsertPluginParams) error {
+	return d.query.InsertPlugin(ctx, params)
+}
+
+func (d *WaDB) DeletePlugin(ctx context.Context, packageID string) error {
+	return d.query.DeletePlugin(ctx, packageID)
+}
+
+func (d *WaDB) UpdatePluginEnabled(ctx context.Context, packageID string, enabled bool) error {
+	return d.query.UpdatePluginEnabled(ctx, UpdatePluginEnabledParams{
+		Enabled:   enabled,
+		PackageID: packageID,
+	})
+}
+
 func (d *WaDB) BatchUpdateApplicationUsage(ctx context.Context, usageUpdates []models.ApplicationUsageUpdate) error {
 	logger.Info(fmt.Sprintf("Updating usage for %d applications", len(usageUpdates)))
 	return d.withTx(ctx, func(tx *sql.Tx) error {

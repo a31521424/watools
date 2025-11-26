@@ -18,11 +18,17 @@ export function HideOrShowAppApi():Promise<void>;
 
 export function HttpProxyApi(arg1:Record<string, any>):Promise<Record<string, any>>;
 
+export function InstallPluginApi(arg1:string):Promise<void>;
+
 export function OpenFolder(arg1:string):Promise<void>;
 
 export function SaveBase64Image(arg1:string):Promise<string>;
 
+export function TogglePluginApi(arg1:string,arg2:boolean):Promise<void>;
+
 export function TriggerCommandApi(arg1:string,arg2:string):Promise<void>;
+
+export function UninstallPluginApi(arg1:string):Promise<void>;
 
 export function UpdateApplicationUsageApi(arg1:Array<Record<string, any>>):Promise<void>;
 

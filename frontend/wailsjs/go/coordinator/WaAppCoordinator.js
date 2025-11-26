@@ -34,6 +34,10 @@ export function HttpProxyApi(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['HttpProxyApi'](arg1);
 }
 
+export function InstallPluginApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['InstallPluginApi'](arg1);
+}
+
 export function OpenFolder(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['OpenFolder'](arg1);
 }
@@ -42,8 +46,16 @@ export function SaveBase64Image(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['SaveBase64Image'](arg1);
 }
 
+export function TogglePluginApi(arg1, arg2) {
+  return window['go']['coordinator']['WaAppCoordinator']['TogglePluginApi'](arg1, arg2);
+}
+
 export function TriggerCommandApi(arg1, arg2) {
   return window['go']['coordinator']['WaAppCoordinator']['TriggerCommandApi'](arg1, arg2);
+}
+
+export function UninstallPluginApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['UninstallPluginApi'](arg1);
 }
 
 export function UpdateApplicationUsageApi(arg1) {

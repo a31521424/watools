@@ -45,6 +45,32 @@ func (q *Queries) GetPlugins(ctx context.Context) ([]PluginState, error) {
 	return items, nil
 }
 
+const insertPlugin = `-- name: InsertPlugin :exec
+INSERT INTO plugin_state (package_id, enabled, storage)
+VALUES (?, ?, ?)
+`
+
+type InsertPluginParams struct {
+	PackageID string
+	Enabled   bool
+	Storage   string
+}
+
+func (q *Queries) InsertPlugin(ctx context.Context, arg InsertPluginParams) error {
+	_, err := q.db.ExecContext(ctx, insertPlugin, arg.PackageID, arg.Enabled, arg.Storage)
+	return err
+}
+
+const deletePlugin = `-- name: DeletePlugin :exec
+DELETE FROM plugin_state
+WHERE package_id = ?
+`
+
+func (q *Queries) DeletePlugin(ctx context.Context, packageID string) error {
+	_, err := q.db.ExecContext(ctx, deletePlugin, packageID)
+	return err
+}
+
 const updatePluginUsage = `-- name: UpdatePluginUsage :exec
 UPDATE plugin_state
 SET last_used_at = ?, used_count = ?
@@ -59,5 +85,21 @@ type UpdatePluginUsageParams struct {
 
 func (q *Queries) UpdatePluginUsage(ctx context.Context, arg UpdatePluginUsageParams) error {
 	_, err := q.db.ExecContext(ctx, updatePluginUsage, arg.LastUsedAt, arg.UsedCount, arg.PackageID)
+	return err
+}
+
+const updatePluginEnabled = `-- name: UpdatePluginEnabled :exec
+UPDATE plugin_state
+SET enabled = ?
+WHERE package_id = ?
+`
+
+type UpdatePluginEnabledParams struct {
+	Enabled   bool
+	PackageID string
+}
+
+func (q *Queries) UpdatePluginEnabled(ctx context.Context, arg UpdatePluginEnabledParams) error {
+	_, err := q.db.ExecContext(ctx, updatePluginEnabled, arg.Enabled, arg.PackageID)
 	return err
 }
