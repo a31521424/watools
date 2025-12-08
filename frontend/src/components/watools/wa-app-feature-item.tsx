@@ -6,6 +6,7 @@ import {useLocation} from "wouter";
 
 type UseAppFeatureItemsParams = {
     searchKey: string;
+    onTriggerAppFeature: () => void;
 }
 
 // 应用内置功能定义（纯前端快捷操作）
@@ -20,7 +21,7 @@ const LOCAL_APP_FEATURES = [
     },
 ];
 
-export const useAppFeatureItems = ({searchKey}: UseAppFeatureItemsParams) => {
+export const useAppFeatureItems = ({searchKey, onTriggerAppFeature}: UseAppFeatureItemsParams) => {
     const [_, navigate] = useLocation();
 
     const appFeatureFuse = useMemo(() => {
@@ -55,6 +56,7 @@ export const useAppFeatureItems = ({searchKey}: UseAppFeatureItemsParams) => {
                 badge: "App",
                 onSelect: () => {
                     navigate(feature.navigatePath);
+                    onTriggerAppFeature()
                 }
             };
         });

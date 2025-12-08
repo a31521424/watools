@@ -92,8 +92,13 @@ export const WaCommand = () => {
         onTriggerCommand
     });
 
+    const onTriggerAppFeature = useCallback(() => {
+        clearValue()
+    }, [clearValue])
+
     const appFeatureItems = useAppFeatureItems({
-        searchKey: value
+        searchKey: value,
+        onTriggerAppFeature
     });
 
     // Get clipboard content snapshot once

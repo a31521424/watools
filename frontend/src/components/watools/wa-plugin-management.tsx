@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react'
-import { Plugin } from '@/schemas/plugin'
-import { getPlugins, togglePlugin, uninstallPlugin, installPlugin } from '@/api/plugin'
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { Sheet, SheetHeader, SheetTitle, SheetDescription, SheetContent, SheetFooter } from '@/components/ui/sheet'
+import React, {useEffect, useState} from 'react'
+import {Plugin} from '@/schemas/plugin'
+import {getPlugins, installPlugin, togglePlugin, uninstallPlugin} from '@/api/plugin'
+import {Button} from '@/components/ui/button'
+import {Switch} from '@/components/ui/switch'
+import {Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle} from '@/components/ui/sheet'
+import {useLocation} from "wouter";
 
 export function WaPluginManagement() {
     const [plugins, setPlugins] = useState<Plugin[]>([])
     const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [_, navigate] = useLocation()
 
     const loadPlugins = async () => {
         setIsLoading(true)
@@ -24,7 +26,16 @@ export function WaPluginManagement() {
     }
 
     useEffect(() => {
-        loadPlugins()
+        void loadPlugins()
+        const handleHotkey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                navigate("/")
+            }
+        }
+        window.addEventListener('keydown', handleHotkey)
+        return () => {
+            window.removeEventListener('keydown', handleHotkey)
+        }
     }, [])
 
     const handleTogglePlugin = async (plugin: Plugin) => {
@@ -32,7 +43,7 @@ export function WaPluginManagement() {
             await togglePlugin(plugin.packageId, !plugin.enabled)
             // Update local state
             setPlugins(prev => prev.map(p =>
-                p.packageId === plugin.packageId ? { ...p, enabled: !p.enabled } : p
+                p.packageId === plugin.packageId ? {...p, enabled: !p.enabled} : p
             ))
         } catch (error) {
             console.error('Failed to toggle plugin:', error)
