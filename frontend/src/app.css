@@ -8,3 +8,14 @@ input:focus-visible {
     outline: none !important;
     box-shadow: none !important;
 }
+
+* {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    background: transparent;
+}
