@@ -83,14 +83,14 @@ func (w *WaLaunchApp) updateApplications() {
 			continue
 		}
 		logger.Info(fmt.Sprintf("Update dir updated for command: %s, %s", command.Name, command.Path))
-		command, err := application.ParseApplication(command.Path)
+		parsedCommand, err := application.ParseApplication(command.Path)
 		if err != nil {
 			logger.Error(err, "Failed to parse application")
 			removeCommands = append(removeCommands, command)
 			continue
 		}
-		command.ID = id
-		updateCommands = append(updateCommands, command)
+		parsedCommand.ID = id
+		updateCommands = append(updateCommands, parsedCommand)
 	}
 	logger.Info(fmt.Sprintf("Update commands result: updated %d / total %d", len(updateCommands), len(commands)))
 	err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
