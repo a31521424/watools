@@ -20,6 +20,8 @@ export function HttpProxyApi(arg1:Record<string, any>):Promise<Record<string, an
 
 export function InstallPluginApi(arg1:string):Promise<void>;
 
+export function InstallPluginByFileDialogApi():Promise<void>;
+
 export function OpenFolder(arg1:string):Promise<void>;
 
 export function SaveBase64Image(arg1:string):Promise<string>;

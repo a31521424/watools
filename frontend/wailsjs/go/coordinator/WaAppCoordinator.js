@@ -38,6 +38,10 @@ export function InstallPluginApi(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['InstallPluginApi'](arg1);
 }
 
+export function InstallPluginByFileDialogApi() {
+  return window['go']['coordinator']['WaAppCoordinator']['InstallPluginByFileDialogApi']();
+}
+
 export function OpenFolder(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['OpenFolder'](arg1);
 }

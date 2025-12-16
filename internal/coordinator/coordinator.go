@@ -151,6 +151,11 @@ func (w *WaAppCoordinator) InstallPluginApi(wtFilePath string) error {
 	return w.waPluginApp.InstallPlugin(wtFilePath)
 }
 
+// InstallPluginByFileDialogApi installs a plugin from a .wt file by file dialog
+func (w *WaAppCoordinator) InstallPluginByFileDialogApi() error {
+	return w.waPluginApp.InstallPluginByFileDialog()
+}
+
 // UninstallPluginApi uninstalls a plugin by packageID
 func (w *WaAppCoordinator) UninstallPluginApi(packageID string) error {
 	return w.waPluginApp.UninstallPlugin(packageID)

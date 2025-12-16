@@ -1,10 +1,11 @@
 import React, {useEffect, useState} from 'react'
 import {Plugin} from '@/schemas/plugin'
-import {getPlugins, installPlugin, togglePlugin, uninstallPlugin} from '@/api/plugin'
+import {getPlugins, togglePlugin, uninstallPlugin} from '@/api/plugin'
 import {Button} from '@/components/ui/button'
 import {Switch} from '@/components/ui/switch'
 import {Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle} from '@/components/ui/sheet'
 import {useLocation} from "wouter";
+import {InstallPluginByFileDialogApi} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
 
 export function WaPluginManagement() {
     const [plugins, setPlugins] = useState<Plugin[]>([])
@@ -68,18 +69,7 @@ export function WaPluginManagement() {
     }
 
     const handleInstallPlugin = async () => {
-        // TODO: Implement file picker or drag & drop for .wt files
-        const filePath = prompt('Enter the path to the .wt plugin file:')
-        if (!filePath) return
-
-        try {
-            await installPlugin(filePath)
-            await loadPlugins() // Reload plugins
-            alert('Plugin installed successfully!')
-        } catch (error) {
-            console.error('Failed to install plugin:', error)
-            alert(`Failed to install plugin: ${error}`)
-        }
+        void InstallPluginByFileDialogApi()
     }
 
     const openPluginDetails = (plugin: Plugin) => {
