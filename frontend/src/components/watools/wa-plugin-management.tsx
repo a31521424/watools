@@ -69,7 +69,9 @@ export function WaPluginManagement() {
     }
 
     const handleInstallPlugin = async () => {
-        void InstallPluginByFileDialogApi()
+        void InstallPluginByFileDialogApi().then(() => {
+            void loadPlugins()
+        })
     }
 
     const openPluginDetails = (plugin: Plugin) => {
