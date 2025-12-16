@@ -48,15 +48,10 @@ export function WaPluginManagement() {
             ))
         } catch (error) {
             console.error('Failed to toggle plugin:', error)
-            alert(`Failed to toggle plugin: ${error}`)
         }
     }
 
     const handleUninstallPlugin = async (plugin: Plugin) => {
-        if (!confirm(`Are you sure you want to uninstall ${plugin.name}?`)) {
-            return
-        }
-
         try {
             await uninstallPlugin(plugin.packageId)
             setPlugins(prev => prev.filter(p => p.packageId !== plugin.packageId))
@@ -64,7 +59,6 @@ export function WaPluginManagement() {
             setSelectedPlugin(null)
         } catch (error) {
             console.error('Failed to uninstall plugin:', error)
-            alert(`Failed to uninstall plugin: ${error}`)
         }
     }
 
