@@ -88,11 +88,16 @@ func (p *WaPlugin) InstallPluginByFileDialog() error {
 	if len(pluginPaths) == 0 {
 		return nil
 	}
+	needRefresh := false
 	for _, pluginPath := range pluginPaths {
 		if err := p.installer.InstallFromWtFile(pluginPath); err != nil {
 			logger.Error(err, "Failed to install plugin from file", "file", pluginPath)
 			continue
 		}
+		needRefresh = true
+	}
+	if needRefresh {
+		p.loadPlugins()
 	}
 	return nil
 }
