@@ -1,33 +1,24 @@
 import React, {useEffect, useState} from 'react'
 import {Plugin} from '@/schemas/plugin'
-import {getPlugins, togglePlugin, uninstallPlugin} from '@/api/plugin'
 import {Button} from '@/components/ui/button'
 import {Switch} from '@/components/ui/switch'
 import {Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle} from '@/components/ui/sheet'
 import {useLocation} from "wouter";
 import {InstallPluginByFileDialogApi} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
+import {usePluginStore} from "@/stores/pluginStore";
 
 export function WaPluginManagement() {
-    const [plugins, setPlugins] = useState<Plugin[]>([])
+    const plugins = usePluginStore(state => state.plugins)
+    const isLoading = usePluginStore(state => state.isLoading)
+    const refreshPlugins = usePluginStore(state => state.refreshPlugins)
+    const togglePlugin = usePluginStore(state => state.togglePlugin)
+    const uninstallPlugin = usePluginStore(state => state.uninstallPlugin)
+
     const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
     const [_, navigate] = useLocation()
 
-    const loadPlugins = async () => {
-        setIsLoading(true)
-        try {
-            const pluginList = await getPlugins()
-            setPlugins(pluginList)
-        } catch (error) {
-            console.error('Failed to load plugins:', error)
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
     useEffect(() => {
-        void loadPlugins()
         const handleHotkey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 navigate("/")
@@ -42,10 +33,6 @@ export function WaPluginManagement() {
     const handleTogglePlugin = async (plugin: Plugin) => {
         try {
             await togglePlugin(plugin.packageId, !plugin.enabled)
-            // Update local state
-            setPlugins(prev => prev.map(p =>
-                p.packageId === plugin.packageId ? {...p, enabled: !p.enabled} : p
-            ))
         } catch (error) {
             console.error('Failed to toggle plugin:', error)
         }
@@ -54,7 +41,6 @@ export function WaPluginManagement() {
     const handleUninstallPlugin = async (plugin: Plugin) => {
         try {
             await uninstallPlugin(plugin.packageId)
-            setPlugins(prev => prev.filter(p => p.packageId !== plugin.packageId))
             setIsDrawerOpen(false)
             setSelectedPlugin(null)
         } catch (error) {
@@ -64,7 +50,7 @@ export function WaPluginManagement() {
 
     const handleInstallPlugin = async () => {
         void InstallPluginByFileDialogApi().then(() => {
-            void loadPlugins()
+            void refreshPlugins()
         })
     }
 

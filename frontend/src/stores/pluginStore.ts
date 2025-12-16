@@ -1,6 +1,6 @@
 import {create} from 'zustand'
 import {Plugin} from '@/schemas/plugin'
-import {getPlugins, updatePluginUsage} from "@/api/plugin";
+import {getPlugins, updatePluginUsage, togglePlugin as togglePluginApi, uninstallPlugin as uninstallPluginApi} from "@/api/plugin";
 import {Logger} from "@/lib/logger";
 
 interface PluginState {
@@ -15,6 +15,8 @@ interface PluginState {
     getPluginsByType: (type: "executable" | "ui") => Plugin[]
     updatePluginUsage: (packageId: string) => Promise<void>
     flushBufferUpdates: () => Promise<void>
+    togglePlugin: (packageId: string, enabled: boolean) => Promise<void>
+    uninstallPlugin: (packageId: string) => Promise<void>
 }
 
 const DEBOUNCE_DELAY = 60000
@@ -67,6 +69,7 @@ export const usePluginStore = create<PluginState>((set, get) => {
     }
 
     const refreshPlugins = async () => {
+        isInitialized = false
         await fetchPlugins()
     }
 
@@ -131,6 +134,34 @@ export const usePluginStore = create<PluginState>((set, get) => {
         }
     }
 
+    const togglePlugin = async (packageId: string, enabled: boolean) => {
+        try {
+            await togglePluginApi(packageId, enabled)
+            // Update local state
+            set(state => ({
+                plugins: state.plugins.map(p =>
+                    p.packageId === packageId ? {...p, enabled} : p
+                )
+            }))
+        } catch (error) {
+            Logger.error(`Failed to toggle plugin: ${error}`)
+            throw error
+        }
+    }
+
+    const uninstallPlugin = async (packageId: string) => {
+        try {
+            await uninstallPluginApi(packageId)
+            // Remove from local state
+            set(state => ({
+                plugins: state.plugins.filter(p => p.packageId !== packageId)
+            }))
+        } catch (error) {
+            Logger.error(`Failed to uninstall plugin: ${error}`)
+            throw error
+        }
+    }
+
     const store = {
         plugins: [],
         isLoading: false,
@@ -142,7 +173,9 @@ export const usePluginStore = create<PluginState>((set, get) => {
         getEnabledPlugins,
         getPluginsByType,
         updatePluginUsage: updatePluginUsageMethod,
-        flushBufferUpdates
+        flushBufferUpdates,
+        togglePlugin,
+        uninstallPlugin
     }
 
     // Auto-initialize data immediately
