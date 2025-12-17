@@ -101,6 +101,50 @@ plugin.wt/
     └── ...
 ```
 
+### 代码运行环境约束
+
+**关键要求**: 产出的代码必须是**浏览器原生可运行**的,不能是框架脚手架项目。
+
+**✅ 允许**:
+- 原生 HTML/CSS/JavaScript
+- ES Module (`<script type="module">`)
+- 浏览器直接支持的语法(ES6+)
+- CDN 引入的库(React CDN、Vue CDN 等)
+- 内联的 TypeScript(如果使用支持浏览器的编译器,如 Babel Standalone)
+
+**❌ 禁止**:
+- 需要 `npm install` 的项目
+- 需要构建工具的项目(webpack、vite、rollup)
+- 包含 `package.json`、`node_modules/` 的项目
+- JSX/TSX 文件(除非通过 CDN 实时编译)
+- 需要编译步骤的框架代码
+
+**示例**:
+
+```html
+<!-- ✅ 正确: 浏览器可直接运行 -->
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        // 浏览器原生 JavaScript
+    </script>
+</body>
+</html>
+
+<!-- ❌ 错误: 需要构建工具 -->
+// App.tsx
+import React from 'react'  // 需要 npm install
+export default function App() { }
+```
+
+**原则**: 插件文件解压后可直接在浏览器中打开 `index.html` 运行,无需任何安装或编译步骤。
+
 ---
 
 ## 运行时环境
@@ -420,17 +464,6 @@ type AppClipboardContent = {
     text: string | null
     imageBase64: string | null
     files: string[] | null
-}
-
-// Metadata
-type PluginMetadata = {
-    packageId: string
-    name: string
-    description: string
-    version: string
-    author: string
-    uiEnabled: boolean
-    entry: string
 }
 
 // HttpProxy
