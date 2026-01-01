@@ -129,34 +129,29 @@ export const WaCommand = () => {
 
 
     useWindowFocus((focused) => {
-        if (!focused) {
-            return
-        }
-        getClipboardContent().then(res => {
-            if (!res) {
-                return
-            }
-            if (res.contentType === "text" && res.text) {
-                setValueAuto(res.text, "clipboard", () => setTimeout(() => {
-                    if (!inputRef.current) {
-                        return
-                    }
-                    inputRef.current.select()
-                }, 0))
-            }
-        })
-        inputRef.current?.focus()
-    })
-
-    useWindowFocus((focused) => {
-        if (!focused) {
+        if (focused) {
+            getClipboardContent().then(res => {
+                if (!res) {
+                    return
+                }
+                if (res.contentType === "text" && res.text) {
+                    setValueAuto(res.text, "clipboard", () => setTimeout(() => {
+                        if (!inputRef.current) {
+                            return
+                        }
+                        inputRef.current.select()
+                    }, 0))
+                }
+            })
+            inputRef.current?.focus()
+        } else {
+            // for dev mode, do not hide app when window loses focus
             if (isDevMode()) {
                 return
             }
             void HideAppApi()
         }
     })
-
 
     useEffect(() => {
         const handleHotkey = (e: KeyboardEvent) => {
