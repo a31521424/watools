@@ -81,12 +81,11 @@ export const useAppStore = create<AppStore>((set, get) => {
                 })
             }
         },
-        setValue: (inputValue: string, valueType: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => {
-            const value = inputValue.trim()
+        setValue: (value: string, valueType: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => {
             if (valueType === "text") {
-                get().setTextValue(value)
+                get().setTextValue(value.trimStart())
             } else if (valueType === "clipboard") {
-                get().setClipboardValue(value, isAuto)
+                get().setClipboardValue(value.trim(), isAuto)
             }
             if (onSuccess) {
                 onSuccess()
