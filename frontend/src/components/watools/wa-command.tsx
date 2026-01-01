@@ -17,6 +17,7 @@ import {useAppFeatureItems} from "@/components/watools/wa-app-feature-item";
 import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
 import {getClipboardContent} from "@/api/app";
 import {PluginContext} from "@/schemas/plugin";
+import {useShallow} from "zustand/react/shallow";
 
 
 export const WaCommand = () => {
@@ -34,6 +35,7 @@ export const WaCommand = () => {
     const imageBase64 = useAppStore(state => state.imageBase64)
     const files = useAppStore(state => state.files)
     const clipboardContentType = useAppStore(state => state.clipboardContentType)
+    const clipboard = useAppStore(useShallow(state => state.getClipboardContent()))
 
     // Subscribe to methods
     const setValue = useAppStore(state => state.setValue)
@@ -101,10 +103,6 @@ export const WaCommand = () => {
         onTriggerAppFeature
     });
 
-    // Get clipboard content snapshot once
-    const clipboard = useMemo(() => {
-        return useAppStore.getState().getClipboardContent()
-    }, [imageBase64, files, clipboardContentType])
 
     const pluginItems = usePluginItems({
         input: pluginInput,
