@@ -38,7 +38,7 @@ export const useAppFeatureItems = ({searchKey, onTriggerAppFeature}: UseAppFeatu
         });
     }, []);
 
-    const filteredItems = useMemo((): BaseItemProps[] => {
+    return useMemo((): BaseItemProps[] => {
         if (!searchKey) {
             return [];
         }
@@ -62,5 +62,4 @@ export const useAppFeatureItems = ({searchKey, onTriggerAppFeature}: UseAppFeatu
         });
     }, [searchKey, appFeatureFuse, navigate]);
 
-    return filteredItems;
 };
