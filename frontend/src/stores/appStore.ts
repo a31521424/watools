@@ -11,18 +11,23 @@ type AppState = {
     files: string[] | null
     clipboardContentType: AppClipboardContentType | null
 }
-const initialState: AppState = {
+const resetState = {
     displayValue: '',
     compressedDisplay: false,
     value: '',
-    valueType: 'text',
-    lastCopiedValue: null,
+    valueType: 'text' as AppInputValueType,
     imageBase64: null,
     files: null,
     clipboardContentType: null,
 }
+const initialState: AppState = {
+    ...resetState,
+    lastCopiedValue: null,
+}
 
 type AppStore = AppState & {
+    setTextValue: (value: string) => void
+    setClipboardValue: (value: string, isAuto?: boolean) => void
     setValue: (value: string, type: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => void
     setValueAuto: (value: string, type: AppInputValueType, onSuccess?: () => void) => void
     getValue: () => string
@@ -52,25 +57,36 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     return {
         ...initialState,
-        setValue: (value: string, valueType: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => {
-            value = value.trim()
+        setTextValue: (value: string) => {
+            set({displayValue: value, valueType: "text"})
+            debouncedSetValue(value)
+        },
+        setClipboardValue: (value: string, isAuto?: boolean) => {
+            if (!value.length) {
+                return
+            }
+            let displayValue = value
+            let compressedDisplay = false
+            if (isAuto && displayValue.length > 2000) {
+                displayValue = displayValue.slice(0, 30) + '  ......  ' + displayValue.slice(-30)
+                compressedDisplay = true
+            }
+            if (value) {
+                set({
+                    displayValue: displayValue,
+                    value,
+                    valueType: "clipboard",
+                    lastCopiedValue: value,
+                    compressedDisplay
+                })
+            }
+        },
+        setValue: (inputValue: string, valueType: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => {
+            const value = inputValue.trim()
             if (valueType === "text") {
-                set({displayValue: value, valueType: valueType})
-                debouncedSetValue(value)
+                get().setTextValue(value)
             } else if (valueType === "clipboard") {
-                if (!value.length) {
-                    return
-                }
-
-                let displayValue = value
-                let compressedDisplay = false
-                if (isAuto && displayValue.length > 2000) {
-                    displayValue = displayValue.slice(0, 30) + '  ......  ' + displayValue.slice(-30)
-                    compressedDisplay = true
-                }
-                if (value) {
-                    set({displayValue: displayValue, value, valueType, lastCopiedValue: value, compressedDisplay})
-                }
+                get().setClipboardValue(value, isAuto)
             }
             if (onSuccess) {
                 onSuccess()
@@ -114,8 +130,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         getValue: () => get().value,
         clearValue: () => {
             console.log('Clearing app store value')
-            const {lastCopiedValue, ...reset} = initialState
-            set(reset)
+            set(resetState)
         },
         isPanelOpen: () => {
             const state = get()

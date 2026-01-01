@@ -24,7 +24,6 @@ export const WaCommand = () => {
     const inputRef = useRef<HTMLInputElement>(null)
     const commandListRef = useRef<HTMLDivElement>(null)
     const [isPasted, setIsPasted] = React.useState<boolean>(false)
-    const [selectedKey, setSelectedKey] = React.useState<string>("")
     const {updatePluginUsage} = usePluginStore()
     const [_, navigate] = useLocation()
 
@@ -36,17 +35,16 @@ export const WaCommand = () => {
     const files = useAppStore(state => state.files)
     const clipboardContentType = useAppStore(state => state.clipboardContentType)
     const clipboard = useAppStore(useShallow(state => state.getClipboardContent()))
+    const isPanelOpen = useAppStore(state => state.isPanelOpen())
 
     // Subscribe to methods
     const setValue = useAppStore(state => state.setValue)
     const setValueAuto = useAppStore(state => state.setValueAuto)
     const clearValue = useAppStore(state => state.clearValue)
     const setClipboardContent = useAppStore(state => state.setClipboardContent)
+    const getCanClearAssets = useAppStore(state => state.canClearAssets)
+    const getIsPanelOpen = useAppStore(state => state.isPanelOpen)
 
-    // Compute derived state from store values
-    const isPanelOpen = useAppStore(state =>
-        state.value.length > 0 || state.imageBase64 != null || state.files != null
-    )
 
     const pluginInput: AppInput = useMemo(() => ({
         value,
@@ -94,13 +92,9 @@ export const WaCommand = () => {
         onTriggerCommand
     });
 
-    const onTriggerAppFeature = useCallback(() => {
-        clearValue()
-    }, [clearValue])
-
     const appFeatureItems = useAppFeatureItems({
         searchKey: value,
-        onTriggerAppFeature
+        onTriggerAppFeature: clearValue
     });
 
 
@@ -126,6 +120,10 @@ export const WaCommand = () => {
             return usedCountB - usedCountA;
         });
     }, [applicationItems, operationItems, pluginItems, appFeatureItems]);
+
+    const selectedKey = useMemo(() => {
+        return combinedItems.length > 0 ? combinedItems[0].triggerId : undefined
+    }, [combinedItems])
 
 
     useWindowFocus((focused) => {
@@ -158,7 +156,7 @@ export const WaCommand = () => {
             if (e.key === "Escape") {
                 e.preventDefault()
                 e.stopPropagation()
-                if (useAppStore.getState().isPanelOpen()) {
+                if (getIsPanelOpen()) {
                     clearValue()
                 } else {
                     void HideOrShowAppApi()
@@ -168,7 +166,7 @@ export const WaCommand = () => {
                 e.stopPropagation()
                 inputRef.current?.focus()
             } else if (e.key === "Backspace") {
-                if (useAppStore.getState().canClearAssets()) {
+                if (getCanClearAssets()) {
                     clearValue()
                 }
             }
@@ -179,22 +177,13 @@ export const WaCommand = () => {
         }
     }, [clearValue])
 
-    useEffect(() => {
-        if (combinedItems.length > 0) {
-            setSelectedKey(combinedItems[0].triggerId)
-        } else {
-            setSelectedKey("")
-        }
-
-    }, [combinedItems])
-
-    const handlePaste = () => {
+    const handlePaste = useCallback(() => {
         setIsPasted(true)
         getClipboardContent().then(res => {
             console.log('Pasted clipboard content:', res);
             setClipboardContent(res)
         })
-    }
+    }, [setClipboardContent, getClipboardContent, setIsPasted])
 
     return <Command
         value={selectedKey}
