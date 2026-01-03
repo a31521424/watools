@@ -24,6 +24,16 @@ export function InstallPluginByFileDialogApi():Promise<void>;
 
 export function OpenFolder(arg1:string):Promise<void>;
 
+export function PluginStorageClearApi(arg1:Record<string, any>):Promise<void>;
+
+export function PluginStorageGetApi(arg1:Record<string, any>):Promise<any>;
+
+export function PluginStorageKeysApi(arg1:Record<string, any>):Promise<Array<string>>;
+
+export function PluginStorageRemoveApi(arg1:Record<string, any>):Promise<void>;
+
+export function PluginStorageSetApi(arg1:Record<string, any>):Promise<void>;
+
 export function SaveBase64Image(arg1:string):Promise<string>;
 
 export function TogglePluginApi(arg1:string,arg2:boolean):Promise<void>;

@@ -243,6 +243,13 @@ func (d *WaDB) UpdatePluginEnabled(ctx context.Context, packageID string, enable
 	})
 }
 
+func (d *WaDB) UpdatePluginStorage(ctx context.Context, packageID string, storage string) error {
+	return d.query.UpdatePluginStorage(ctx, UpdatePluginStorageParams{
+		Storage:   storage,
+		PackageID: packageID,
+	})
+}
+
 func (d *WaDB) BatchUpdateApplicationUsage(ctx context.Context, usageUpdates []models.ApplicationUsageUpdate) error {
 	logger.Info(fmt.Sprintf("Updating usage for %d applications", len(usageUpdates)))
 	return d.withTx(ctx, func(tx *sql.Tx) error {

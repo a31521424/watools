@@ -46,6 +46,26 @@ export function OpenFolder(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['OpenFolder'](arg1);
 }
 
+export function PluginStorageClearApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['PluginStorageClearApi'](arg1);
+}
+
+export function PluginStorageGetApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['PluginStorageGetApi'](arg1);
+}
+
+export function PluginStorageKeysApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['PluginStorageKeysApi'](arg1);
+}
+
+export function PluginStorageRemoveApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['PluginStorageRemoveApi'](arg1);
+}
+
+export function PluginStorageSetApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['PluginStorageSetApi'](arg1);
+}
+
 export function SaveBase64Image(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['SaveBase64Image'](arg1);
 }

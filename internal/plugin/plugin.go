@@ -2,6 +2,8 @@ package plugin
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"sync"
 	"watools/pkg/db"
 	"watools/pkg/logger"
@@ -20,6 +22,7 @@ type WaPlugin struct {
 	ctx          context.Context
 	pluginStates []*models.PluginState
 	installer    *PluginInstaller
+	storageMutex sync.RWMutex // protect storage operations
 }
 
 func GetWaPlugin() *WaPlugin {
@@ -126,4 +129,129 @@ func (p *WaPlugin) TogglePlugin(packageID string, enabled bool) error {
 		plugin.Enabled = enabled
 	}
 	return nil
+}
+
+// GetStorage gets a value from plugin storage by key
+func (p *WaPlugin) GetStorage(packageID string, key string) (interface{}, error) {
+	p.storageMutex.RLock()
+	defer p.storageMutex.RUnlock()
+
+	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
+		return item.PackageID == packageID
+	})
+	if !found {
+		return nil, fmt.Errorf("plugin not found: %s", packageID)
+	}
+
+	if plugin.Storage == nil {
+		return nil, nil
+	}
+
+	value, exists := plugin.Storage[key]
+	if !exists {
+		return nil, nil
+	}
+
+	return value, nil
+}
+
+// SetStorage sets a value in plugin storage by key
+func (p *WaPlugin) SetStorage(packageID string, key string, value interface{}) error {
+	p.storageMutex.Lock()
+	defer p.storageMutex.Unlock()
+
+	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
+		return item.PackageID == packageID
+	})
+	if !found {
+		return fmt.Errorf("plugin not found: %s", packageID)
+	}
+
+	// initialize storage if nil
+	if plugin.Storage == nil {
+		plugin.Storage = make(map[string]interface{})
+	}
+
+	// set value
+	plugin.Storage[key] = value
+
+	// persist to database
+	return p.saveStorage(packageID, plugin.Storage)
+}
+
+// RemoveStorage removes a key from plugin storage
+func (p *WaPlugin) RemoveStorage(packageID string, key string) error {
+	p.storageMutex.Lock()
+	defer p.storageMutex.Unlock()
+
+	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
+		return item.PackageID == packageID
+	})
+	if !found {
+		return fmt.Errorf("plugin not found: %s", packageID)
+	}
+
+	if plugin.Storage == nil {
+		return nil
+	}
+
+	delete(plugin.Storage, key)
+
+	// persist to database
+	return p.saveStorage(packageID, plugin.Storage)
+}
+
+// ClearStorage clears all storage for a plugin
+func (p *WaPlugin) ClearStorage(packageID string) error {
+	p.storageMutex.Lock()
+	defer p.storageMutex.Unlock()
+
+	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
+		return item.PackageID == packageID
+	})
+	if !found {
+		return fmt.Errorf("plugin not found: %s", packageID)
+	}
+
+	plugin.Storage = make(map[string]interface{})
+
+	// persist to database
+	return p.saveStorage(packageID, plugin.Storage)
+}
+
+// ListStorageKeys returns all keys in plugin storage
+func (p *WaPlugin) ListStorageKeys(packageID string) ([]string, error) {
+	p.storageMutex.RLock()
+	defer p.storageMutex.RUnlock()
+
+	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
+		return item.PackageID == packageID
+	})
+	if !found {
+		return nil, fmt.Errorf("plugin not found: %s", packageID)
+	}
+
+	if plugin.Storage == nil {
+		return []string{}, nil
+	}
+
+	keys := make([]string, 0, len(plugin.Storage))
+	for key := range plugin.Storage {
+		keys = append(keys, key)
+	}
+
+	return keys, nil
+}
+
+// saveStorage persists storage to database (must be called with lock held)
+func (p *WaPlugin) saveStorage(packageID string, storage map[string]interface{}) error {
+	dbInstance := db.GetWaDB()
+
+	// marshal storage to JSON string
+	storageJSON, err := json.Marshal(storage)
+	if err != nil {
+		return fmt.Errorf("failed to marshal storage: %w", err)
+	}
+
+	return dbInstance.UpdatePluginStorage(p.ctx, packageID, string(storageJSON))
 }

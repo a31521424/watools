@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 	"watools/config"
@@ -229,3 +230,75 @@ func (w *WaAppCoordinator) HttpProxyApi(requestMap map[string]interface{}) (map[
 }
 
 // end region proxy
+
+// region plugin storage
+
+// PluginStorageGetApi retrieves a value from plugin storage
+func (w *WaAppCoordinator) PluginStorageGetApi(requestMap map[string]interface{}) (interface{}, error) {
+	packageID, _ := requestMap["packageId"].(string)
+	key, _ := requestMap["key"].(string)
+
+	if packageID == "" {
+		return nil, fmt.Errorf("packageId is required")
+	}
+	if key == "" {
+		return nil, fmt.Errorf("key is required")
+	}
+
+	return w.waPluginApp.GetStorage(packageID, key)
+}
+
+// PluginStorageSetApi sets a value in plugin storage
+func (w *WaAppCoordinator) PluginStorageSetApi(requestMap map[string]interface{}) error {
+	packageID, _ := requestMap["packageId"].(string)
+	key, _ := requestMap["key"].(string)
+	value := requestMap["value"]
+
+	if packageID == "" {
+		return fmt.Errorf("packageId is required")
+	}
+	if key == "" {
+		return fmt.Errorf("key is required")
+	}
+
+	return w.waPluginApp.SetStorage(packageID, key, value)
+}
+
+// PluginStorageRemoveApi removes a key from plugin storage
+func (w *WaAppCoordinator) PluginStorageRemoveApi(requestMap map[string]interface{}) error {
+	packageID, _ := requestMap["packageId"].(string)
+	key, _ := requestMap["key"].(string)
+
+	if packageID == "" {
+		return fmt.Errorf("packageId is required")
+	}
+	if key == "" {
+		return fmt.Errorf("key is required")
+	}
+
+	return w.waPluginApp.RemoveStorage(packageID, key)
+}
+
+// PluginStorageClearApi clears all storage for a plugin
+func (w *WaAppCoordinator) PluginStorageClearApi(requestMap map[string]interface{}) error {
+	packageID, _ := requestMap["packageId"].(string)
+
+	if packageID == "" {
+		return fmt.Errorf("packageId is required")
+	}
+
+	return w.waPluginApp.ClearStorage(packageID)
+}
+
+// PluginStorageKeysApi returns all keys in plugin storage
+func (w *WaAppCoordinator) PluginStorageKeysApi(requestMap map[string]interface{}) ([]string, error) {
+	packageID, _ := requestMap["packageId"].(string)
+
+	if packageID == "" {
+		return nil, fmt.Errorf("packageId is required")
+	}
+
+	return w.waPluginApp.ListStorageKeys(packageID)
+}
+
+// end region plugin storage

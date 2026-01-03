@@ -51,6 +51,10 @@ export const WaPlugin = () => {
         }
         iframeWindow.addEventListener('keydown', handleHotkey)
 
+        // Inject plugin package ID
+        // @ts-ignore
+        iframeWindow.__PLUGIN_PACKAGE_ID__ = packageId
+
         // TODO: better way to expose runtime api to iframe
         // @ts-ignore
         iframeWindow.runtime = window.runtime

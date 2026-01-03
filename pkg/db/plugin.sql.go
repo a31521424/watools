@@ -103,3 +103,19 @@ func (q *Queries) UpdatePluginEnabled(ctx context.Context, arg UpdatePluginEnabl
 	_, err := q.db.ExecContext(ctx, updatePluginEnabled, arg.Enabled, arg.PackageID)
 	return err
 }
+
+const updatePluginStorage = `-- name: UpdatePluginStorage :exec
+UPDATE plugin_state
+SET storage = ?
+WHERE package_id = ?
+`
+
+type UpdatePluginStorageParams struct {
+	Storage   string
+	PackageID string
+}
+
+func (q *Queries) UpdatePluginStorage(ctx context.Context, arg UpdatePluginStorageParams) error {
+	_, err := q.db.ExecContext(ctx, updatePluginStorage, arg.Storage, arg.PackageID)
+	return err
+}

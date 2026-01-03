@@ -19,3 +19,8 @@ WHERE package_id = ?;
 UPDATE plugin_state
 SET enabled = ?
 WHERE package_id = ?;
+
+-- name: UpdatePluginStorage :exec
+UPDATE plugin_state
+SET storage = ?
+WHERE package_id = ?;
