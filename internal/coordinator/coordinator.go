@@ -233,8 +233,8 @@ func (w *WaAppCoordinator) HttpProxyApi(requestMap map[string]interface{}) (map[
 
 // region plugin storage
 
-// PluginStorageGetApi retrieves a value from plugin storage
-func (w *WaAppCoordinator) PluginStorageGetApi(requestMap map[string]interface{}) (interface{}, error) {
+// GetPluginStorageKeyApi retrieves a value from plugin storage
+func (w *WaAppCoordinator) GetPluginStorageKeyApi(requestMap map[string]interface{}) (interface{}, error) {
 	packageID, _ := requestMap["packageId"].(string)
 	key, _ := requestMap["key"].(string)
 
@@ -248,8 +248,8 @@ func (w *WaAppCoordinator) PluginStorageGetApi(requestMap map[string]interface{}
 	return w.waPluginApp.GetStorage(packageID, key)
 }
 
-// PluginStorageSetApi sets a value in plugin storage
-func (w *WaAppCoordinator) PluginStorageSetApi(requestMap map[string]interface{}) error {
+// SetPluginStorageKeyApi sets a value in plugin storage
+func (w *WaAppCoordinator) SetPluginStorageKeyApi(requestMap map[string]interface{}) error {
 	packageID, _ := requestMap["packageId"].(string)
 	key, _ := requestMap["key"].(string)
 	value := requestMap["value"]
@@ -264,8 +264,8 @@ func (w *WaAppCoordinator) PluginStorageSetApi(requestMap map[string]interface{}
 	return w.waPluginApp.SetStorage(packageID, key, value)
 }
 
-// PluginStorageRemoveApi removes a key from plugin storage
-func (w *WaAppCoordinator) PluginStorageRemoveApi(requestMap map[string]interface{}) error {
+// DeletePluginStorageKeyApi removes a key from plugin storage
+func (w *WaAppCoordinator) DeletePluginStorageKeyApi(requestMap map[string]interface{}) error {
 	packageID, _ := requestMap["packageId"].(string)
 	key, _ := requestMap["key"].(string)
 
@@ -279,8 +279,8 @@ func (w *WaAppCoordinator) PluginStorageRemoveApi(requestMap map[string]interfac
 	return w.waPluginApp.RemoveStorage(packageID, key)
 }
 
-// PluginStorageClearApi clears all storage for a plugin
-func (w *WaAppCoordinator) PluginStorageClearApi(requestMap map[string]interface{}) error {
+// ClearPluginStorageApi clears all storage for a plugin
+func (w *WaAppCoordinator) ClearPluginStorageApi(requestMap map[string]interface{}) error {
 	packageID, _ := requestMap["packageId"].(string)
 
 	if packageID == "" {
@@ -290,8 +290,8 @@ func (w *WaAppCoordinator) PluginStorageClearApi(requestMap map[string]interface
 	return w.waPluginApp.ClearStorage(packageID)
 }
 
-// PluginStorageKeysApi returns all keys in plugin storage
-func (w *WaAppCoordinator) PluginStorageKeysApi(requestMap map[string]interface{}) ([]string, error) {
+// ListPluginStorageKeysApi returns all keys in plugin storage
+func (w *WaAppCoordinator) ListPluginStorageKeysApi(requestMap map[string]interface{}) ([]string, error) {
 	packageID, _ := requestMap["packageId"].(string)
 
 	if packageID == "" {

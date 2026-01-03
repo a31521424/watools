@@ -249,6 +249,13 @@ OpenFolder(folderPath: string): Promise<void>
 // 保存 Base64 图片
 SaveBase64Image(base64String: string): Promise<string>
 
+// 插件存储 API (持久化键值存储，自动注入 packageId)
+StorageGet(key: string): Promise<any>
+StorageSet(key: string, value: any): Promise<void>
+StorageRemove(key: string): Promise<void>
+StorageClear(): Promise<void>
+StorageKeys(): Promise<string[]>
+
 // 类型
 type HttpProxyRequest = {
     url: string
@@ -284,12 +291,24 @@ type HttpProxyResponse = {
 
 ### 数据持久化
 
-只能使用 `localStorage`:
+推荐使用 `window.watools.StorageXxx` API (跨平台、自动同步到数据库):
 
 ```javascript
+// ✅ 推荐: watools Storage API (后端持久化)
+await window.watools.StorageSet('apiKey', 'your-api-key')
+const apiKey = await window.watools.StorageGet('apiKey')
+await window.watools.StorageRemove('apiKey')
+await window.watools.StorageClear()
+const keys = await window.watools.StorageKeys()
+
+// ✅ 也可使用: localStorage (仅限浏览器)
 localStorage.setItem('key', JSON.stringify(data))
 const data = JSON.parse(localStorage.getItem('key') || '{}')
 ```
+
+**区别**:
+- `watools.StorageXxx`: 后端数据库持久化,插件卸载后数据保留
+- `localStorage`: 浏览器本地存储,清除缓存后数据丢失
 
 ---
 
@@ -333,6 +352,28 @@ if (response.error || response.status_code !== 200) {
 }
 
 const result = JSON.parse(response.body)
+```
+
+### Storage API 使用模式
+
+```javascript
+// 存储配置
+await window.watools.StorageSet('apiKey', 'sk-xxx')
+await window.watools.StorageSet('config', {theme: 'dark', lang: 'zh'})
+
+// 读取配置
+const apiKey = await window.watools.StorageGet('apiKey')
+const config = await window.watools.StorageGet('config') || {theme: 'light'}
+
+// 删除单个键
+await window.watools.StorageRemove('apiKey')
+
+// 清空所有数据
+await window.watools.StorageClear()
+
+// 列出所有键
+const keys = await window.watools.StorageKeys()
+console.log(keys)  // ['apiKey', 'config']
 ```
 
 ### 多 Entry 模式
@@ -419,7 +460,7 @@ watools.plugin.translator/
 
 **关键点**:
 - 使用 HttpProxy 调用 DeepL API
-- localStorage 存储 API Key
+- 使用 `window.watools.StorageXxx` 持久化 API Key
 - 防抖优化(700ms)
 
 ---
