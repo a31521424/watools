@@ -4,7 +4,6 @@ package app
    #cgo CFLAGS: -x objective-c
    #cgo LDFLAGS: -framework Cocoa -framework Foundation
    #import <Cocoa/Cocoa.h>
-   #include <dispatch/dispatch.h>
 
    static NSRunningApplication *previousActiveApp = nil;
 
@@ -18,50 +17,6 @@ package app
            }
        }
    }
-
-	void forceActivateAndFocusWindow() {
-		dispatch_async(dispatch_get_main_queue(), ^{
-		   NSApplication *app = [NSApplication sharedApplication];
-
-		   [app unhide:nil];
-
-		   // 系统进程级激活
-		   NSRunningApplication *currentApp = [NSRunningApplication currentApplication];
-		   [currentApp activateWithOptions:(NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps)];
-
-		   NSWindow *window = [app mainWindow];
-		   if (window == nil && [[app windows] count] > 0) {
-			  window = [[app windows] firstObject];
-		   }
-
-		   if (window != nil) {
-			  // 保持悬浮层级
-			  [window setLevel:NSFloatingWindowLevel];
-
-			  // 【修正点】: 去掉了 NSWindowCollectionBehaviorCanJoinAllSpaces
-			  // 只保留 MoveToActiveSpace 和 Transient
-			  // MoveToActiveSpace: 确保窗口会跟随你切换到当前的桌面
-			  // Transient: 辅助窗口行为，通常用于浮动面板
-			  [window setCollectionBehavior: NSWindowCollectionBehaviorMoveToActiveSpace | NSWindowCollectionBehaviorTransient];
-
-			  if ([window isMiniaturized]) {
-				 [window deminiaturize:nil];
-			  }
-
-			  // 组合拳：显示 + 强制置前
-			  [window makeKeyAndOrderFront:nil];
-			  [window orderFrontRegardless];
-			  [app activateIgnoringOtherApps:YES];
-
-			  // 延时回马枪 (Double Tap)
-			  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-				 [app activateIgnoringOtherApps:YES];
-				 [window makeKeyAndOrderFront:nil];
-				 [window makeKeyWindow];
-			  });
-		   }
-		});
-	}
 
    void returnFocusToPreviousApp() {
        if (previousActiveApp != nil && ![previousActiveApp isTerminated]) {
@@ -238,7 +193,6 @@ type ClipboardContent struct {
 
 func (a *WaApp) showAppAsPanel() {
 	C.storePreviousActiveApp()
-	C.forceActivateAndFocusWindow()
 	time.Sleep(10 * time.Millisecond)
 	a.checkAndRepositionIfNeeded()
 	runtime.WindowShow(a.ctx)
