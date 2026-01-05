@@ -6,14 +6,43 @@
 
 ## 产出目标
 
+**⚠️ 核心原则**: 插件的最终产出必须是**浏览器可直接运行的文件**,而不是开发项目的源代码。
+
+### 产出形式
+
+插件可以通过以下两种方式开发:
+
+1. **原生开发** (推荐简单场景)
+   - 直接编写 HTML/CSS/JavaScript
+   - 无需构建步骤
+   - 开发即产出
+
+2. **构建工具开发** (推荐复杂场景)
+   - 使用 Vite/Webpack/Rollup 等构建工具
+   - 开发时使用 TypeScript/React/Vue 等
+   - **必须编译为浏览器可运行的文件**
+   - 最终产出是 `dist/` 或 `build/` 目录内容
+
 ### 插件文件结构
 
-**基础结构**:
+**基础结构**(原生开发):
 ```
 watools.plugin.{name}/
 ├── manifest.json    # 元数据(必需)
 ├── app.js          # 入口配置(必需)
 └── index.html      # UI 页面(UI 插件需要)
+```
+
+**构建产物结构**(使用构建工具):
+```
+watools.plugin.{name}/
+├── manifest.json    # 元数据(必需)
+├── app.js          # 入口配置(必需)
+├── index.html      # 主页面(编译后)
+├── assets/         # 编译后的资源
+│   ├── index-[hash].js
+│   └── index-[hash].css
+└── ...             # 其他编译产物
 ```
 
 **扩展结构**(可选):
@@ -82,47 +111,135 @@ export default entry;
 
 ### 打包格式
 
-插件打包为 `.wt` 文件(ZIP 格式):
+插件打包为 `.wt` 文件(本质是 ZIP 格式,改后缀名):
+
+#### 原生开发打包
 
 ```bash
 # 压缩(文件必须在 ZIP 根级别)
-zip -r plugin.wt manifest.json app.js index.html
+cd watools.plugin.{name}
+zip -r ../plugin-name.wt manifest.json app.js index.html
 
 # ✅ 正确结构
-plugin.wt/
+plugin-name.wt/
 ├── manifest.json
 ├── app.js
 └── index.html
 
 # ❌ 错误结构
-plugin.wt/
+plugin-name.wt/
 └── watools.plugin.xxx/  ← 不要包含父文件夹
     ├── manifest.json
     └── ...
 ```
 
+#### 使用构建工具打包
+
+如果使用 Vite/Webpack 等构建工具,**必须打包编译后的产物**:
+
+```bash
+# 1. 构建项目
+npm run build  # 或 vite build
+
+# 2. 进入构建产物目录(通常是 dist/)
+cd dist
+
+# 3. 确保 manifest.json 和 app.js 在 dist/ 中
+# (构建工具需要配置复制这些文件)
+
+# 4. 压缩为 .wt 文件
+zip -r ../plugin-name.wt *
+
+# ✅ 正确流程
+my-plugin-project/
+├── src/              # 源代码(不打包)
+├── dist/             # 构建产物(打包这个)
+│   ├── manifest.json
+│   ├── app.js
+│   ├── index.html
+│   └── assets/
+├── package.json      # 不打包
+└── vite.config.ts    # 不打包
+
+# 最终 .wt 文件内容(来自 dist/)
+plugin-name.wt/
+├── manifest.json
+├── app.js
+├── index.html
+└── assets/
+```
+
+**Vite 配置示例**:
+
+```javascript
+// vite.config.ts
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  build: {
+    outDir: 'dist',
+    rollupOptions: {
+      input: 'index.html'
+    }
+  },
+  plugins: [
+    // 自动复制 manifest.json 和 app.js 到 dist/
+    {
+      name: 'copy-plugin-files',
+      closeBundle() {
+        const fs = require('fs')
+        fs.copyFileSync('manifest.json', 'dist/manifest.json')
+        fs.copyFileSync('app.js', 'dist/app.js')
+      }
+    }
+  ]
+})
+```
+
+**自动化打包脚本**:
+
+```json
+// package.json
+{
+  "scripts": {
+    "build": "vite build",
+    "package": "cd dist && zip -r ../plugin-name.wt * && cd .."
+  }
+}
+```
+
 ### 代码运行环境约束
 
-**关键要求**: 产出的代码必须是**浏览器原生可运行**的,不能是框架脚手架项目。
+**关键要求**: **最终产出**的代码必须是**浏览器原生可运行**的。
 
-**✅ 允许**:
+#### 允许的开发方式
+
+**✅ 原生开发**:
 - 原生 HTML/CSS/JavaScript
 - ES Module (`<script type="module">`)
 - 浏览器直接支持的语法(ES6+)
 - CDN 引入的库(React CDN、Vue CDN 等)
 - 内联的 TypeScript(如果使用支持浏览器的编译器,如 Babel Standalone)
 
-**❌ 禁止**:
-- 需要 `npm install` 的项目
-- 需要构建工具的项目(webpack、vite、rollup)
-- 包含 `package.json`、`node_modules/` 的项目
-- JSX/TSX 文件(除非通过 CDN 实时编译)
-- 需要编译步骤的框架代码
+**✅ 构建工具开发** (Vite/Webpack/Rollup):
+- 开发时使用 TypeScript/React/Vue/Svelte 等
+- 使用 npm/yarn 管理依赖
+- **但必须编译为浏览器可运行的文件**
+- 打包时只包含 `dist/` 或 `build/` 目录内容
 
-**示例**:
+#### 禁止的产出形式
+
+**❌ 以下内容不能出现在最终 .wt 文件中**:
+- `package.json`、`package-lock.json`
+- `node_modules/` 目录
+- `src/` 源代码目录
+- 未编译的 `.tsx`、`.jsx`、`.vue`、`.svelte` 文件
+- 构建配置文件(`vite.config.ts`、`webpack.config.js` 等)
+
+#### 示例对比
 
 ```html
-<!-- ✅ 正确: 浏览器可直接运行 -->
+<!-- ✅ 方式 1: 原生开发(无需构建) -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -136,14 +253,44 @@ plugin.wt/
     </script>
 </body>
 </html>
-
-<!-- ❌ 错误: 需要构建工具 -->
-// App.tsx
-import React from 'react'  // 需要 npm install
-export default function App() { }
 ```
 
-**原则**: 插件文件解压后可直接在浏览器中打开 `index.html` 运行,无需任何安装或编译步骤。
+```tsx
+// ✅ 方式 2: 构建工具开发(需要编译)
+// src/App.tsx (开发时)
+import React from 'react'
+export default function App() {
+  return <div>Hello</div>
+}
+
+// ↓ npm run build ↓
+
+// dist/index.html (最终产出)
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="module" src="/assets/index-abc123.js"></script>
+    <link rel="stylesheet" href="/assets/index-def456.css">
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
+
+// dist/assets/index-abc123.js (编译后的 bundle)
+```
+
+```tsx
+// ❌ 错误: 直接打包源代码
+plugin.wt/
+├── manifest.json
+├── app.js
+├── src/
+│   └── App.tsx  ← 浏览器无法运行
+└── package.json  ← 不应该包含
+```
+
+**验证原则**: 将 `.wt` 文件解压,直接用浏览器打开 `index.html`,应该能正常运行。
 
 ---
 
@@ -272,6 +419,259 @@ type HttpProxyResponse = {
     error: string | null
 }
 ```
+
+---
+
+## 开发调试最佳实践
+
+### API Hook 策略
+
+**问题**: 在开发插件时,如果直接使用 `window.watools` 或 `window.runtime` API,在浏览器中调试会因为这些 API 不存在而崩溃。
+
+**解决方案**: 根据 API 重要性,使用不同的 hook 策略。
+
+#### 策略 1: 忽略非关键 API (日志、分析等)
+
+对于不影响功能的 API,可以简单忽略:
+
+```javascript
+// ✅ 安全的日志包装
+const log = {
+  info: (...args) => window.runtime?.LogInfo?.(...args) || console.log('[INFO]', ...args),
+  error: (...args) => window.runtime?.LogError?.(...args) || console.error('[ERROR]', ...args),
+  debug: (...args) => window.runtime?.LogDebug?.(...args) || console.log('[DEBUG]', ...args)
+}
+
+// 使用
+log.info('插件已加载')  // Wails 环境 → 调用 LogInfo, 浏览器环境 → console.log
+```
+
+#### 策略 2: 别名原生 API (剪贴板、通知等)
+
+对于有浏览器原生替代的 API,使用别名:
+
+```javascript
+// ✅ 剪贴板包装
+const clipboard = {
+  // 读取文本
+  getText: async () => {
+    if (window.runtime?.ClipboardGetText) {
+      return await window.runtime.ClipboardGetText()
+    }
+    // 浏览器环境降级
+    try {
+      return await navigator.clipboard.readText()
+    } catch (e) {
+      console.warn('剪贴板读取失败:', e)
+      return ''
+    }
+  },
+
+  // 写入文本
+  setText: async (text) => {
+    if (window.runtime?.ClipboardSetText) {
+      return await window.runtime.ClipboardSetText(text)
+    }
+    // 浏览器环境降级
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch (e) {
+      console.warn('剪贴板写入失败:', e)
+      return false
+    }
+  }
+}
+
+// 使用
+await clipboard.setText('Hello')  // Wails 和浏览器都能运行
+```
+
+#### 策略 3: Mock 核心业务 API (HTTP、存储等)
+
+对于核心功能,提供完整 mock:
+
+```javascript
+// ✅ HTTP Proxy 包装
+const http = {
+  proxy: async (request) => {
+    if (window.watools?.HttpProxy) {
+      return await window.watools.HttpProxy(request)
+    }
+
+    // 浏览器环境降级(直接 fetch,会受 CORS 限制)
+    console.warn('使用浏览器 fetch 替代 HttpProxy,可能遇到 CORS 问题')
+    try {
+      const response = await fetch(request.url, {
+        method: request.method || 'GET',
+        headers: request.headers,
+        body: request.body,
+        signal: request.timeout ? AbortSignal.timeout(request.timeout) : undefined
+      })
+
+      return {
+        status_code: response.status,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: await response.text(),
+        error: null
+      }
+    } catch (error) {
+      return {
+        status_code: 0,
+        headers: {},
+        body: '',
+        error: error.message
+      }
+    }
+  }
+}
+
+// ✅ Storage 包装
+const storage = {
+  get: async (key) => {
+    if (window.watools?.StorageGet) {
+      return await window.watools.StorageGet(key)
+    }
+    // 浏览器环境降级
+    const value = localStorage.getItem(key)
+    return value ? JSON.parse(value) : null
+  },
+
+  set: async (key, value) => {
+    if (window.watools?.StorageSet) {
+      return await window.watools.StorageSet(key, value)
+    }
+    // 浏览器环境降级
+    localStorage.setItem(key, JSON.stringify(value))
+  },
+
+  remove: async (key) => {
+    if (window.watools?.StorageRemove) {
+      return await window.watools.StorageRemove(key)
+    }
+    localStorage.removeItem(key)
+  },
+
+  clear: async () => {
+    if (window.watools?.StorageClear) {
+      return await window.watools.StorageClear()
+    }
+    localStorage.clear()
+  }
+}
+```
+
+#### 策略 4: 环境检测工具
+
+```javascript
+// ✅ 环境检测
+const env = {
+  isWails: () => typeof window.runtime !== 'undefined',
+  isBrowser: () => typeof window.runtime === 'undefined',
+
+  // 安全调用
+  safeCall: async (watoolsApi, fallback) => {
+    if (env.isWails() && watoolsApi) {
+      return await watoolsApi()
+    }
+    if (fallback) {
+      return await fallback()
+    }
+    console.warn('API 不可用且无降级方案')
+    return null
+  }
+}
+
+// 使用
+await env.safeCall(
+  () => window.watools.HttpProxy({url: 'https://api.com'}),
+  () => fetch('https://api.com').then(r => r.json())
+)
+```
+
+### 推荐的 API 包装模板
+
+创建一个 `watools-api.js` 文件,集中管理所有 API:
+
+```javascript
+// watools-api.js
+export const WaToolsAPI = {
+  // 环境检测
+  isWails: () => typeof window.runtime !== 'undefined',
+
+  // 日志 (可忽略)
+  log: {
+    info: (...args) => window.runtime?.LogInfo?.(...args) || console.log('[INFO]', ...args),
+    error: (...args) => window.runtime?.LogError?.(...args) || console.error('[ERROR]', ...args)
+  },
+
+  // 剪贴板 (别名原生)
+  clipboard: {
+    getText: async () => {
+      if (window.runtime?.ClipboardGetText) return await window.runtime.ClipboardGetText()
+      return await navigator.clipboard.readText().catch(() => '')
+    },
+    setText: async (text) => {
+      if (window.runtime?.ClipboardSetText) return await window.runtime.ClipboardSetText(text)
+      return await navigator.clipboard.writeText(text).then(() => true).catch(() => false)
+    }
+  },
+
+  // HTTP (核心功能 mock)
+  http: {
+    proxy: async (request) => {
+      if (window.watools?.HttpProxy) return await window.watools.HttpProxy(request)
+
+      const response = await fetch(request.url, {
+        method: request.method || 'GET',
+        headers: request.headers,
+        body: request.body
+      })
+      return {
+        status_code: response.status,
+        body: await response.text(),
+        error: null
+      }
+    }
+  },
+
+  // 存储 (核心功能 mock)
+  storage: {
+    get: async (key) => {
+      if (window.watools?.StorageGet) return await window.watools.StorageGet(key)
+      const value = localStorage.getItem(key)
+      return value ? JSON.parse(value) : null
+    },
+    set: async (key, value) => {
+      if (window.watools?.StorageSet) return await window.watools.StorageSet(key, value)
+      localStorage.setItem(key, JSON.stringify(value))
+    }
+  },
+
+  // 窗口控制 (可忽略)
+  window: {
+    hide: () => window.runtime?.Hide?.() || console.log('[MOCK] 隐藏窗口')
+  }
+}
+
+// 使用
+import { WaToolsAPI } from './watools-api.js'
+
+await WaToolsAPI.clipboard.setText('复制内容')
+const response = await WaToolsAPI.http.proxy({url: 'https://api.com'})
+```
+
+### API 重要性分级
+
+| API 类型 | 重要性 | 策略 | 示例 |
+|---------|--------|------|------|
+| 日志/调试 | 低 | 忽略(降级 console) | LogInfo, LogDebug |
+| 窗口控制 | 低 | 忽略(mock) | Hide, Show |
+| 剪贴板 | 中 | 别名原生 API | ClipboardGetText |
+| 通知 | 中 | 别名原生 API | Notification API |
+| HTTP 请求 | 高 | 完整 mock | HttpProxy |
+| 存储 | 高 | 完整 mock | StorageGet/Set |
+| 文件操作 | 高 | 完整 mock | OpenFolder |
 
 ---
 
