@@ -177,10 +177,19 @@ export default entry;
             }
         };
 
+        // 自定义 toast (不能用 alert!)
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#333;color:#fff;padding:12px 20px;border-radius:4px;';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
         // 业务逻辑
         document.getElementById('btn').addEventListener('click', async () => {
             await api.clipboard.setText('Hello from plugin!');
-            alert('已复制');
+            showToast('已复制');  // ✅ 使用自定义 toast
         });
     </script>
 </body>
@@ -272,16 +281,19 @@ const api = {
 
 export default function App() {
   const [text, setText] = useState('Hello WaTools!');
+  const [toast, setToast] = useState('');
 
   const handleCopy = async () => {
     await api.clipboard.setText(text);
-    alert('已复制');
+    setToast('已复制');  // ✅ 使用状态控制 toast
+    setTimeout(() => setToast(''), 2000);
   };
 
   return (
     <div>
       <input value={text} onChange={(e) => setText(e.target.value)} />
       <button onClick={handleCopy}>复制</button>
+      {toast && <div className="toast">{toast}</div>}
     </div>
   );
 }
@@ -407,6 +419,30 @@ const setText = async (text) => {
   }
   await navigator.clipboard.writeText(text);  // 浏览器降级
 };
+```
+
+### ❌ 错误 4: 使用浏览器原生弹窗
+
+```javascript
+// 错误: 使用 alert/confirm/prompt
+alert('操作成功');  // ❌ 会阻塞整个应用!
+if (confirm('确定删除?')) {  // ❌ 会阻塞整个应用!
+  // ...
+}
+```
+
+**解决**: 使用自定义 UI 组件
+```javascript
+// ✅ 推荐: 自定义 toast
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#333;color:#fff;padding:12px 20px;border-radius:4px;';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+showToast('操作成功');
 ```
 
 ---
@@ -657,6 +693,183 @@ const apiKey = await api.storage.get('apiKey')
 
 ---
 
+## 浏览器原生 API 限制
+
+### ❌ 禁止使用的浏览器原生 API
+
+插件运行在 Wails 的 Webview 环境中，以下浏览器原生 API **不可用或行为异常**:
+
+#### 1. 交互弹窗 (全部禁止)
+```javascript
+// ❌ 禁止使用
+alert('消息')              // 会阻塞整个应用
+confirm('确认?')           // 会阻塞整个应用
+prompt('输入:')            // 会阻塞整个应用
+```
+
+**替代方案**: 使用自定义 UI 组件
+```javascript
+// ✅ 推荐: 自定义 toast/modal
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ✅ 推荐: 自定义确认框
+function showConfirm(message, onConfirm) {
+  const modal = document.createElement('div');
+  modal.innerHTML = `
+    <div class="modal">
+      <p>${message}</p>
+      <button id="confirm-yes">确定</button>
+      <button id="confirm-no">取消</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('confirm-yes').onclick = () => {
+    onConfirm(true);
+    modal.remove();
+  };
+  document.getElementById('confirm-no').onclick = () => {
+    onConfirm(false);
+    modal.remove();
+  };
+}
+```
+
+#### 2. 文件系统访问 (受限)
+```javascript
+// ❌ 不可用或行为异常
+window.showOpenFilePicker()       // File System Access API
+window.showSaveFilePicker()
+window.showDirectoryPicker()
+
+// ⚠️ 可用但有限制
+const input = document.createElement('input');
+input.type = 'file';
+input.click();  // 可以用,但推荐使用 Wails 的文件选择 API
+```
+
+**替代方案**: 使用 Wails Runtime API 或拖拽
+```javascript
+// ✅ 推荐: 使用文件拖拽
+window.runtime.OnFileDrop((x, y, paths) => {
+  console.log('拖入文件:', paths);
+}, false);
+
+// ✅ 或者: 使用 <input type="file">
+document.getElementById('file-input').addEventListener('change', (e) => {
+  const files = e.target.files;
+  // 处理文件
+});
+```
+
+#### 3. 窗口操作 (部分禁止)
+```javascript
+// ❌ 禁止使用
+window.open(url)              // 可能无法正常工作
+window.close()                // 使用 window.runtime.Quit()
+window.resizeTo(w, h)         // 使用 window.runtime.WindowSetSize()
+window.moveTo(x, y)           // 使用 window.runtime.WindowSetPosition()
+
+// ⚠️ 可用但不推荐
+location.href = 'new-url'     // 会导航离开插件,避免使用
+history.pushState()           // 插件内路由可用,但需谨慎
+```
+
+**替代方案**: 使用 Wails Runtime API
+```javascript
+// ✅ 推荐
+window.runtime.WindowSetSize(800, 600);
+window.runtime.WindowCenter();
+window.runtime.BrowserOpenURL('https://example.com');  // 在外部浏览器打开
+```
+
+#### 4. 本地存储 (部分可用)
+```javascript
+// ✅ 可用: localStorage/sessionStorage
+localStorage.setItem('key', 'value');  // 可用但数据仅在浏览器缓存
+
+// ✅ 推荐: 使用 watools Storage API (后端持久化)
+await window.watools.StorageSet('key', 'value');  // 数据库持久化
+```
+
+#### 5. 网络请求 (受 CORS 限制)
+```javascript
+// ⚠️ 受 CORS 限制
+fetch('https://api.example.com')  // 会遇到 CORS 问题
+
+// ✅ 推荐: 使用 HttpProxy
+await window.watools.HttpProxy({
+  url: 'https://api.example.com'
+});
+```
+
+#### 6. 其他受限 API
+```javascript
+// ❌ 可能不可用或行为异常
+window.print()                // 打印功能,可能无法正常工作
+navigator.geolocation         // 地理位置,需要权限且可能不可用
+navigator.mediaDevices        // 摄像头/麦克风,需要权限
+Notification API              // 系统通知,使用 Wails 事件系统替代
+ServiceWorker                 // 不支持
+WebSocket                     // 可用,但推荐通过 Wails 后端处理
+```
+
+### ✅ 可以安全使用的浏览器 API
+
+以下浏览器原生 API 在 Wails 环境中**可以正常使用**:
+
+```javascript
+// ✅ DOM 操作
+document.querySelector()
+document.createElement()
+element.addEventListener()
+
+// ✅ 定时器
+setTimeout() / setInterval()
+requestAnimationFrame()
+
+// ✅ 数据处理
+JSON.parse() / JSON.stringify()
+Array/Object/String 方法
+FormData / URLSearchParams
+
+// ✅ 剪贴板 (推荐用 Wails API)
+navigator.clipboard.readText()   // 可用但推荐 window.runtime.ClipboardGetText()
+navigator.clipboard.writeText()  // 可用但推荐 window.runtime.ClipboardSetText()
+
+// ✅ Canvas/图形
+<canvas> 元素
+CanvasRenderingContext2D
+WebGL (如果系统支持)
+
+// ✅ 音视频
+<audio> / <video> 元素
+Web Audio API
+
+// ✅ 拖拽
+Drag and Drop API
+window.runtime.OnFileDrop()  // Wails 增强版
+```
+
+### 📋 快速参考表
+
+| API 类型 | 状态 | 替代方案 |
+|---------|------|---------|
+| alert/confirm/prompt | ❌ 禁止 | 自定义 UI 组件 |
+| window.open() | ❌ 禁止 | window.runtime.BrowserOpenURL() |
+| File System Access API | ❌ 不可用 | 拖拽 或 `<input type="file">` |
+| fetch (跨域) | ⚠️ 受限 | window.watools.HttpProxy() |
+| localStorage | ✅ 可用 | window.watools.Storage (推荐) |
+| Canvas/Audio/Video | ✅ 可用 | 直接使用 |
+| DOM/Timer/Array | ✅ 可用 | 直接使用 |
+
+---
+
 ## 附录: 完整 API 参考
 
 ### window.runtime (Wails Runtime)
@@ -778,6 +991,8 @@ type EnvironmentInfo = {
 - [ ] 使用 API 包装 (防止浏览器调试崩溃)
 - [ ] HTTP 请求使用 `window.watools.HttpProxy`
 - [ ] 存储使用 `window.watools.StorageXxx`
+- [ ] 不使用 alert/confirm/prompt (用自定义 UI)
+- [ ] 不使用 window.open() (用 BrowserOpenURL)
 
 **打包验证**:
 - [ ] .wt 文件内容在根级别 (无父文件夹)
