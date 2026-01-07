@@ -60,8 +60,6 @@ export const WaCommand = () => {
     }, [clearValue])
 
     const onTriggerPluginCommand = useCallback(async (entry: PluginCommandEntry, context: PluginContext) => {
-        clearValue()
-
         // Update plugin usage statistics
         try {
             await updatePluginUsage(entry.packageId)
@@ -79,7 +77,7 @@ export const WaCommand = () => {
                 Logger.error(`Failed to execute plugin command: ${error}`)
             }
         }
-    }, [clearValue, updatePluginUsage, navigate])
+    }, [updatePluginUsage, navigate])
 
     // Get items from hooks directly
     const applicationItems = useApplicationItems({

@@ -11,6 +11,7 @@ export const WaPlugin = () => {
     const [, navigate] = useLocation()
     const [iframeHeight, setIframeHeight] = useState<number | null>(null)
     const inputValue = useAppStore(state => state.value)
+    const clearInputValue = useAppStore(state => state.clearValue)
 
     const packageId = searchParams.get('packageId') || ''
     const file = searchParams.get('file')
@@ -60,11 +61,13 @@ export const WaPlugin = () => {
         // @ts-ignore
         iframeWindow.inputValue = inputValue
 
+        clearInputValue()
+
         const height = iframeWindow.document.body.scrollHeight
         if (height) {
             setIframeHeight(height)
         }
-    }, [iframeRef.current, packageId, inputValue]);
+    }, [iframeRef.current, packageId, inputValue, clearInputValue]);
 
     return <div className="flex-1 overflow-hidden">
         {pluginUrl && <iframe
