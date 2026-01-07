@@ -1,6 +1,6 @@
 import {useLocation, useSearchParams} from "wouter";
-import {useEffect, useRef, useState} from "react";
-import {usePluginStore} from "@/stores";
+import {useCallback, useEffect, useRef, useState} from "react";
+import {useAppStore, usePluginStore} from "@/stores";
 import {createWaToolsApi} from "@/api/api";
 
 export const WaPlugin = () => {
@@ -10,6 +10,7 @@ export const WaPlugin = () => {
     const [pluginUrl, setPluginUrl] = useState<string | null>(null)
     const [, navigate] = useLocation()
     const [iframeHeight, setIframeHeight] = useState<number | null>(null)
+    const inputValue = useAppStore(state => state.value)
 
     const packageId = searchParams.get('packageId') || ''
     const file = searchParams.get('file')
@@ -41,7 +42,7 @@ export const WaPlugin = () => {
     }, [packageId, file]);
 
 
-    const handleIframeLoad = () => {
+    const handleIframeLoad = useCallback(() => {
         if (!iframeRef.current) {
             return
         }
@@ -56,12 +57,14 @@ export const WaPlugin = () => {
         iframeWindow.runtime = window.runtime
         // @ts-ignore
         iframeWindow.watools = createWaToolsApi(packageId)
+        // @ts-ignore
+        iframeWindow.inputValue = inputValue
 
         const height = iframeWindow.document.body.scrollHeight
         if (height) {
             setIframeHeight(height)
         }
-    }
+    }, [iframeRef.current, packageId, inputValue]);
 
     return <div className="flex-1 overflow-hidden">
         {pluginUrl && <iframe
