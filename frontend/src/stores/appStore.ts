@@ -128,7 +128,6 @@ export const useAppStore = create<AppStore>((set, get) => {
         },
         getValue: () => get().value,
         clearValue: () => {
-            console.log('Clearing app store value')
             set(resetState)
         },
         isPanelOpen: () => {
