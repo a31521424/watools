@@ -44,7 +44,8 @@ export const usePluginItems = ({input, clipboard, onTriggerPluginCommand}: UsePl
     // Create context object once
     const context: PluginContext = useMemo(() => ({
         input,
-        clipboard
+        clipboard,
+        packageId: ""
     }), [input, clipboard]);
 
     return useMemo((): BaseItemProps[] => {
