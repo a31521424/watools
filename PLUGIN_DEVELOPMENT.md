@@ -99,6 +99,24 @@ START: 用户需要插件
    cd dist && zip -r ../plugin-name.wt *
 ```
 
+### ⚠️ 关键限制 (必读)
+
+**插件运行在 iframe 中,必须特别注意:**
+
+1. **UI 布局限制**:
+   - ❌ 禁止使用 `alert()`/`confirm()`/`prompt()` - 会阻塞整个应用
+   - ⚠️ Modal/Dialog 使用 `position: fixed` 会受 iframe 边界限制
+   - ✅ 推荐使用 Toast 通知或 Inline Dialog
+   - ✅ 所有覆盖层组件要考虑 iframe viewport 限制
+
+2. **快捷键跨平台支持**:
+   - ❌ 禁止只监听 `e.ctrlKey` (macOS 用户无法使用)
+   - ✅ 必须同时监听 `e.ctrlKey || e.metaKey`
+   - ✅ 例如: `Ctrl+Shift+C` 和 `Meta+Shift+C` 应触发相同功能
+   - ✅ 使用统一的快捷键处理函数(见文档示例)
+
+详见文档后续章节的完整说明。
+
 ### 快速检查表
 
 LLM 在输出后必须自检:
@@ -108,6 +126,8 @@ LLM 在输出后必须自检:
 - [ ] `.wt` 文件不包含 `src/`、`node_modules/`、`package.json`
 - [ ] 解压后打开 `index.html` 能在浏览器直接运行
 - [ ] 构建模式必须有 `npm run build` 和打包命令
+- [ ] **不使用 alert/confirm/prompt,使用自定义 UI**
+- [ ] **所有快捷键同时监听 ctrlKey 和 metaKey**
 
 ---
 
@@ -870,6 +890,509 @@ window.runtime.OnFileDrop()  // Wails 增强版
 
 ---
 
+## UI 设计与交互最佳实践
+
+### ⚠️ Iframe 布局限制
+
+插件运行在**隔离的 iframe 环境**中,必须特别注意布局设计:
+
+#### 1. Modal/Dialog 组件设计
+
+```javascript
+// ❌ 错误: 使用 fixed 定位可能超出 iframe 边界
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;  // 在 iframe 内无法覆盖主应用
+}
+```
+
+**问题**:
+- `position: fixed` 相对于 iframe viewport,而非主窗口
+- Modal 可能被 iframe 边界裁剪,无法居中显示在整个应用窗口
+- `z-index` 无法穿透 iframe,无法覆盖主应用 UI
+
+**✅ 推荐方案 1: 插件内 Modal (适用于简单场景)**
+
+```javascript
+// 使用相对定位,确保在插件可视区域内
+.modal-overlay {
+  position: absolute;  // 相对于插件容器
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 90%;  // 避免超出 iframe 宽度
+  max-height: 80vh;  // 避免超出 iframe 高度
+  overflow-y: auto;
+}
+
+// 确保插件容器启用定位上下文
+#app {
+  position: relative;
+  min-height: 100vh;
+}
+```
+
+**✅ 推荐方案 2: Inline Dialog (最稳定)**
+
+```javascript
+// 不使用遮罩层,直接在页面流中显示对话框
+function showInlineDialog(message) {
+  const dialog = document.createElement('div');
+  dialog.className = 'inline-dialog';
+  dialog.innerHTML = `
+    <div class="dialog-header">
+      <h3>确认操作</h3>
+      <button class="close-btn">&times;</button>
+    </div>
+    <div class="dialog-body">
+      <p>${message}</p>
+      <div class="dialog-actions">
+        <button class="btn-cancel">取消</button>
+        <button class="btn-confirm">确定</button>
+      </div>
+    </div>
+  `;
+
+  // 插入到页面当前位置,而非覆盖层
+  document.getElementById('dialog-container').appendChild(dialog);
+
+  return new Promise((resolve) => {
+    dialog.querySelector('.btn-confirm').onclick = () => {
+      dialog.remove();
+      resolve(true);
+    };
+    dialog.querySelector('.btn-cancel').onclick =
+    dialog.querySelector('.close-btn').onclick = () => {
+      dialog.remove();
+      resolve(false);
+    };
+  });
+}
+
+// CSS
+.inline-dialog {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  margin: 16px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+```
+
+**✅ 推荐方案 3: Toast 通知 (推荐)**
+
+```javascript
+// 使用 fixed 定位但确保在 iframe 可视范围内
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+
+  // 固定在 iframe 的顶部或底部角落
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    max-width: calc(100vw - 40px);  // 防止超出 iframe 宽度
+    animation: slideInRight 0.3s ease-out;
+  `;
+
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'slideOutRight 0.3s ease-in';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+```
+
+#### 2. Dropdown/Popover 组件
+
+```javascript
+// ❌ 错误: 可能超出 iframe 边界被裁剪
+.dropdown-menu {
+  position: absolute;
+  top: 100%;  // 向下展开可能被裁剪
+}
+
+// ✅ 推荐: 智能定位,检测空间
+function showDropdown(triggerElement, menuItems) {
+  const menu = document.createElement('div');
+  menu.className = 'dropdown-menu';
+
+  const triggerRect = triggerElement.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - triggerRect.bottom;
+  const spaceAbove = triggerRect.top;
+
+  // 智能判断向上还是向下展开
+  if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+    menu.style.bottom = `${window.innerHeight - triggerRect.top}px`;
+  } else {
+    menu.style.top = `${triggerRect.bottom}px`;
+  }
+
+  menu.style.left = `${triggerRect.left}px`;
+  menu.style.maxHeight = `${Math.max(spaceBelow, spaceAbove) - 20}px`;
+  menu.style.overflowY = 'auto';
+
+  document.body.appendChild(menu);
+}
+```
+
+#### 3. 全屏覆盖层
+
+```javascript
+// ❌ 错误: 无法覆盖整个应用窗口
+.fullscreen-overlay {
+  position: fixed;
+  inset: 0;  // 只能覆盖 iframe 区域
+}
+
+// ✅ 推荐: 调整预期,设计适配 iframe
+.plugin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.95);  // 浅色背景,避免过于突兀
+  backdrop-filter: blur(8px);  // 模糊背景增强视觉层次
+}
+
+// 或者: 使用页面内的容器
+.content-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: white;
+  z-index: 100;
+}
+```
+
+#### 4. 响应式设计原则
+
+```css
+/* 插件容器应该是响应式的 */
+#app {
+  width: 100%;
+  min-height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* 所有固定定位元素应该考虑 iframe 边界 */
+.fixed-element {
+  position: fixed;
+  max-width: calc(100vw - 32px);  /* 留出边距 */
+  max-height: calc(100vh - 32px);
+}
+
+/* 使用 dvh (dynamic viewport height) 替代 vh */
+.full-height {
+  height: 100dvh;  /* 更准确的视口高度 */
+}
+```
+
+### ⌨️ 跨平台快捷键支持
+
+插件需要同时支持 **Windows (Ctrl)** 和 **macOS (Command/Meta)** 平台的快捷键。
+
+#### 核心原则
+
+```javascript
+// ❌ 错误: 只监听单一修饰键
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'c') {  // macOS 用户无法使用
+    copyToClipboard();
+  }
+});
+
+// ✅ 正确: 同时监听 Ctrl 和 Meta
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+    e.preventDefault();
+    copyToClipboard();
+  }
+});
+```
+
+#### 通用快捷键处理函数
+
+```javascript
+// 快捷键工具函数
+const keyboard = {
+  // 检查是否按下主修饰键 (Ctrl on Windows, Command on macOS)
+  isPrimaryKey: (e) => {
+    const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+    return isMac ? e.metaKey : e.ctrlKey;
+  },
+
+  // 检查快捷键组合
+  match: (e, key, modifiers = {}) => {
+    if (e.key.toLowerCase() !== key.toLowerCase()) return false;
+
+    const primaryPressed = e.ctrlKey || e.metaKey;
+    const shiftPressed = e.shiftKey;
+    const altPressed = e.altKey;
+
+    // 检查是否需要主修饰键
+    if (modifiers.primary && !primaryPressed) return false;
+    if (!modifiers.primary && primaryPressed) return false;
+
+    // 检查其他修饰键
+    if (modifiers.shift !== undefined && modifiers.shift !== shiftPressed) return false;
+    if (modifiers.alt !== undefined && modifiers.alt !== altPressed) return false;
+
+    return true;
+  }
+};
+
+// 使用示例
+document.addEventListener('keydown', (e) => {
+  // Ctrl/Cmd + S: 保存
+  if (keyboard.match(e, 's', { primary: true })) {
+    e.preventDefault();
+    handleSave();
+  }
+
+  // Ctrl/Cmd + Shift + C: 复制为代码
+  if (keyboard.match(e, 'c', { primary: true, shift: true })) {
+    e.preventDefault();
+    copyAsCode();
+  }
+
+  // Ctrl/Cmd + K: 清空
+  if (keyboard.match(e, 'k', { primary: true })) {
+    e.preventDefault();
+    clearContent();
+  }
+
+  // ESC: 关闭 (主应用自动处理,通常无需实现)
+  if (e.key === 'Escape') {
+    closePlugin();
+  }
+});
+```
+
+#### 常用快捷键约定
+
+```javascript
+const shortcuts = {
+  // 标准编辑快捷键
+  copy: { primary: true, key: 'c' },           // Ctrl/Cmd + C
+  paste: { primary: true, key: 'v' },          // Ctrl/Cmd + V
+  cut: { primary: true, key: 'x' },            // Ctrl/Cmd + X
+  undo: { primary: true, key: 'z' },           // Ctrl/Cmd + Z
+  redo: { primary: true, shift: true, key: 'z' }, // Ctrl/Cmd + Shift + Z
+
+  // 标准操作快捷键
+  save: { primary: true, key: 's' },           // Ctrl/Cmd + S
+  find: { primary: true, key: 'f' },           // Ctrl/Cmd + F
+  selectAll: { primary: true, key: 'a' },      // Ctrl/Cmd + A
+
+  // 应用快捷键
+  newTab: { primary: true, key: 't' },         // Ctrl/Cmd + T
+  closeTab: { primary: true, key: 'w' },       // Ctrl/Cmd + W
+
+  // 特殊功能键
+  escape: { key: 'Escape' },                    // ESC
+  enter: { key: 'Enter' },                      // Enter
+  submit: { primary: true, key: 'Enter' },      // Ctrl/Cmd + Enter
+};
+
+// 注册快捷键
+function registerShortcut(shortcut, handler) {
+  document.addEventListener('keydown', (e) => {
+    const primaryPressed = e.ctrlKey || e.metaKey;
+
+    if (e.key === shortcut.key) {
+      // 检查修饰键
+      if (shortcut.primary && !primaryPressed) return;
+      if (!shortcut.primary && primaryPressed) return;
+      if (shortcut.shift !== undefined && shortcut.shift !== e.shiftKey) return;
+      if (shortcut.alt !== undefined && shortcut.alt !== e.altKey) return;
+
+      e.preventDefault();
+      handler(e);
+    }
+  });
+}
+
+// 使用示例
+registerShortcut(shortcuts.save, () => {
+  console.log('保存操作 (跨平台)');
+  handleSave();
+});
+
+registerShortcut(shortcuts.submit, () => {
+  console.log('提交表单 (Ctrl/Cmd + Enter)');
+  submitForm();
+});
+```
+
+#### React 环境下的快捷键处理
+
+```typescript
+import { useEffect } from 'react';
+
+// 自定义 Hook: 跨平台快捷键
+function useShortcut(
+  key: string,
+  callback: (e: KeyboardEvent) => void,
+  modifiers: { primary?: boolean; shift?: boolean; alt?: boolean } = {}
+) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== key.toLowerCase()) return;
+
+      const primaryPressed = e.ctrlKey || e.metaKey;
+      const shiftPressed = e.shiftKey;
+      const altPressed = e.altKey;
+
+      // 检查修饰键
+      if (modifiers.primary && !primaryPressed) return;
+      if (!modifiers.primary && primaryPressed) return;
+      if (modifiers.shift !== undefined && modifiers.shift !== shiftPressed) return;
+      if (modifiers.alt !== undefined && modifiers.alt !== altPressed) return;
+
+      e.preventDefault();
+      callback(e);
+    };
+
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [key, callback, modifiers]);
+}
+
+// 使用示例
+function MyPlugin() {
+  // Ctrl/Cmd + S: 保存
+  useShortcut('s', handleSave, { primary: true });
+
+  // Ctrl/Cmd + Shift + C: 复制代码
+  useShortcut('c', handleCopyCode, { primary: true, shift: true });
+
+  // ESC: 关闭
+  useShortcut('Escape', handleClose);
+
+  return <div>Plugin Content</div>;
+}
+```
+
+#### 快捷键提示 UI
+
+```javascript
+// 显示平台相关的快捷键提示
+function getShortcutHint(shortcut) {
+  const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+  const primary = isMac ? '⌘' : 'Ctrl';
+
+  const modifiers = [];
+  if (shortcut.primary) modifiers.push(primary);
+  if (shortcut.shift) modifiers.push('Shift');
+  if (shortcut.alt) modifiers.push(isMac ? '⌥' : 'Alt');
+
+  return [...modifiers, shortcut.key.toUpperCase()].join(' + ');
+}
+
+// 使用示例
+const saveButton = `
+  <button title="保存 (${getShortcutHint(shortcuts.save)})">
+    保存
+  </button>
+`;
+
+// 在 macOS 显示: 保存 (⌘ + S)
+// 在 Windows 显示: 保存 (Ctrl + S)
+```
+
+#### 平台检测工具
+
+```javascript
+// 平台检测
+const platform = {
+  isMac: /Mac|iPhone|iPod|iPad/.test(navigator.platform),
+  isWindows: /Win/.test(navigator.platform),
+  isLinux: /Linux/.test(navigator.platform),
+
+  // 获取主修饰键名称
+  getPrimaryModifier: () => {
+    return platform.isMac ? 'Command' : 'Ctrl';
+  },
+
+  // 获取主修饰键符号
+  getPrimarySymbol: () => {
+    return platform.isMac ? '⌘' : 'Ctrl';
+  }
+};
+
+// 根据平台调整 UI
+document.getElementById('hint').textContent =
+  `按 ${platform.getPrimarySymbol()} + K 清空内容`;
+```
+
+#### 快捷键冲突避免
+
+```javascript
+// 避免与主应用快捷键冲突的建议:
+
+// ✅ 安全的快捷键 (不太可能冲突)
+// - 功能键: F1-F12
+// - Ctrl/Cmd + Shift + 字母
+// - Ctrl/Cmd + 数字键 (部分)
+
+// ⚠️ 谨慎使用 (可能冲突)
+// - Ctrl/Cmd + T/W/N/R (浏览器标签操作)
+// - Ctrl/Cmd + Q (退出应用)
+// - Ctrl/Cmd + H (隐藏窗口)
+
+// ❌ 避免使用 (肯定冲突)
+// - Alt + Space (WaTools 全局唤起快捷键)
+// - ESC (主应用自动处理)
+
+// 检测快捷键是否被占用
+function isShortcutSafe(shortcut) {
+  const dangerous = [
+    { primary: true, key: 'q' },  // 退出
+    { primary: true, key: 'w' },  // 关闭
+    { alt: true, key: ' ' },      // WaTools 唤起
+  ];
+
+  return !dangerous.some(d =>
+    d.primary === shortcut.primary &&
+    d.alt === shortcut.alt &&
+    d.key === shortcut.key
+  );
+}
+```
+
+---
+
 ## 附录: 完整 API 参考
 
 ### window.runtime (Wails Runtime)
@@ -993,6 +1516,18 @@ type EnvironmentInfo = {
 - [ ] 存储使用 `window.watools.StorageXxx`
 - [ ] 不使用 alert/confirm/prompt (用自定义 UI)
 - [ ] 不使用 window.open() (用 BrowserOpenURL)
+
+**UI 设计 (iframe 限制)**:
+- [ ] Modal/Dialog 使用 absolute 定位或 inline 设计 (不依赖 fixed 覆盖整个窗口)
+- [ ] Dropdown/Popover 有智能定位逻辑 (检测 iframe 边界)
+- [ ] Toast 通知考虑了 max-width 限制 (calc(100vw - 40px))
+- [ ] 所有覆盖层组件在 iframe 内可正常显示
+
+**快捷键支持 (跨平台)**:
+- [ ] 所有快捷键同时监听 `e.ctrlKey || e.metaKey`
+- [ ] 快捷键提示 UI 根据平台显示不同符号 (⌘ vs Ctrl)
+- [ ] 避免使用会与主应用冲突的快捷键 (Alt+Space, ESC)
+- [ ] 提供了统一的快捷键处理函数或 Hook
 
 **打包验证**:
 - [ ] .wt 文件内容在根级别 (无父文件夹)
