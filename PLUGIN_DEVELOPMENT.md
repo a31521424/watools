@@ -104,16 +104,16 @@ START: 用户需要插件
 **插件运行在 iframe 中,必须特别注意:**
 
 1. **UI 布局限制**:
-   - ❌ 禁止使用 `alert()`/`confirm()`/`prompt()` - 会阻塞整个应用
-   - ⚠️ Modal/Dialog 使用 `position: fixed` 会受 iframe 边界限制
-   - ✅ 推荐使用 Toast 通知或 Inline Dialog
-   - ✅ 所有覆盖层组件要考虑 iframe viewport 限制
+    - ❌ 禁止使用 `alert()`/`confirm()`/`prompt()` - 会阻塞整个应用
+    - ⚠️ Modal/Dialog 使用 `position: fixed` 会受 iframe 边界限制
+    - ✅ 推荐使用 Toast 通知或 Inline Dialog
+    - ✅ 所有覆盖层组件要考虑 iframe viewport 限制
 
 2. **快捷键跨平台支持**:
-   - ❌ 禁止只监听 `e.ctrlKey` (macOS 用户无法使用)
-   - ✅ 必须同时监听 `e.ctrlKey || e.metaKey`
-   - ✅ 例如: `Ctrl+Shift+C` 和 `Meta+Shift+C` 应触发相同功能
-   - ✅ 使用统一的快捷键处理函数(见文档示例)
+    - ❌ 禁止只监听 `e.ctrlKey` (macOS 用户无法使用)
+    - ✅ 必须同时监听 `e.ctrlKey || e.metaKey`
+    - ✅ 例如: `Ctrl+Shift+C` 和 `Meta+Shift+C` 应触发相同功能
+    - ✅ 使用统一的快捷键处理函数(见文档示例)
 
 详见文档后续章节的完整说明。
 
@@ -182,36 +182,36 @@ export default entry;
     </style>
 </head>
 <body>
-    <h1>Hello WaTools!</h1>
-    <button id="btn">复制文本</button>
-    <script type="module">
-        // API 包装 (防止浏览器调试崩溃)
-        const api = {
-            clipboard: {
-                setText: async (text) => {
-                    if (window.runtime?.ClipboardSetText) {
-                        return await window.runtime.ClipboardSetText(text);
-                    }
-                    await navigator.clipboard.writeText(text);
+<h1>Hello WaTools!</h1>
+<button id="btn">复制文本</button>
+<script type="module">
+    // API 包装 (防止浏览器调试崩溃)
+    const api = {
+        clipboard: {
+            setText: async (text) => {
+                if (window.runtime?.ClipboardSetText) {
+                    return await window.runtime.ClipboardSetText(text);
                 }
+                await navigator.clipboard.writeText(text);
             }
-        };
-
-        // 自定义 toast (不能用 alert!)
-        function showToast(msg) {
-            const toast = document.createElement('div');
-            toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#333;color:#fff;padding:12px 20px;border-radius:4px;';
-            toast.textContent = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
         }
+    };
 
-        // 业务逻辑
-        document.getElementById('btn').addEventListener('click', async () => {
-            await api.clipboard.setText('Hello from plugin!');
-            showToast('已复制');  // ✅ 使用自定义 toast
-        });
-    </script>
+    // 自定义 toast (不能用 alert!)
+    function showToast(msg) {
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#333;color:#fff;padding:12px 20px;border-radius:4px;';
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+
+    // 业务逻辑
+    document.getElementById('btn').addEventListener('click', async () => {
+        await api.clipboard.setText('Hello from plugin!');
+        showToast('已复制');  // ✅ 使用自定义 toast
+    });
+</script>
 </body>
 </html>
 ```
@@ -275,11 +275,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: 'dist'
-  },
-  publicDir: 'public'  // 自动复制 manifest.json 和 app.js 到 dist/
+    plugins: [react()],
+    build: {
+        outDir: 'dist'
+    },
+    publicDir: 'public'  // 自动复制 manifest.json 和 app.js 到 dist/
 })
 ```
 
@@ -289,33 +289,33 @@ import { useState } from 'react'
 
 // API 包装 (防止浏览器调试崩溃)
 const api = {
-  clipboard: {
-    setText: async (text: string) => {
-      if ((window as any).runtime?.ClipboardSetText) {
-        return await (window as any).runtime.ClipboardSetText(text);
-      }
-      await navigator.clipboard.writeText(text);
+    clipboard: {
+        setText: async (text: string) => {
+            if ((window as any).runtime?.ClipboardSetText) {
+                return await (window as any).runtime.ClipboardSetText(text);
+            }
+            await navigator.clipboard.writeText(text);
+        }
     }
-  }
 };
 
 export default function App() {
-  const [text, setText] = useState('Hello WaTools!');
-  const [toast, setToast] = useState('');
+    const [text, setText] = useState('Hello WaTools!');
+    const [toast, setToast] = useState('');
 
-  const handleCopy = async () => {
-    await api.clipboard.setText(text);
-    setToast('已复制');  // ✅ 使用状态控制 toast
-    setTimeout(() => setToast(''), 2000);
-  };
+    const handleCopy = async () => {
+        await api.clipboard.setText(text);
+        setToast('已复制');  // ✅ 使用状态控制 toast
+        setTimeout(() => setToast(''), 2000);
+    };
 
-  return (
-    <div>
-      <input value={text} onChange={(e) => setText(e.target.value)} />
-      <button onClick={handleCopy}>复制</button>
-      {toast && <div className="toast">{toast}</div>}
-    </div>
-  );
+    return (
+        <div>
+            <input value={text} onChange={(e) => setText(e.target.value)} />
+            <button onClick={handleCopy}>复制</button>
+            {toast && <div className="toast">{toast}</div>}
+        </div>
+    );
 }
 ```
 
@@ -434,10 +434,10 @@ await window.runtime.ClipboardSetText(text)  // 浏览器中会报错!
 **解决**: 使用 API 包装
 ```javascript
 const setText = async (text) => {
-  if (window.runtime?.ClipboardSetText) {
-    return await window.runtime.ClipboardSetText(text);
-  }
-  await navigator.clipboard.writeText(text);  // 浏览器降级
+    if (window.runtime?.ClipboardSetText) {
+        return await window.runtime.ClipboardSetText(text);
+    }
+    await navigator.clipboard.writeText(text);  // 浏览器降级
 };
 ```
 
@@ -447,7 +447,7 @@ const setText = async (text) => {
 // 错误: 使用 alert/confirm/prompt
 alert('操作成功');  // ❌ 会阻塞整个应用!
 if (confirm('确定删除?')) {  // ❌ 会阻塞整个应用!
-  // ...
+    // ...
 }
 ```
 
@@ -455,11 +455,11 @@ if (confirm('确定删除?')) {  // ❌ 会阻塞整个应用!
 ```javascript
 // ✅ 推荐: 自定义 toast
 function showToast(message) {
-  const toast = document.createElement('div');
-  toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#333;color:#fff;padding:12px 20px;border-radius:4px;';
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#333;color:#fff;padding:12px 20px;border-radius:4px;';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 showToast('操作成功');
@@ -506,11 +506,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: 'dist'
-  },
-  publicDir: 'public'  // 关键! 自动复制 public/ 下的文件到 dist/
+    plugins: [react()],
+    build: {
+        outDir: 'dist'
+    },
+    publicDir: 'public'  // 关键! 自动复制 public/ 下的文件到 dist/
 })
 ```
 
@@ -560,48 +560,48 @@ match: (context) => {
 ```typescript
 // 事件
 EventsEmit(eventName: string, ...data: any): void
-EventsOn(eventName: string, callback: (...data: any) => void): () => void
-EventsOnce(eventName: string, callback: (...data: any) => void): () => void
-EventsOff(eventName: string): void
+    EventsOn(eventName: string, callback: (...data: any) => void): () => void
+    EventsOnce(eventName: string, callback: (...data: any) => void): () => void
+    EventsOff(eventName: string): void
 
 // 日志
-LogTrace(message: string): void
-LogDebug(message: string): void
-LogInfo(message: string): void
-LogWarning(message: string): void
-LogError(message: string): void
-LogFatal(message: string): void  // 应用退出
+    LogTrace(message: string): void
+    LogDebug(message: string): void
+    LogInfo(message: string): void
+    LogWarning(message: string): void
+    LogError(message: string): void
+    LogFatal(message: string): void  // 应用退出
 
 // 窗口
-WindowShow(): void
-WindowHide(): void
-WindowSetSize(width: number, height: number): void
-WindowGetSize(): Promise<{w: number, h: number}>
+    WindowShow(): void
+    WindowHide(): void
+    WindowSetSize(width: number, height: number): void
+    WindowGetSize(): Promise<{w: number, h: number}>
 WindowSetPosition(x: number, y: number): void
-WindowGetPosition(): Promise<{x: number, y: number}>
+    WindowGetPosition(): Promise<{x: number, y: number}>
 WindowCenter(): void
-WindowMaximise(): void
-WindowMinimise(): void
-WindowFullscreen(): void
-WindowSetTitle(title: string): void
-WindowSetAlwaysOnTop(b: boolean): void
+    WindowMaximise(): void
+    WindowMinimise(): void
+    WindowFullscreen(): void
+    WindowSetTitle(title: string): void
+    WindowSetAlwaysOnTop(b: boolean): void
 
 // 剪贴板
-ClipboardGetText(): Promise<string>
+    ClipboardGetText(): Promise<string>
 ClipboardSetText(text: string): Promise<boolean>
 
 // 浏览器
 BrowserOpenURL(url: string): void
 
 // 应用
-Quit(): void
-Hide(): void
-Show(): void
-Environment(): Promise<{buildType: string, platform: string, arch: string}>
+    Quit(): void
+    Hide(): void
+    Show(): void
+    Environment(): Promise<{buildType: string, platform: string, arch: string}>
 
 // 拖拽
 OnFileDrop(callback: (x: number, y: number, paths: string[]) => void, useDropTarget: boolean): void
-OnFileDropOff(): void
+    OnFileDropOff(): void
 ```
 
 ### window.watools (WaTools Custom API)
@@ -647,58 +647,58 @@ type HttpProxyResponse = {
 ```javascript
 // watools-api.js
 export const api = {
-  // 剪贴板 (别名浏览器原生 API)
-  clipboard: {
-    getText: async () => {
-      if (window.runtime?.ClipboardGetText) {
-        return await window.runtime.ClipboardGetText();
-      }
-      return await navigator.clipboard.readText().catch(() => '');
+    // 剪贴板 (别名浏览器原生 API)
+    clipboard: {
+        getText: async () => {
+            if (window.runtime?.ClipboardGetText) {
+                return await window.runtime.ClipboardGetText();
+            }
+            return await navigator.clipboard.readText().catch(() => '');
+        },
+        setText: async (text) => {
+            if (window.runtime?.ClipboardSetText) {
+                return await window.runtime.ClipboardSetText(text);
+            }
+            return await navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+        }
     },
-    setText: async (text) => {
-      if (window.runtime?.ClipboardSetText) {
-        return await window.runtime.ClipboardSetText(text);
-      }
-      return await navigator.clipboard.writeText(text).then(() => true).catch(() => false);
-    }
-  },
 
-  // HTTP (核心功能,提供降级)
-  http: async (request) => {
-    if (window.watools?.HttpProxy) {
-      return await window.watools.HttpProxy(request);
-    }
-    // 浏览器降级 (受 CORS 限制)
-    const response = await fetch(request.url, {
-      method: request.method || 'GET',
-      headers: request.headers,
-      body: request.body
-    });
-    return {
-      status_code: response.status,
-      body: await response.text(),
-      error: null
-    };
-  },
-
-  // 存储 (核心功能,提供降级)
-  storage: {
-    get: async (key) => {
-      if (window.watools?.StorageGet) return await window.watools.StorageGet(key);
-      const value = localStorage.getItem(key);
-      return value ? JSON.parse(value) : null;
+    // HTTP (核心功能,提供降级)
+    http: async (request) => {
+        if (window.watools?.HttpProxy) {
+            return await window.watools.HttpProxy(request);
+        }
+        // 浏览器降级 (受 CORS 限制)
+        const response = await fetch(request.url, {
+            method: request.method || 'GET',
+            headers: request.headers,
+            body: request.body
+        });
+        return {
+            status_code: response.status,
+            body: await response.text(),
+            error: null
+        };
     },
-    set: async (key, value) => {
-      if (window.watools?.StorageSet) return await window.watools.StorageSet(key, value);
-      localStorage.setItem(key, JSON.stringify(value));
-    }
-  },
 
-  // 日志 (可忽略,降级到 console)
-  log: {
-    info: (...args) => window.runtime?.LogInfo?.(...args) || console.log('[INFO]', ...args),
-    error: (...args) => window.runtime?.LogError?.(...args) || console.error('[ERROR]', ...args)
-  }
+    // 存储 (核心功能,提供降级)
+    storage: {
+        get: async (key) => {
+            if (window.watools?.StorageGet) return await window.watools.StorageGet(key);
+            const value = localStorage.getItem(key);
+            return value ? JSON.parse(value) : null;
+        },
+        set: async (key, value) => {
+            if (window.watools?.StorageSet) return await window.watools.StorageSet(key, value);
+            localStorage.setItem(key, JSON.stringify(value));
+        }
+    },
+
+    // 日志 (可忽略,降级到 console)
+    log: {
+        info: (...args) => window.runtime?.LogInfo?.(...args) || console.log('[INFO]', ...args),
+        error: (...args) => window.runtime?.LogError?.(...args) || console.error('[ERROR]', ...args)
+    }
 };
 ```
 
@@ -731,32 +731,32 @@ prompt('输入:')            // 会阻塞整个应用
 ```javascript
 // ✅ 推荐: 自定义 toast/modal
 function showToast(message) {
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 // ✅ 推荐: 自定义确认框
 function showConfirm(message, onConfirm) {
-  const modal = document.createElement('div');
-  modal.innerHTML = `
+    const modal = document.createElement('div');
+    modal.innerHTML = `
     <div class="modal">
       <p>${message}</p>
       <button id="confirm-yes">确定</button>
       <button id="confirm-no">取消</button>
     </div>
   `;
-  document.body.appendChild(modal);
-  document.getElementById('confirm-yes').onclick = () => {
-    onConfirm(true);
-    modal.remove();
-  };
-  document.getElementById('confirm-no').onclick = () => {
-    onConfirm(false);
-    modal.remove();
-  };
+    document.body.appendChild(modal);
+    document.getElementById('confirm-yes').onclick = () => {
+        onConfirm(true);
+        modal.remove();
+    };
+    document.getElementById('confirm-no').onclick = () => {
+        onConfirm(false);
+        modal.remove();
+    };
 }
 ```
 
@@ -777,13 +777,13 @@ input.click();  // 可以用,但推荐使用 Wails 的文件选择 API
 ```javascript
 // ✅ 推荐: 使用文件拖拽
 window.runtime.OnFileDrop((x, y, paths) => {
-  console.log('拖入文件:', paths);
+    console.log('拖入文件:', paths);
 }, false);
 
 // ✅ 或者: 使用 <input type="file">
 document.getElementById('file-input').addEventListener('change', (e) => {
-  const files = e.target.files;
-  // 处理文件
+    const files = e.target.files;
+    // 处理文件
 });
 ```
 
@@ -824,7 +824,7 @@ fetch('https://api.example.com')  // 会遇到 CORS 问题
 
 // ✅ 推荐: 使用 HttpProxy
 await window.watools.HttpProxy({
-  url: 'https://api.example.com'
+    url: 'https://api.example.com'
 });
 ```
 
@@ -869,11 +869,11 @@ WebGL (如果系统支持)
 
 // ✅ 音视频
 <audio> / <video> 元素
-Web Audio API
+    Web Audio API
 
-// ✅ 拖拽
-Drag and Drop API
-window.runtime.OnFileDrop()  // Wails 增强版
+    // ✅ 拖拽
+    Drag and Drop API
+    window.runtime.OnFileDrop()  // Wails 增强版
 ```
 
 ### 📋 快速参考表
@@ -901,11 +901,11 @@ window.runtime.OnFileDrop()  // Wails 增强版
 ```javascript
 // ❌ 错误: 使用 fixed 定位可能超出 iframe 边界
 .modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 9999;  // 在 iframe 内无法覆盖主应用
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;  // 在 iframe 内无法覆盖主应用
 }
 ```
 
@@ -919,31 +919,31 @@ window.runtime.OnFileDrop()  // Wails 增强版
 ```javascript
 // 使用相对定位,确保在插件可视区域内
 .modal-overlay {
-  position: absolute;  // 相对于插件容器
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+    position: absolute;  // 相对于插件容器
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
 }
 
 .modal-content {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  max-width: 90%;  // 避免超出 iframe 宽度
-  max-height: 80vh;  // 避免超出 iframe 高度
-  overflow-y: auto;
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 90%;  // 避免超出 iframe 宽度
+    max-height: 80vh;  // 避免超出 iframe 高度
+    overflow-y: auto;
 }
 
 // 确保插件容器启用定位上下文
 #app {
-  position: relative;
-  min-height: 100vh;
+    position: relative;
+    min-height: 100vh;
 }
 ```
 
@@ -952,9 +952,9 @@ window.runtime.OnFileDrop()  // Wails 增强版
 ```javascript
 // 不使用遮罩层,直接在页面流中显示对话框
 function showInlineDialog(message) {
-  const dialog = document.createElement('div');
-  dialog.className = 'inline-dialog';
-  dialog.innerHTML = `
+    const dialog = document.createElement('div');
+    dialog.className = 'inline-dialog';
+    dialog.innerHTML = `
     <div class="dialog-header">
       <h3>确认操作</h3>
       <button class="close-btn">&times;</button>
@@ -968,35 +968,35 @@ function showInlineDialog(message) {
     </div>
   `;
 
-  // 插入到页面当前位置,而非覆盖层
-  document.getElementById('dialog-container').appendChild(dialog);
+    // 插入到页面当前位置,而非覆盖层
+    document.getElementById('dialog-container').appendChild(dialog);
 
-  return new Promise((resolve) => {
-    dialog.querySelector('.btn-confirm').onclick = () => {
-      dialog.remove();
-      resolve(true);
-    };
-    dialog.querySelector('.btn-cancel').onclick =
-    dialog.querySelector('.close-btn').onclick = () => {
-      dialog.remove();
-      resolve(false);
-    };
-  });
+    return new Promise((resolve) => {
+        dialog.querySelector('.btn-confirm').onclick = () => {
+            dialog.remove();
+            resolve(true);
+        };
+        dialog.querySelector('.btn-cancel').onclick =
+            dialog.querySelector('.close-btn').onclick = () => {
+                dialog.remove();
+                resolve(false);
+            };
+    });
 }
 
 // CSS
 .inline-dialog {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  margin: 16px 0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  animation: slideDown 0.2s ease-out;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    margin: 16px 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideDown 0.2s ease-out;
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 ```
 
@@ -1005,12 +1005,12 @@ function showInlineDialog(message) {
 ```javascript
 // 使用 fixed 定位但确保在 iframe 可视范围内
 function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
 
-  // 固定在 iframe 的顶部或底部角落
-  toast.style.cssText = `
+    // 固定在 iframe 的顶部或底部角落
+    toast.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
@@ -1024,11 +1024,11 @@ function showToast(message, type = 'info') {
     animation: slideInRight 0.3s ease-out;
   `;
 
-  document.body.appendChild(toast);
-  setTimeout(() => {
-    toast.style.animation = 'slideOutRight 0.3s ease-in';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease-in';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 ```
 
@@ -1037,31 +1037,31 @@ function showToast(message, type = 'info') {
 ```javascript
 // ❌ 错误: 可能超出 iframe 边界被裁剪
 .dropdown-menu {
-  position: absolute;
-  top: 100%;  // 向下展开可能被裁剪
+    position: absolute;
+    top: 100%;  // 向下展开可能被裁剪
 }
 
 // ✅ 推荐: 智能定位,检测空间
 function showDropdown(triggerElement, menuItems) {
-  const menu = document.createElement('div');
-  menu.className = 'dropdown-menu';
+    const menu = document.createElement('div');
+    menu.className = 'dropdown-menu';
 
-  const triggerRect = triggerElement.getBoundingClientRect();
-  const spaceBelow = window.innerHeight - triggerRect.bottom;
-  const spaceAbove = triggerRect.top;
+    const triggerRect = triggerElement.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - triggerRect.bottom;
+    const spaceAbove = triggerRect.top;
 
-  // 智能判断向上还是向下展开
-  if (spaceBelow < 200 && spaceAbove > spaceBelow) {
-    menu.style.bottom = `${window.innerHeight - triggerRect.top}px`;
-  } else {
-    menu.style.top = `${triggerRect.bottom}px`;
-  }
+    // 智能判断向上还是向下展开
+    if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+        menu.style.bottom = `${window.innerHeight - triggerRect.top}px`;
+    } else {
+        menu.style.top = `${triggerRect.bottom}px`;
+    }
 
-  menu.style.left = `${triggerRect.left}px`;
-  menu.style.maxHeight = `${Math.max(spaceBelow, spaceAbove) - 20}px`;
-  menu.style.overflowY = 'auto';
+    menu.style.left = `${triggerRect.left}px`;
+    menu.style.maxHeight = `${Math.max(spaceBelow, spaceAbove) - 20}px`;
+    menu.style.overflowY = 'auto';
 
-  document.body.appendChild(menu);
+    document.body.appendChild(menu);
 }
 ```
 
@@ -1070,27 +1070,27 @@ function showDropdown(triggerElement, menuItems) {
 ```javascript
 // ❌ 错误: 无法覆盖整个应用窗口
 .fullscreen-overlay {
-  position: fixed;
-  inset: 0;  // 只能覆盖 iframe 区域
+    position: fixed;
+    inset: 0;  // 只能覆盖 iframe 区域
 }
 
 // ✅ 推荐: 调整预期,设计适配 iframe
 .plugin-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.95);  // 浅色背景,避免过于突兀
-  backdrop-filter: blur(8px);  // 模糊背景增强视觉层次
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.95);  // 浅色背景,避免过于突兀
+    backdrop-filter: blur(8px);  // 模糊背景增强视觉层次
 }
 
 // 或者: 使用页面内的容器
 .content-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: white;
-  z-index: 100;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    z-index: 100;
 }
 ```
 
@@ -1099,22 +1099,22 @@ function showDropdown(triggerElement, menuItems) {
 ```css
 /* 插件容器应该是响应式的 */
 #app {
-  width: 100%;
-  min-height: 100vh;
-  padding: 16px;
-  box-sizing: border-box;
+    width: 100%;
+    min-height: 100vh;
+    padding: 16px;
+    box-sizing: border-box;
 }
 
 /* 所有固定定位元素应该考虑 iframe 边界 */
 .fixed-element {
-  position: fixed;
-  max-width: calc(100vw - 32px);  /* 留出边距 */
-  max-height: calc(100vh - 32px);
+    position: fixed;
+    max-width: calc(100vw - 32px);  /* 留出边距 */
+    max-height: calc(100vh - 32px);
 }
 
 /* 使用 dvh (dynamic viewport height) 替代 vh */
 .full-height {
-  height: 100dvh;  /* 更准确的视口高度 */
+    height: 100dvh;  /* 更准确的视口高度 */
 }
 ```
 
@@ -1127,17 +1127,17 @@ function showDropdown(triggerElement, menuItems) {
 ```javascript
 // ❌ 错误: 只监听单一修饰键
 document.addEventListener('keydown', (e) => {
-  if (e.ctrlKey && e.key === 'c') {  // macOS 用户无法使用
-    copyToClipboard();
-  }
+    if (e.ctrlKey && e.key === 'c') {  // macOS 用户无法使用
+        copyToClipboard();
+    }
 });
 
 // ✅ 正确: 同时监听 Ctrl 和 Meta
 document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-    e.preventDefault();
-    copyToClipboard();
-  }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        copyToClipboard();
+    }
 });
 ```
 
@@ -1146,56 +1146,56 @@ document.addEventListener('keydown', (e) => {
 ```javascript
 // 快捷键工具函数
 const keyboard = {
-  // 检查是否按下主修饰键 (Ctrl on Windows, Command on macOS)
-  isPrimaryKey: (e) => {
-    const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
-    return isMac ? e.metaKey : e.ctrlKey;
-  },
+    // 检查是否按下主修饰键 (Ctrl on Windows, Command on macOS)
+    isPrimaryKey: (e) => {
+        const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+        return isMac ? e.metaKey : e.ctrlKey;
+    },
 
-  // 检查快捷键组合
-  match: (e, key, modifiers = {}) => {
-    if (e.key.toLowerCase() !== key.toLowerCase()) return false;
+    // 检查快捷键组合
+    match: (e, key, modifiers = {}) => {
+        if (e.key.toLowerCase() !== key.toLowerCase()) return false;
 
-    const primaryPressed = e.ctrlKey || e.metaKey;
-    const shiftPressed = e.shiftKey;
-    const altPressed = e.altKey;
+        const primaryPressed = e.ctrlKey || e.metaKey;
+        const shiftPressed = e.shiftKey;
+        const altPressed = e.altKey;
 
-    // 检查是否需要主修饰键
-    if (modifiers.primary && !primaryPressed) return false;
-    if (!modifiers.primary && primaryPressed) return false;
+        // 检查是否需要主修饰键
+        if (modifiers.primary && !primaryPressed) return false;
+        if (!modifiers.primary && primaryPressed) return false;
 
-    // 检查其他修饰键
-    if (modifiers.shift !== undefined && modifiers.shift !== shiftPressed) return false;
-    if (modifiers.alt !== undefined && modifiers.alt !== altPressed) return false;
+        // 检查其他修饰键
+        if (modifiers.shift !== undefined && modifiers.shift !== shiftPressed) return false;
+        if (modifiers.alt !== undefined && modifiers.alt !== altPressed) return false;
 
-    return true;
-  }
+        return true;
+    }
 };
 
 // 使用示例
 document.addEventListener('keydown', (e) => {
-  // Ctrl/Cmd + S: 保存
-  if (keyboard.match(e, 's', { primary: true })) {
-    e.preventDefault();
-    handleSave();
-  }
+    // Ctrl/Cmd + S: 保存
+    if (keyboard.match(e, 's', { primary: true })) {
+        e.preventDefault();
+        handleSave();
+    }
 
-  // Ctrl/Cmd + Shift + C: 复制为代码
-  if (keyboard.match(e, 'c', { primary: true, shift: true })) {
-    e.preventDefault();
-    copyAsCode();
-  }
+    // Ctrl/Cmd + Shift + C: 复制为代码
+    if (keyboard.match(e, 'c', { primary: true, shift: true })) {
+        e.preventDefault();
+        copyAsCode();
+    }
 
-  // Ctrl/Cmd + K: 清空
-  if (keyboard.match(e, 'k', { primary: true })) {
-    e.preventDefault();
-    clearContent();
-  }
+    // Ctrl/Cmd + K: 清空
+    if (keyboard.match(e, 'k', { primary: true })) {
+        e.preventDefault();
+        clearContent();
+    }
 
-  // ESC: 关闭 (主应用自动处理,通常无需实现)
-  if (e.key === 'Escape') {
-    closePlugin();
-  }
+    // ESC: 关闭 (主应用自动处理,通常无需实现)
+    if (e.key === 'Escape') {
+        closePlugin();
+    }
 });
 ```
 
@@ -1203,55 +1203,55 @@ document.addEventListener('keydown', (e) => {
 
 ```javascript
 const shortcuts = {
-  // 标准编辑快捷键
-  copy: { primary: true, key: 'c' },           // Ctrl/Cmd + C
-  paste: { primary: true, key: 'v' },          // Ctrl/Cmd + V
-  cut: { primary: true, key: 'x' },            // Ctrl/Cmd + X
-  undo: { primary: true, key: 'z' },           // Ctrl/Cmd + Z
-  redo: { primary: true, shift: true, key: 'z' }, // Ctrl/Cmd + Shift + Z
+    // 标准编辑快捷键
+    copy: { primary: true, key: 'c' },           // Ctrl/Cmd + C
+    paste: { primary: true, key: 'v' },          // Ctrl/Cmd + V
+    cut: { primary: true, key: 'x' },            // Ctrl/Cmd + X
+    undo: { primary: true, key: 'z' },           // Ctrl/Cmd + Z
+    redo: { primary: true, shift: true, key: 'z' }, // Ctrl/Cmd + Shift + Z
 
-  // 标准操作快捷键
-  save: { primary: true, key: 's' },           // Ctrl/Cmd + S
-  find: { primary: true, key: 'f' },           // Ctrl/Cmd + F
-  selectAll: { primary: true, key: 'a' },      // Ctrl/Cmd + A
+    // 标准操作快捷键
+    save: { primary: true, key: 's' },           // Ctrl/Cmd + S
+    find: { primary: true, key: 'f' },           // Ctrl/Cmd + F
+    selectAll: { primary: true, key: 'a' },      // Ctrl/Cmd + A
 
-  // 应用快捷键
-  newTab: { primary: true, key: 't' },         // Ctrl/Cmd + T
-  closeTab: { primary: true, key: 'w' },       // Ctrl/Cmd + W
+    // 应用快捷键
+    newTab: { primary: true, key: 't' },         // Ctrl/Cmd + T
+    closeTab: { primary: true, key: 'w' },       // Ctrl/Cmd + W
 
-  // 特殊功能键
-  escape: { key: 'Escape' },                    // ESC
-  enter: { key: 'Enter' },                      // Enter
-  submit: { primary: true, key: 'Enter' },      // Ctrl/Cmd + Enter
+    // 特殊功能键
+    escape: { key: 'Escape' },                    // ESC
+    enter: { key: 'Enter' },                      // Enter
+    submit: { primary: true, key: 'Enter' },      // Ctrl/Cmd + Enter
 };
 
 // 注册快捷键
 function registerShortcut(shortcut, handler) {
-  document.addEventListener('keydown', (e) => {
-    const primaryPressed = e.ctrlKey || e.metaKey;
+    document.addEventListener('keydown', (e) => {
+        const primaryPressed = e.ctrlKey || e.metaKey;
 
-    if (e.key === shortcut.key) {
-      // 检查修饰键
-      if (shortcut.primary && !primaryPressed) return;
-      if (!shortcut.primary && primaryPressed) return;
-      if (shortcut.shift !== undefined && shortcut.shift !== e.shiftKey) return;
-      if (shortcut.alt !== undefined && shortcut.alt !== e.altKey) return;
+        if (e.key === shortcut.key) {
+            // 检查修饰键
+            if (shortcut.primary && !primaryPressed) return;
+            if (!shortcut.primary && primaryPressed) return;
+            if (shortcut.shift !== undefined && shortcut.shift !== e.shiftKey) return;
+            if (shortcut.alt !== undefined && shortcut.alt !== e.altKey) return;
 
-      e.preventDefault();
-      handler(e);
-    }
-  });
+            e.preventDefault();
+            handler(e);
+        }
+    });
 }
 
 // 使用示例
 registerShortcut(shortcuts.save, () => {
-  console.log('保存操作 (跨平台)');
-  handleSave();
+    console.log('保存操作 (跨平台)');
+    handleSave();
 });
 
 registerShortcut(shortcuts.submit, () => {
-  console.log('提交表单 (Ctrl/Cmd + Enter)');
-  submitForm();
+    console.log('提交表单 (Ctrl/Cmd + Enter)');
+    submitForm();
 });
 ```
 
@@ -1262,45 +1262,45 @@ import { useEffect } from 'react';
 
 // 自定义 Hook: 跨平台快捷键
 function useShortcut(
-  key: string,
-  callback: (e: KeyboardEvent) => void,
-  modifiers: { primary?: boolean; shift?: boolean; alt?: boolean } = {}
+    key: string,
+    callback: (e: KeyboardEvent) => void,
+    modifiers: { primary?: boolean; shift?: boolean; alt?: boolean } = {}
 ) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== key.toLowerCase()) return;
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (e.key.toLowerCase() !== key.toLowerCase()) return;
 
-      const primaryPressed = e.ctrlKey || e.metaKey;
-      const shiftPressed = e.shiftKey;
-      const altPressed = e.altKey;
+            const primaryPressed = e.ctrlKey || e.metaKey;
+            const shiftPressed = e.shiftKey;
+            const altPressed = e.altKey;
 
-      // 检查修饰键
-      if (modifiers.primary && !primaryPressed) return;
-      if (!modifiers.primary && primaryPressed) return;
-      if (modifiers.shift !== undefined && modifiers.shift !== shiftPressed) return;
-      if (modifiers.alt !== undefined && modifiers.alt !== altPressed) return;
+            // 检查修饰键
+            if (modifiers.primary && !primaryPressed) return;
+            if (!modifiers.primary && primaryPressed) return;
+            if (modifiers.shift !== undefined && modifiers.shift !== shiftPressed) return;
+            if (modifiers.alt !== undefined && modifiers.alt !== altPressed) return;
 
-      e.preventDefault();
-      callback(e);
-    };
+            e.preventDefault();
+            callback(e);
+        };
 
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [key, callback, modifiers]);
+        document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, [key, callback, modifiers]);
 }
 
 // 使用示例
 function MyPlugin() {
-  // Ctrl/Cmd + S: 保存
-  useShortcut('s', handleSave, { primary: true });
+    // Ctrl/Cmd + S: 保存
+    useShortcut('s', handleSave, { primary: true });
 
-  // Ctrl/Cmd + Shift + C: 复制代码
-  useShortcut('c', handleCopyCode, { primary: true, shift: true });
+    // Ctrl/Cmd + Shift + C: 复制代码
+    useShortcut('c', handleCopyCode, { primary: true, shift: true });
 
-  // ESC: 关闭
-  useShortcut('Escape', handleClose);
+    // ESC: 关闭
+    useShortcut('Escape', handleClose);
 
-  return <div>Plugin Content</div>;
+    return <div>Plugin Content</div>;
 }
 ```
 
@@ -1309,15 +1309,15 @@ function MyPlugin() {
 ```javascript
 // 显示平台相关的快捷键提示
 function getShortcutHint(shortcut) {
-  const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
-  const primary = isMac ? '⌘' : 'Ctrl';
+    const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+    const primary = isMac ? '⌘' : 'Ctrl';
 
-  const modifiers = [];
-  if (shortcut.primary) modifiers.push(primary);
-  if (shortcut.shift) modifiers.push('Shift');
-  if (shortcut.alt) modifiers.push(isMac ? '⌥' : 'Alt');
+    const modifiers = [];
+    if (shortcut.primary) modifiers.push(primary);
+    if (shortcut.shift) modifiers.push('Shift');
+    if (shortcut.alt) modifiers.push(isMac ? '⌥' : 'Alt');
 
-  return [...modifiers, shortcut.key.toUpperCase()].join(' + ');
+    return [...modifiers, shortcut.key.toUpperCase()].join(' + ');
 }
 
 // 使用示例
@@ -1336,24 +1336,24 @@ const saveButton = `
 ```javascript
 // 平台检测
 const platform = {
-  isMac: /Mac|iPhone|iPod|iPad/.test(navigator.platform),
-  isWindows: /Win/.test(navigator.platform),
-  isLinux: /Linux/.test(navigator.platform),
+    isMac: /Mac|iPhone|iPod|iPad/.test(navigator.platform),
+    isWindows: /Win/.test(navigator.platform),
+    isLinux: /Linux/.test(navigator.platform),
 
-  // 获取主修饰键名称
-  getPrimaryModifier: () => {
-    return platform.isMac ? 'Command' : 'Ctrl';
-  },
+    // 获取主修饰键名称
+    getPrimaryModifier: () => {
+        return platform.isMac ? 'Command' : 'Ctrl';
+    },
 
-  // 获取主修饰键符号
-  getPrimarySymbol: () => {
-    return platform.isMac ? '⌘' : 'Ctrl';
-  }
+    // 获取主修饰键符号
+    getPrimarySymbol: () => {
+        return platform.isMac ? '⌘' : 'Ctrl';
+    }
 };
 
 // 根据平台调整 UI
 document.getElementById('hint').textContent =
-  `按 ${platform.getPrimarySymbol()} + K 清空内容`;
+    `按 ${platform.getPrimarySymbol()} + K 清空内容`;
 ```
 
 #### 快捷键冲突避免
@@ -1377,17 +1377,17 @@ document.getElementById('hint').textContent =
 
 // 检测快捷键是否被占用
 function isShortcutSafe(shortcut) {
-  const dangerous = [
-    { primary: true, key: 'q' },  // 退出
-    { primary: true, key: 'w' },  // 关闭
-    { alt: true, key: ' ' },      // WaTools 唤起
-  ];
+    const dangerous = [
+        { primary: true, key: 'q' },  // 退出
+        { primary: true, key: 'w' },  // 关闭
+        { alt: true, key: ' ' },      // WaTools 唤起
+    ];
 
-  return !dangerous.some(d =>
-    d.primary === shortcut.primary &&
-    d.alt === shortcut.alt &&
-    d.key === shortcut.key
-  );
+    return !dangerous.some(d =>
+        d.primary === shortcut.primary &&
+        d.alt === shortcut.alt &&
+        d.key === shortcut.key
+    );
 }
 ```
 
