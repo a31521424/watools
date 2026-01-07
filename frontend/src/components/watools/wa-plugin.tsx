@@ -1,7 +1,7 @@
 import {useLocation, useSearchParams} from "wouter";
 import {useEffect, useRef, useState} from "react";
 import {usePluginStore} from "@/stores";
-import {WaApi} from "@/api/api";
+import {createWaToolsApi} from "@/api/api";
 
 export const WaPlugin = () => {
     const [searchParams] = useSearchParams()
@@ -51,15 +51,11 @@ export const WaPlugin = () => {
         }
         iframeWindow.addEventListener('keydown', handleHotkey)
 
-        // Inject plugin package ID
-        // @ts-ignore
-        iframeWindow.__PLUGIN_PACKAGE_ID__ = packageId
-
         // TODO: better way to expose runtime api to iframe
         // @ts-ignore
         iframeWindow.runtime = window.runtime
         // @ts-ignore
-        iframeWindow.watools = WaApi
+        iframeWindow.watools = createWaToolsApi(packageId)
 
         const height = iframeWindow.document.body.scrollHeight
         if (height) {

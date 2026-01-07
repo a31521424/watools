@@ -12,7 +12,7 @@ const Watools = () => {
     })
     useEffect(() => {
         // @ts-ignore
-        window.watools = WaApi
+        window.watools = WaApi // TODO: not set plugin package id
         return () => {
             // @ts-ignore
             delete window.watools
