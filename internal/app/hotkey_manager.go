@@ -20,13 +20,6 @@ type HotkeyManager struct {
 var (
 	hotkeyManagerInstance *HotkeyManager
 	hotkeyManagerOnce     sync.Once
-	defaultConfigs        = map[string]HotkeyConfig{
-		"show-hide-window": {
-			ID:     "show-hide-window",
-			Name:   "Show/Hide Window",
-			Hotkey: "cmd+Space",
-		},
-	}
 )
 
 func GetHotkeyManager() *HotkeyManager {
@@ -55,7 +48,7 @@ func (hm *HotkeyManager) LoadConfigs() error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// If config file doesn't exist, use default config and save
-			hm.configs = defaultConfigs
+			hm.configs = defaultHotkeyConfigs()
 			return hm.saveConfigsUnsafe()
 		}
 		return fmt.Errorf("failed to read hotkey config file: %w", err)
@@ -74,7 +67,7 @@ func (hm *HotkeyManager) LoadConfigs() error {
 	}
 
 	// Ensure all default configs exist
-	for id, defaultCfg := range defaultConfigs {
+	for id, defaultCfg := range defaultHotkeyConfigs() {
 		if _, exists := hm.configs[id]; !exists {
 			hm.configs[id] = defaultCfg
 		}
