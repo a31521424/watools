@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/google/uuid"
@@ -61,11 +60,7 @@ func (a *ApplicationCommand) OnTrigger() error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return fmt.Errorf("failed to find application file '%s': %w", path, err)
 	}
-	cmd := exec.Command("open", path)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to run application: %w\n%s", err, output)
-	}
-	return nil
+	return openApplication(path)
 }
 
 func (a *ApplicationCommand) GetMetadata() *Command {
