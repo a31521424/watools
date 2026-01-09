@@ -8,11 +8,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 	"watools/pkg/logger"
 	"watools/pkg/models"
 
 	"github.com/samber/mo"
+	"golang.org/x/sys/windows/registry"
 )
 
 type shortcutInfo struct {
@@ -24,6 +26,49 @@ type shortcutInfo struct {
 type AppPathInfo struct {
 	Path     string
 	UpdateAt time.Time
+	Name     string
+	IconPath string
+	Desc     string
+}
+
+var (
+	extraSearchDirs   []string
+	extraSearchDirsMu sync.RWMutex
+)
+
+// AddSearchDir appends an extra directory to search for executables.
+func AddSearchDir(dir string) {
+	dir = strings.TrimSpace(dir)
+	if dir == "" {
+		return
+	}
+	dir = filepath.Clean(dir)
+	extraSearchDirsMu.Lock()
+	extraSearchDirs = append(extraSearchDirs, dir)
+	extraSearchDirsMu.Unlock()
+}
+
+// SetSearchDirs replaces extra search directories.
+func SetSearchDirs(dirs []string) {
+	cleaned := make([]string, 0, len(dirs))
+	for _, dir := range dirs {
+		dir = strings.TrimSpace(dir)
+		if dir == "" {
+			continue
+		}
+		cleaned = append(cleaned, filepath.Clean(dir))
+	}
+	extraSearchDirsMu.Lock()
+	extraSearchDirs = cleaned
+	extraSearchDirsMu.Unlock()
+}
+
+func getExtraSearchDirs() []string {
+	extraSearchDirsMu.RLock()
+	defer extraSearchDirsMu.RUnlock()
+	dirs := make([]string, len(extraSearchDirs))
+	copy(dirs, extraSearchDirs)
+	return dirs
 }
 
 func escapePowerShellSingleQuoted(value string) string {
@@ -89,6 +134,155 @@ func normalizeIconPath(iconLocation string, fallback string) string {
 	return iconPath
 }
 
+func normalizePathKey(path string) string {
+	if path == "" {
+		return ""
+	}
+	return strings.ToLower(filepath.Clean(path))
+}
+
+func isExecutablePath(path string) bool {
+	return strings.EqualFold(filepath.Ext(path), ".exe")
+}
+
+func extractExecutablePath(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(value, "\"") {
+		trimmed := strings.TrimPrefix(value, "\"")
+		if idx := strings.Index(trimmed, "\""); idx >= 0 {
+			value = trimmed[:idx]
+		} else {
+			value = strings.Trim(value, "\"")
+		}
+	} else {
+		if idx := strings.Index(value, ","); idx >= 0 {
+			value = value[:idx]
+		}
+		fields := strings.Fields(value)
+		if len(fields) > 0 {
+			value = fields[0]
+		}
+	}
+
+	if idx := strings.Index(value, ","); idx >= 0 {
+		value = value[:idx]
+	}
+
+	value = expandWindowsEnv(value)
+	return strings.TrimSpace(value)
+}
+
+func findFirstExecutable(dir string) string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return ""
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if strings.EqualFold(filepath.Ext(entry.Name()), ".exe") {
+			return filepath.Join(dir, entry.Name())
+		}
+	}
+	return ""
+}
+
+func getRegistryAppInfos() []AppPathInfo {
+	var infos []AppPathInfo
+
+	type regRoot struct {
+		key  registry.Key
+		path string
+		flag uint32
+	}
+
+	roots := []regRoot{
+		{registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`, registry.WOW64_64KEY},
+		{registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`, registry.WOW64_32KEY},
+		{registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`, registry.WOW64_64KEY},
+		{registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`, registry.WOW64_32KEY},
+	}
+
+	seen := make(map[string]struct{})
+
+	for _, root := range roots {
+		baseKey, err := registry.OpenKey(root.key, root.path, registry.READ|root.flag)
+		if err != nil {
+			continue
+		}
+		subKeys, err := baseKey.ReadSubKeyNames(-1)
+		baseKey.Close()
+		if err != nil {
+			continue
+		}
+
+		for _, sub := range subKeys {
+			subKey, err := registry.OpenKey(root.key, root.path+`\`+sub, registry.READ|root.flag)
+			if err != nil {
+				continue
+			}
+
+			displayName, _, _ := subKey.GetStringValue("DisplayName")
+			if strings.TrimSpace(displayName) == "" {
+				subKey.Close()
+				continue
+			}
+
+			displayIcon, _, _ := subKey.GetStringValue("DisplayIcon")
+			installLocation, _, _ := subKey.GetStringValue("InstallLocation")
+			description, _, _ := subKey.GetStringValue("Publisher")
+
+			subKey.Close()
+
+			iconPath := extractExecutablePath(displayIcon)
+			targetPath := iconPath
+
+			if targetPath == "" || !isExecutablePath(targetPath) {
+				installLocation = expandWindowsEnv(strings.TrimSpace(installLocation))
+				if installLocation != "" && filepath.IsAbs(installLocation) {
+					if exePath := findFirstExecutable(installLocation); exePath != "" {
+						targetPath = exePath
+					}
+				}
+			}
+
+			if targetPath == "" || !filepath.IsAbs(targetPath) || !isExecutablePath(targetPath) {
+				continue
+			}
+
+			if _, err := os.Stat(targetPath); err != nil {
+				continue
+			}
+
+			key := normalizePathKey(targetPath)
+			if _, exists := seen[key]; exists {
+				continue
+			}
+			seen[key] = struct{}{}
+
+			fi, err := os.Stat(targetPath)
+			if err != nil {
+				continue
+			}
+
+			infos = append(infos, AppPathInfo{
+				Path:     targetPath,
+				UpdateAt: fi.ModTime(),
+				Name:     strings.TrimSpace(displayName),
+				IconPath: iconPath,
+				Desc:     strings.TrimSpace(description),
+			})
+		}
+	}
+
+	return infos
+}
+
 func parseShortcut(lnkPath string) (*models.ApplicationCommand, error) {
 	fi, err := os.Stat(lnkPath)
 	if err != nil {
@@ -148,9 +342,8 @@ func getStartMenuDirs() []string {
 	return dirs
 }
 
-func getWindowsApplicationPath() []AppPathInfo {
+func scanStartMenuShortcuts(seen map[string]struct{}) []AppPathInfo {
 	var appPathInfos []AppPathInfo
-	seen := make(map[string]struct{})
 
 	for _, root := range getStartMenuDirs() {
 		if _, err := os.Stat(root); err != nil {
@@ -166,7 +359,8 @@ func getWindowsApplicationPath() []AppPathInfo {
 			if !strings.EqualFold(filepath.Ext(d.Name()), ".lnk") {
 				return nil
 			}
-			if _, exists := seen[path]; exists {
+			key := normalizePathKey(path)
+			if _, exists := seen[key]; exists {
 				return nil
 			}
 			fi, err := os.Stat(path)
@@ -174,24 +368,123 @@ func getWindowsApplicationPath() []AppPathInfo {
 				return nil
 			}
 			appPathInfos = append(appPathInfos, AppPathInfo{Path: path, UpdateAt: fi.ModTime()})
-			seen[path] = struct{}{}
+			seen[key] = struct{}{}
 			return nil
 		})
 	}
 
-	logger.Info(fmt.Sprintf("Scanning start menu folders: %v", getStartMenuDirs()))
 	return appPathInfos
+}
+
+func scanExecutablesInDirs(dirs []string, seen map[string]struct{}) []AppPathInfo {
+	var infos []AppPathInfo
+	for _, root := range dirs {
+		if root == "" {
+			continue
+		}
+		if _, err := os.Stat(root); err != nil {
+			continue
+		}
+		_ = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if d.IsDir() {
+				return nil
+			}
+			if !strings.EqualFold(filepath.Ext(d.Name()), ".exe") {
+				return nil
+			}
+			key := normalizePathKey(path)
+			if _, exists := seen[key]; exists {
+				return nil
+			}
+			fi, err := os.Stat(path)
+			if err != nil {
+				return nil
+			}
+			infos = append(infos, AppPathInfo{Path: path, UpdateAt: fi.ModTime()})
+			seen[key] = struct{}{}
+			return nil
+		})
+	}
+	return infos
+}
+
+func getWindowsApplicationPath() []AppPathInfo {
+	var appPathInfos []AppPathInfo
+	seen := make(map[string]struct{})
+
+	registryInfos := getRegistryAppInfos()
+	for _, info := range registryInfos {
+		key := normalizePathKey(info.Path)
+		if key == "" {
+			continue
+		}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		appPathInfos = append(appPathInfos, info)
+	}
+
+	startMenuInfos := scanStartMenuShortcuts(seen)
+	appPathInfos = append(appPathInfos, startMenuInfos...)
+
+	extraDirs := getExtraSearchDirs()
+	if len(extraDirs) > 0 {
+		appPathInfos = append(appPathInfos, scanExecutablesInDirs(extraDirs, seen)...)
+	}
+
+	logger.Info(fmt.Sprintf("Scanning registry, start menu, extra dirs: %v", extraDirs))
+	return appPathInfos
+}
+
+func newApplicationFromInfo(info AppPathInfo) (*models.ApplicationCommand, error) {
+	if info.Name == "" {
+		return nil, fmt.Errorf("missing display name")
+	}
+	desc := mo.TupleToOption(info.Desc, info.Desc != "")
+	var iconPath mo.Option[string]
+	if info.IconPath != "" {
+		if _, err := os.Stat(info.IconPath); err == nil {
+			iconPath = mo.Some(info.IconPath)
+		}
+	}
+	return models.NewApplicationCommand(info.Name, desc, info.Path, iconPath, mo.None[string](), info.UpdateAt), nil
 }
 
 func GetApplications() ([]*models.ApplicationCommand, error) {
 	var commands []*models.ApplicationCommand
+	seen := make(map[string]struct{})
 
 	for _, appPathInfo := range getWindowsApplicationPath() {
-		if command, err := ParseApplication(appPathInfo.Path); err == nil {
-			commands = append(commands, command)
-		} else {
-			logger.Error(err, fmt.Sprintf("Failed to parse shortcut for '%s'", appPathInfo.Path))
+		if appPathInfo.Name != "" {
+			command, err := newApplicationFromInfo(appPathInfo)
+			if err == nil {
+				key := normalizePathKey(command.Path)
+				if key != "" {
+					if _, exists := seen[key]; !exists {
+						seen[key] = struct{}{}
+						commands = append(commands, command)
+					}
+				}
+				continue
+			}
 		}
+		command, err := ParseApplication(appPathInfo.Path)
+		if err != nil {
+			logger.Error(err, fmt.Sprintf("Failed to parse application for '%s'", appPathInfo.Path))
+			continue
+		}
+		key := normalizePathKey(command.Path)
+		if key != "" {
+			if _, exists := seen[key]; exists {
+				continue
+			}
+			seen[key] = struct{}{}
+		}
+		commands = append(commands, command)
 	}
 	return commands, nil
 }
