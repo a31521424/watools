@@ -22,8 +22,10 @@ func (c *HotkeyConfig) ParseHotkey() ([]hotkey.Modifier, hotkey.Key, error) {
 	// Normalize modifier key names
 	for _, part := range strings.Split(strings.ToLower(c.Hotkey), "+") {
 		switch part {
-		case "cmd", "command", "⌘":
+		case "cmd", "command", "meta", "super", "⌘":
 			modifiersKeyMap["cmd"] = &struct{}{}
+		case "win":
+			modifiersKeyMap["win"] = &struct{}{}
 		case "ctrl", "control", "^":
 			modifiersKeyMap["ctrl"] = &struct{}{}
 		case "alt", "option", "opt", "⌥":
