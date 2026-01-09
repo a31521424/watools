@@ -138,3 +138,5 @@ func (l *HotkeyListener) Unregister() error {
 func (l *HotkeyListener) IsRegistered() bool {
 	return l.hk != nil
 }
+
+

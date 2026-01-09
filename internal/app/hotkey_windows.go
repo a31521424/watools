@@ -5,7 +5,7 @@ import (
 )
 
 var modifierMap = map[string]hotkey.Modifier{
-	"cmd":   hotkey.ModWin,
+	"cmd":   hotkey.ModCtrl,
 	"win":   hotkey.ModWin,
 	"ctrl":  hotkey.ModCtrl,
 	"alt":   hotkey.ModAlt,
@@ -83,3 +83,4 @@ var keyMap = map[string]hotkey.Key{
 	"f19":      hotkey.KeyF19,
 	"f20":      hotkey.KeyF20,
 }
+
