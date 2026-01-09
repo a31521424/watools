@@ -14,6 +14,9 @@ export const WaApplicationCommandFuseConfig: IFuseOptions<ApplicationCommandType
         name: 'name',
         weight: 1.0
     }, {
+        name: 'namePinyin',
+        weight: 0.95
+    }, {
         name: 'nameInitial',
         weight: 0.9
     }, {

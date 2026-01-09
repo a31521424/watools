@@ -18,6 +18,7 @@ export type ApplicationCommandType = CommandType & {
     id: string
 
     // calculated
+    namePinyin: string | null
     nameInitial: string | null
     pathName: string
     isUserApp: boolean
