@@ -105,9 +105,13 @@ $bmp.Save($dest, [System.Drawing.Imaging.ImageFormat]::Png)`, escapePowerShellSi
 }
 
 func extractExecutableIconToPng(sourcePath string, iconIndex int, destPath string) error {
+	if _, err := os.Stat(sourcePath); err != nil {
+		return err
+	}
+
 	script := fmt.Sprintf(`Add-Type -AssemblyName System.Drawing;
 Add-Type -Namespace Win32 -Name NativeMethods -MemberDefinition @'
-[DllImport("user32.dll", CharSet=CharSet.Unicode)]
+[DllImport("shell32.dll", CharSet=CharSet.Unicode)]
 public static extern uint ExtractIconEx(string szFileName, int nIconIndex, out IntPtr phiconLarge, out IntPtr phiconSmall, uint nIcons);
 [DllImport("user32.dll", CharSet=CharSet.Unicode)]
 public static extern bool DestroyIcon(IntPtr hIcon);
@@ -129,6 +133,9 @@ $bmp.Save($dest, [System.Drawing.Imaging.ImageFormat]::Png);
 
 	cmd := exec.Command("powershell", "-NoProfile", "-Command", script)
 	if output, err := cmd.CombinedOutput(); err != nil {
+		if fallbackErr := extractAssociatedIconToPng(sourcePath, destPath); fallbackErr == nil {
+			return nil
+		}
 		return fmt.Errorf("failed to extract icon to png: %w\n%s", err, output)
 	}
 	return nil
