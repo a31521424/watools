@@ -187,6 +187,7 @@ export const WaCommand = () => {
         value={selectedKey}
         shouldFilter={false}
         className="rounded-lg border shadow-md w-full p-2"
+        disablePointerSelection={true}
     >
         <WaComplexInput
             ref={inputRef}
