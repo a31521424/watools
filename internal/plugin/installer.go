@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 	"watools/config"
 	"watools/pkg/db"
@@ -50,7 +51,10 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 	}
 
 	// 4. 读取并验证manifest.json
-	manifestPath := filepath.Join(tempDir, "manifest.json")
+	manifestPath, err := pi.findManifestPath(tempDir)
+	if err != nil {
+		return fmt.Errorf("failed to read manifest: %w", err)
+	}
 	manifest, err := pi.readManifest(manifestPath)
 	if err != nil {
 		return fmt.Errorf("failed to read manifest: %w", err)
@@ -77,7 +81,8 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 	}
 
 	// 8. 复制文件到插件目录
-	if err := pi.copyDir(tempDir, pluginDir); err != nil {
+	pluginRoot := filepath.Dir(manifestPath)
+	if err := pi.copyDir(pluginRoot, pluginDir); err != nil {
 		os.RemoveAll(pluginDir) // 清理失败的安装
 		return fmt.Errorf("failed to copy plugin files: %w", err)
 	}
@@ -174,6 +179,30 @@ func (pi *PluginInstaller) unzipFile(src, dest string) error {
 		}
 	}
 	return nil
+}
+
+func (pi *PluginInstaller) findManifestPath(root string) (string, error) {
+	var manifestPath string
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.EqualFold(info.Name(), "manifest.json") {
+			manifestPath = path
+			return io.EOF
+		}
+		return nil
+	})
+	if err != nil && err != io.EOF {
+		return "", err
+	}
+	if manifestPath == "" {
+		return "", fmt.Errorf("manifest.json not found")
+	}
+	return manifestPath, nil
 }
 
 // readManifest reads and parses manifest.json
