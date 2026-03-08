@@ -1,5 +1,5 @@
 import {ApplicationCommandType, CommandGroupType, OperationCommandType} from "@/schemas/command";
-import {isContainNonAscii, toPinyinInitial} from "@/lib/search";
+import {isContainNonAscii, toPinyin, toPinyinInitial} from "@/lib/search";
 import {GetApplicationCommandsApi, GetOperatorCommandsApi, UpdateApplicationUsageApi} from "../../wailsjs/go/coordinator/WaAppCoordinator";
 
 export const getApplicationCommands = async (): Promise<CommandGroupType<ApplicationCommandType>> => {
@@ -11,6 +11,7 @@ export const getApplicationCommands = async (): Promise<CommandGroupType<Applica
         ...command,
         lastUsedAt: command.lastUsedAt ? new Date(command.lastUsedAt) : null,
         category: 'Application',
+        namePinyin: isContainNonAscii(command.name) ? toPinyin(command.name) : null,
         nameInitial: isContainNonAscii(command.name) ? toPinyinInitial(command.name) : null,
         pathName: command.path.split('/').pop() || ''
     }))
