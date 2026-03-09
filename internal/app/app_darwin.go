@@ -196,6 +196,7 @@ func (a *WaApp) showAppAsPanel() {
 	time.Sleep(10 * time.Millisecond)
 	a.checkAndRepositionIfNeeded()
 	runtime.WindowShow(a.ctx)
+	a.positionWindow()
 	a.isHidden = false
 }
 

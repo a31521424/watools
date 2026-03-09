@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"sync"
-	"watools/config"
 	"watools/pkg/logger"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -20,6 +19,10 @@ type WaApp struct {
 	hotkeyListener   []*HotkeyListener
 	lastScreenWidth  int
 	lastScreenHeight int
+}
+
+func (a *WaApp) positionWindow() {
+	runtime.WindowCenter(a.ctx)
 }
 
 func clampWindowWidth(screenWidth int) int {
@@ -85,12 +88,7 @@ func (a *WaApp) initWindowSize() {
 		width = clampWindowWidth(primaryScreen.Size.Width)
 	}
 	runtime.WindowSetSize(a.ctx, width, height)
-	if config.IsDevMode() {
-		// for fronted debug
-		runtime.WindowSetPosition(a.ctx, width, 0)
-		return
-	}
-	runtime.WindowCenter(a.ctx)
+	a.positionWindow()
 }
 
 func (a *WaApp) OnStartup(ctx context.Context) {
@@ -137,12 +135,7 @@ func (a *WaApp) checkAndRepositionIfNeeded() {
 		height := 64
 
 		runtime.WindowSetSize(a.ctx, width, height)
-
-		if config.IsDevMode() {
-			runtime.WindowSetPosition(a.ctx, width, 0)
-		} else {
-			runtime.WindowCenter(a.ctx)
-		}
+		a.positionWindow()
 	}
 }
 func (a *WaApp) Reload() {

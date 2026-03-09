@@ -1,5 +1,6 @@
 import {RefObject, useEffect, useRef} from 'react'
-import {WindowGetSize, WindowSetSize} from "../../wailsjs/runtime";
+import {WindowCenter, WindowGetSize, WindowSetSize} from "../../wailsjs/runtime";
+import {isDevMode} from "@/lib/env";
 
 
 export const useElementResize = <T extends HTMLElement>(
@@ -32,5 +33,8 @@ export const resizeWindowHeight = async (entries: ResizeObserverEntry[]) => {
     const currentSize = await WindowGetSize()
     if (height && currentSize.h !== height) {
         WindowSetSize(currentSize.w, height)
+        if (!isDevMode()) {
+            WindowCenter()
+        }
     }
 }
