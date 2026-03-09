@@ -137,8 +137,16 @@ export const WaCommand = () => {
             ...appFeatureItems,
         ];
 
+        const uniqueItems = new Map<string, BaseItemProps>();
+        for (const item of allItems) {
+            const existing = uniqueItems.get(item.triggerId);
+            if (!existing || (item.usedCount || 0) > (existing.usedCount || 0)) {
+                uniqueItems.set(item.triggerId, item);
+            }
+        }
+
         // Sort by usedCount (higher is better)
-        return allItems.sort((a, b) => {
+        return Array.from(uniqueItems.values()).sort((a, b) => {
             const usedCountA = a.usedCount || 0;
             const usedCountB = b.usedCount || 0;
             return usedCountB - usedCountA;

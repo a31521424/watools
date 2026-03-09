@@ -5,6 +5,16 @@ import {BaseItemProps} from "@/components/watools/wa-base-item";
 import Fuse from "fuse.js";
 import {WaIcon} from "@/components/watools/wa-icon";
 
+const dedupeOperations = (commands: OperationCommandType[]) => {
+    const uniqueCommands = new Map<string, OperationCommandType>();
+    for (const command of commands) {
+        if (!uniqueCommands.has(command.triggerId)) {
+            uniqueCommands.set(command.triggerId, command);
+        }
+    }
+    return Array.from(uniqueCommands.values());
+}
+
 type UseOperationItemsParams = {
     searchKey: string;
     onTriggerCommand: (command: CommandType) => void;
@@ -28,7 +38,7 @@ export const useOperationItems = ({searchKey, onTriggerCommand}: UseOperationIte
     useEffect(() => {
         const initApplication = () => {
             getOperationCommands().then(commandGroup => {
-                setOperationCommands(commandGroup.commands);
+                setOperationCommands(dedupeOperations(commandGroup.commands));
             });
         };
         initApplication();

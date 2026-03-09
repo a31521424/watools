@@ -28,12 +28,12 @@ export const usePluginItems = ({input, clipboard, onTriggerPluginCommand}: UsePl
     const allPluginEntries = useMemo(() => {
         const entries: PluginCommandEntry[] = [];
         enabledPlugins.forEach(plugin => {
-            plugin.entry.forEach((entry) => {
+            plugin.entry.forEach((entry, index) => {
                 entries.push({
                     ...entry,
                     packageId: plugin.packageId,
                     pluginName: plugin.name,
-                    triggerId: `${plugin.packageId}_${entry.subTitle}`,
+                    triggerId: `${plugin.packageId}:${entry.type}:${entry.type === 'ui' ? entry.file : entry.subTitle}:${index}`,
                     homeUrl: plugin.homeUrl
                 });
             });
@@ -62,7 +62,14 @@ export const usePluginItems = ({input, clipboard, onTriggerPluginCommand}: UsePl
             }
         });
 
-        matchedEntries.sort((a, b) => {
+        const uniqueEntries = new Map<string, PluginCommandEntry>();
+        for (const entry of matchedEntries) {
+            if (!uniqueEntries.has(entry.triggerId)) {
+                uniqueEntries.set(entry.triggerId, entry);
+            }
+        }
+
+        const sortedEntries = Array.from(uniqueEntries.values()).sort((a, b) => {
             const pluginA = enabledPlugins.find(p => p.packageId === a.packageId);
             const pluginB = enabledPlugins.find(p => p.packageId === b.packageId);
 
@@ -78,7 +85,7 @@ export const usePluginItems = ({input, clipboard, onTriggerPluginCommand}: UsePl
             return 0;
         });
 
-        return matchedEntries.slice(0, 3).map(entry => {
+        return sortedEntries.slice(0, 3).map(entry => {
             const plugin = enabledPlugins.find(p => p.packageId === entry.packageId);
 
             return {

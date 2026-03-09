@@ -9,6 +9,16 @@ import {
 } from "../../wailsjs/go/coordinator/WaAppCoordinator"
 import {sanitizePluginEntries} from "@/lib/plugin";
 
+const dedupePluginsByPackageId = (plugins: Plugin[]): Plugin[] => {
+    const uniquePlugins = new Map<string, Plugin>()
+    for (const plugin of plugins) {
+        if (!uniquePlugins.has(plugin.packageId)) {
+            uniquePlugins.set(plugin.packageId, plugin)
+        }
+    }
+    return Array.from(uniquePlugins.values())
+}
+
 export const getPlugins = async (): Promise<Plugin[]> => {
     const pluginsData = await GetPluginsApi()
 
@@ -32,6 +42,8 @@ export const getPlugins = async (): Promise<Plugin[]> => {
             entry: [],
         }))
     }
+
+    plugins = dedupePluginsByPackageId(plugins)
 
     await Promise.all(plugins.filter(plugin => plugin.enabled).map(async (plugin) => {
         try {

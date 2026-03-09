@@ -159,7 +159,12 @@ func (w *WaLaunchApp) GetApplicationCommands() []interface{} {
 	var commands []interface{}
 	w.applicationRunner = nil
 
-	apps := w.getApplicationCommands()
+	apps := lo.UniqBy(w.getApplicationCommands(), func(app *models.ApplicationCommand) string {
+		if app.ID != "" {
+			return app.ID
+		}
+		return app.Path
+	})
 	w.applicationRunner = append(w.applicationRunner, lo.Map(apps, func(app *models.ApplicationCommand, _ int) models.CommandRunner { return app })...)
 	commands = append(commands, lo.Map(apps, func(app *models.ApplicationCommand, _ int) interface{} {
 		var m map[string]interface{}
@@ -172,21 +177,17 @@ func (w *WaLaunchApp) GetApplicationCommands() []interface{} {
 }
 
 func (w *WaLaunchApp) GetOperationCommands() []interface{} {
-	var commands []interface{}
 	w.operationRunner = nil
 
 	operations := operator.GetOperations()
-	w.operationRunner = append(w.operationRunner, lo.Map(operations, func(operation *models.OperationCommand, _ int) models.CommandRunner { return operation })...)
-	commands = append(commands, lo.Map(operations, func(operation *models.OperationCommand, _ int) interface{} {
+	uniqueOperations := lo.UniqBy(operations, func(operation *models.OperationCommand) string {
+		return operation.TriggerID
+	})
+	w.operationRunner = append(w.operationRunner, lo.Map(uniqueOperations, func(operation *models.OperationCommand, _ int) models.CommandRunner { return operation })...)
+
+	return lo.Map(uniqueOperations, func(operation *models.OperationCommand, _ int) interface{} {
 		var m map[string]interface{}
 		data, _ := json.Marshal(operation)
-		_ = json.Unmarshal(data, &m)
-		return m
-	})...)
-
-	return lo.Map(w.operationRunner, func(runner models.CommandRunner, _ int) interface{} {
-		var m map[string]interface{}
-		data, _ := json.Marshal(runner)
 		_ = json.Unmarshal(data, &m)
 		return m
 	})

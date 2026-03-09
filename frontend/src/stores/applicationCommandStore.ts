@@ -1,8 +1,9 @@
 import {create} from "zustand";
 import {ApplicationCommandType, CommandGroupType} from "@/schemas/command";
 import {getApplicationCommands, updateApplicationUsage} from "@/api/command";
-import {EventsOff, EventsOn} from "../../wailsjs/runtime";
+import {EventsOn} from "../../wailsjs/runtime";
 import Fuse, {IFuseOptions} from "fuse.js";
+import {Logger} from "@/lib/logger";
 
 export const WaApplicationCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {
     threshold: 0.15,
@@ -52,9 +53,9 @@ type ApplicationCommandStore = ApplicationCommandState & {
 const DEBOUNCE_DELAY = 60000
 
 export const useApplicationCommandStore = create<ApplicationCommandStore>((set, get) => {
-    let isListening = false
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
-    let isLoading = false
+    let loadPromise: Promise<void> | null = null
+    let removeApplicationChangedListener: (() => void) | null = null
 
     const createFuseInstance = (commands: ApplicationCommandType[]) => {
         const sortedCommands = [...commands].sort((a, b) => {
@@ -108,23 +109,27 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
     }
 
     const loadCommands = async () => {
-        if (isLoading) return
+        if (loadPromise) return loadPromise
 
-        set({isLoading: true})
-        try {
-            const commandGroup = await getApplicationCommands()
-            const fuse = createFuseInstance(commandGroup.commands)
-            set({commandGroup, fuse, isLoading: false})
-            startListening()
-        } catch (error) {
-            console.error('Failed to load application commands:', error)
-        } finally {
-            set({isLoading: false})
-        }
+        loadPromise = (async () => {
+            set({isLoading: true})
+            try {
+                const commandGroup = await getApplicationCommands()
+                const fuse = createFuseInstance(commandGroup.commands)
+                set({commandGroup, fuse, isLoading: false})
+                startListening()
+            } catch (error) {
+                Logger.error(`Failed to load application commands: ${error}`)
+                set({isLoading: false})
+            } finally {
+                loadPromise = null
+            }
+        })()
+
+        return loadPromise
     }
 
     const refreshCommands = async () => {
-        console.log('Application commands changed, refreshing...')
         await loadCommands()
     }
 
@@ -191,17 +196,15 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
     }
 
     const startListening = () => {
-        if (isListening) return
+        if (removeApplicationChangedListener) return
 
-        isListening = true
-        EventsOn('watools.applicationChanged', refreshCommands)
+        removeApplicationChangedListener = EventsOn('watools.applicationChanged', refreshCommands)
     }
 
     const stopListening = () => {
-        if (!isListening) return
-
-        isListening = false
-        EventsOff('watools.applicationChanged')
+        if (!removeApplicationChangedListener) return
+        removeApplicationChangedListener()
+        removeApplicationChangedListener = null
     }
 
     const store = {

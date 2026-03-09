@@ -2,19 +2,29 @@ import {ApplicationCommandType, CommandGroupType, OperationCommandType} from "@/
 import {isContainNonAscii, toPinyin, toPinyinInitial} from "@/lib/search";
 import {GetApplicationCommandsApi, GetOperatorCommandsApi, UpdateApplicationUsageApi} from "../../wailsjs/go/coordinator/WaAppCoordinator";
 
+const dedupeBy = <T>(items: T[], getKey: (item: T) => string): T[] => {
+    const uniqueItems = new Map<string, T>()
+    for (const item of items) {
+        const key = getKey(item)
+        if (!uniqueItems.has(key)) {
+            uniqueItems.set(key, item)
+        }
+    }
+    return Array.from(uniqueItems.values())
+}
+
 export const getApplicationCommands = async (): Promise<CommandGroupType<ApplicationCommandType>> => {
     const commands = await GetApplicationCommandsApi()
-    console.log('fetch application commands', commands)
 
     let filterCommands: ApplicationCommandType[] = []
-    filterCommands = commands.map(command => ({
+    filterCommands = dedupeBy(commands.map(command => ({
         ...command,
         lastUsedAt: command.lastUsedAt ? new Date(command.lastUsedAt) : null,
         category: 'Application',
         namePinyin: isContainNonAscii(command.name) ? toPinyin(command.name) : null,
         nameInitial: isContainNonAscii(command.name) ? toPinyinInitial(command.name) : null,
         pathName: command.path.split('/').pop() || ''
-    }))
+    })), command => command.id || command.triggerId)
     return {
         category: 'Application',
         commands: filterCommands
@@ -23,12 +33,11 @@ export const getApplicationCommands = async (): Promise<CommandGroupType<Applica
 
 export const getOperationCommands = async (): Promise<CommandGroupType<OperationCommandType>> => {
     const commands = await GetOperatorCommandsApi()
-    console.log('fetch operation commands', commands)
 
     let filterCommands: OperationCommandType[] = []
-    filterCommands = commands.map(command => ({
+    filterCommands = dedupeBy(commands.map(command => ({
         ...command
-    }))
+    })), command => command.triggerId)
     return {
         category: 'Operation',
         commands: filterCommands

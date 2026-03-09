@@ -24,6 +24,7 @@ const DEBOUNCE_DELAY = 60000
 export const usePluginStore = create<PluginState>((set, get) => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
     let isInitialized = false
+    let loadPromise: Promise<void> | null = null
 
     const debouncedFlushUpdates = () => {
         if (debounceTimer) {
@@ -52,20 +53,26 @@ export const usePluginStore = create<PluginState>((set, get) => {
 
     const fetchPlugins = async () => {
         if (isInitialized) return
+        if (loadPromise) return loadPromise
 
-        set({isLoading: true, error: null})
-        try {
-            const plugins = await getPlugins()
-            set({plugins, isLoading: false})
-            isInitialized = true
-            console.log('fetched plugins', plugins)
-        } catch (error) {
-            Logger.error(`Failed to fetch plugins: ${error}`)
-            set({
-                error: error instanceof Error ? error.message : 'Failed to fetch plugins',
-                isLoading: false
-            })
-        }
+        loadPromise = (async () => {
+            set({isLoading: true, error: null})
+            try {
+                const plugins = await getPlugins()
+                set({plugins, isLoading: false})
+                isInitialized = true
+            } catch (error) {
+                Logger.error(`Failed to fetch plugins: ${error}`)
+                set({
+                    error: error instanceof Error ? error.message : 'Failed to fetch plugins',
+                    isLoading: false
+                })
+            } finally {
+                loadPromise = null
+            }
+        })()
+
+        return loadPromise
     }
 
     const refreshPlugins = async () => {

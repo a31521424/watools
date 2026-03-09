@@ -7,17 +7,17 @@
     <style>
         :root {
             color-scheme: light;
-            --bg: #f5f7f2;
-            --panel: rgba(255, 255, 255, 0.78);
-            --panel-strong: rgba(255, 255, 255, 0.92);
-            --line: rgba(23, 50, 39, 0.10);
-            --line-strong: rgba(23, 50, 39, 0.16);
+            --bg: #f3f6f0;
+            --panel: rgba(255, 255, 255, 0.88);
+            --panel-strong: rgba(255, 255, 255, 0.96);
+            --line: rgba(23, 50, 39, 0.08);
+            --line-strong: rgba(23, 50, 39, 0.14);
             --text: #173227;
-            --muted: #718078;
+            --muted: #6f7e77;
             --accent: #1d8a67;
-            --accent-soft: rgba(29, 138, 103, 0.12);
+            --accent-soft: rgba(29, 138, 103, 0.10);
             --danger: #b54740;
-            --shadow: 0 18px 40px rgba(30, 56, 44, 0.08);
+            --shadow: 0 14px 34px rgba(30, 56, 44, 0.06);
         }
 
         * {
@@ -32,8 +32,8 @@
 
         body {
             background:
-                radial-gradient(circle at top left, rgba(29, 138, 103, 0.12), transparent 24%),
-                linear-gradient(180deg, #fbfcf9 0%, var(--bg) 100%);
+                radial-gradient(circle at top left, rgba(29, 138, 103, 0.10), transparent 26%),
+                linear-gradient(180deg, #fbfcf8 0%, var(--bg) 100%);
             color: var(--text);
             font: 14px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
             overflow: auto;
@@ -47,25 +47,25 @@
 
         .shell {
             min-height: 100vh;
-            min-width: 760px;
-            padding: 14px 16px 16px;
+            min-width: 920px;
+            padding: 12px 16px 14px;
             display: grid;
             grid-template-rows: auto minmax(0, 1fr) auto;
-            gap: 12px;
+            gap: 10px;
         }
 
         .topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 16px;
             padding: 0 2px;
         }
 
         .brand {
             display: flex;
-            align-items: baseline;
-            gap: 10px;
+            flex-direction: column;
+            gap: 2px;
             min-width: 0;
         }
 
@@ -80,18 +80,15 @@
             margin: 0;
             color: var(--muted);
             font-size: 12px;
-            white-space: nowrap;
         }
 
         .topbar-actions {
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-wrap: wrap;
             justify-content: flex-end;
         }
 
-        .pill,
         .ghost-button,
         .keycap {
             border: 0;
@@ -99,11 +96,6 @@
             padding: 6px 10px;
             font-size: 12px;
             white-space: nowrap;
-        }
-
-        .pill {
-            background: var(--accent-soft);
-            color: var(--accent);
         }
 
         .ghost-button {
@@ -121,7 +113,7 @@
         .workspace {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 12px;
+            gap: 14px;
             min-height: 0;
         }
 
@@ -130,14 +122,14 @@
             min-height: 0;
             display: grid;
             grid-template-rows: auto minmax(0, 1fr) auto;
-            gap: 10px;
+            gap: 8px;
         }
 
         .pane-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 10px;
             padding: 0 2px;
         }
 
@@ -166,7 +158,7 @@
             background: var(--panel);
             backdrop-filter: blur(12px);
             border: 1px solid var(--line);
-            border-radius: 20px;
+            border-radius: 18px;
             box-shadow: var(--shadow);
             overflow: hidden;
         }
@@ -174,10 +166,10 @@
         textarea {
             width: 100%;
             flex: 1;
-            min-height: 0;
+            min-height: 420px;
             border: 0;
             resize: none;
-            padding: 18px 18px 20px;
+            padding: 18px 18px 22px;
             background: transparent;
             color: var(--text);
             line-height: 1.65;
@@ -200,7 +192,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 10px;
             padding: 0 2px;
         }
 
@@ -221,7 +213,7 @@
         .hint-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
             justify-content: flex-end;
         }
 
@@ -230,14 +222,19 @@
             color: var(--muted);
         }
 
+        .mini-label {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
         .settings {
             display: none;
             align-items: center;
             gap: 10px;
-            padding: 12px 14px;
+            padding: 10px 12px;
             background: var(--panel-strong);
             border: 1px solid var(--line);
-            border-radius: 18px;
+            border-radius: 16px;
             box-shadow: var(--shadow);
         }
 
@@ -271,7 +268,7 @@
             padding: 4px;
             background: rgba(255, 255, 255, 0.74);
             border: 1px solid var(--line);
-            border-radius: 16px;
+            border-radius: 14px;
         }
 
         .settings-row input {
@@ -322,10 +319,9 @@
     <header class="topbar">
         <div class="brand">
             <h1>Translate</h1>
-            <p id="direction-label">AUTO -> English</p>
+            <p id="direction-label">Auto source detection, target English</p>
         </div>
         <div class="topbar-actions">
-            <span class="pill">DeepL Free</span>
             <button id="toggle-settings" class="ghost-button" type="button">API Key</button>
         </div>
     </header>
@@ -335,9 +331,9 @@
             <div class="pane-head">
                 <div class="pane-title">
                     <h2>Source</h2>
-                    <p>DeepL auto-detects the source language.</p>
+                    <p id="source-meta">Paste text, then translate.</p>
                 </div>
-                <span class="pill" id="target-language-badge">Target English</span>
+                <span class="mini-label" id="target-language-badge">Target English</span>
             </div>
             <div class="editor-wrap">
                 <textarea id="source-text" spellcheck="false" placeholder="Paste or type text. Cmd/Ctrl + Enter translates."></textarea>
@@ -345,8 +341,8 @@
             <div class="pane-foot">
                 <div class="status" id="status"></div>
                 <div class="hint-row">
-                    <span class="keycap">Cmd/Ctrl + Enter</span>
-                    <span class="keycap">Cmd/Ctrl + Shift + X</span>
+                    <span class="keycap">Translate</span>
+                    <span class="keycap">Swap</span>
                 </div>
             </div>
         </section>
@@ -357,16 +353,16 @@
                     <h2>Translation</h2>
                     <p id="detected-label">Detected source: -</p>
                 </div>
-                <span class="pill" id="copy-hint">Copy with Cmd/Ctrl + Shift + C</span>
+                <span class="mini-label">Copy with shortcut</span>
             </div>
             <div class="editor-wrap">
                 <textarea id="target-text" spellcheck="false" placeholder="Translation appears here." readonly></textarea>
             </div>
             <div class="pane-foot">
-                <div class="status" id="result-status">Swap and translate back with the keyboard.</div>
+                <div class="status" id="result-status">Cmd/Ctrl + Shift + C to copy.</div>
                 <div class="hint-row">
-                    <span class="keycap">Cmd/Ctrl + Shift + C</span>
-                    <span class="keycap">Cmd/Ctrl + ,</span>
+                    <span class="keycap">Copy</span>
+                    <span class="keycap">Key</span>
                 </div>
             </div>
         </section>
@@ -388,6 +384,7 @@
 
 <script type="module">
     const apiKeyStorageKey = "deepl.authKey";
+    const apiKeyLocalStorageKey = "watools.plugin.translate.deepl.authKey";
     const deeplEndpoint = "https://api-free.deepl.com/v2/translate";
     const targetLanguageMeta = {
         EN: "English",
@@ -402,6 +399,7 @@
     const directionLabel = document.getElementById("direction-label");
     const detectedLabel = document.getElementById("detected-label");
     const targetLanguageBadge = document.getElementById("target-language-badge");
+    const sourceMeta = document.getElementById("source-meta");
     const settingsPanel = document.getElementById("settings-panel");
     const toggleSettingsButton = document.getElementById("toggle-settings");
     const apiKeyInput = document.getElementById("api-key-input");
@@ -445,8 +443,13 @@
     const updateDirectionUI = (text) => {
         lastTargetLang = getTargetLanguage(text);
         const targetLabel = targetLanguageMeta[lastTargetLang];
-        directionLabel.textContent = `AUTO -> ${targetLabel}`;
+        directionLabel.textContent = `Auto source detection, target ${targetLabel}`;
         targetLanguageBadge.textContent = `Target ${targetLabel}`;
+        if (!text.trim()) {
+            sourceMeta.textContent = "Paste text, then translate.";
+            return;
+        }
+        sourceMeta.textContent = containsChinese(text) ? "Chinese text will be translated to English." : "Non-Chinese text will be translated to Chinese.";
     };
 
     const setStatus = (message, type = "info") => {
@@ -480,8 +483,36 @@
         }
     };
 
+    const persistApiKey = async (value) => {
+        window.localStorage.setItem(apiKeyLocalStorageKey, value);
+        try {
+            await window.watools.StorageSet(apiKeyStorageKey, value);
+        } catch (error) {
+            // Keep local fallback so the user does not have to re-enter the key.
+        }
+    };
+
     const loadApiKey = async () => {
-        apiKey = (await window.watools.StorageGet(apiKeyStorageKey)) || "";
+        let storedKey = "";
+
+        try {
+            storedKey = (await window.watools.StorageGet(apiKeyStorageKey)) || "";
+        } catch (error) {
+            storedKey = "";
+        }
+
+        if (!storedKey) {
+            storedKey = window.localStorage.getItem(apiKeyLocalStorageKey) || "";
+            if (storedKey) {
+                try {
+                    await window.watools.StorageSet(apiKeyStorageKey, storedKey);
+                } catch (error) {
+                    // Keep local fallback when host storage is temporarily unavailable.
+                }
+            }
+        }
+
+        apiKey = typeof storedKey === "string" ? storedKey.trim() : "";
         apiKeyInput.value = apiKey;
         setSettingsVisible(!apiKey);
     };
@@ -504,7 +535,7 @@
         }
 
         apiKey = nextKey;
-        await window.watools.StorageSet(apiKeyStorageKey, apiKey);
+        await persistApiKey(apiKey);
         setStatus("API key saved.", "success");
         setResultStatus("Ready to translate.", "success");
         setSettingsVisible(false);
@@ -580,6 +611,9 @@
             const message = error instanceof Error ? error.message : "Translation failed";
             setStatus(message, "error");
             setResultStatus("Check API key or network response.", "error");
+            if (/auth|forbidden|403|456/i.test(message)) {
+                setSettingsVisible(true);
+            }
         } finally {
             isTranslating = false;
         }
@@ -637,7 +671,7 @@
         if (!sourceTextNode.value.trim()) {
             targetTextNode.value = "";
             detectedLabel.textContent = "Detected source: -";
-            setResultStatus("Swap and translate back with the keyboard.");
+            setResultStatus("Cmd/Ctrl + Shift + C to copy.");
         }
     });
 
