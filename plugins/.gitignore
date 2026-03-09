@@ -1,1 +1,4 @@
-dist/*.wt
+dist/*
+!dist/.gitkeep
+
+.DS_Store
