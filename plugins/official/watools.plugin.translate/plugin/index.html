@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaTools Translate</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #eef4f1;
+            --panel: #fbfffc;
+            --border: #c9d9d1;
+            --text: #1f2d28;
+            --muted: #677770;
+            --accent: #217a5f;
+            --accent-soft: rgba(33, 122, 95, 0.12);
+            --danger: #b5443c;
+            --shadow: 0 20px 48px rgba(33, 56, 48, 0.14);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(circle at top left, rgba(33, 122, 95, 0.12), transparent 24%),
+                linear-gradient(180deg, #f5faf7 0%, var(--bg) 100%);
+            color: var(--text);
+            font: 14px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
+        }
+
+        .shell {
+            min-height: 100vh;
+            padding: 18px;
+        }
+
+        .panel {
+            max-width: 920px;
+            margin: 0 auto;
+            background: rgba(251, 255, 252, 0.96);
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .hero {
+            padding: 20px 22px 14px;
+            border-bottom: 1px solid rgba(201, 217, 209, 0.8);
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .hero p {
+            margin: 8px 0 0;
+            color: var(--muted);
+        }
+
+        .workspace {
+            display: grid;
+            gap: 16px;
+            padding: 18px 22px 22px;
+        }
+
+        .controls,
+        .translation,
+        .footer-card {
+            background: var(--panel);
+            border: 1px solid rgba(201, 217, 209, 0.9);
+            border-radius: 20px;
+            padding: 16px;
+        }
+
+        .row {
+            display: grid;
+            gap: 12px;
+        }
+
+        .row.languages {
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            align-items: end;
+        }
+
+        .translation {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        textarea,
+        select,
+        button {
+            font: inherit;
+        }
+
+        textarea,
+        select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 14px 16px;
+            background: white;
+            color: var(--text);
+            outline: none;
+        }
+
+        textarea:focus,
+        select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(33, 122, 95, 0.12);
+        }
+
+        textarea {
+            min-height: 220px;
+            resize: vertical;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 11px 16px;
+            cursor: pointer;
+            transition: transform 120ms ease, opacity 120ms ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.72;
+        }
+
+        .primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .secondary {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .ghost {
+            background: rgba(103, 119, 112, 0.1);
+            color: var(--text);
+        }
+
+        .status {
+            min-height: 20px;
+            margin-top: 10px;
+            color: var(--muted);
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .toast {
+            position: fixed;
+            right: 18px;
+            top: 18px;
+            background: rgba(31, 45, 40, 0.94);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 999px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity 120ms ease, transform 120ms ease;
+            pointer-events: none;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 780px) {
+            .translation {
+                grid-template-columns: 1fr;
+            }
+
+            .row.languages {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <div class="panel">
+        <div class="hero">
+            <h1>Translate</h1>
+            <p>Quick translation workspace powered through the WaTools HTTP proxy.</p>
+        </div>
+        <div class="workspace">
+            <div class="controls">
+                <div class="row languages">
+                    <div>
+                        <label for="source-language">Source Language</label>
+                        <select id="source-language"></select>
+                    </div>
+                    <button id="swap-button" class="ghost" type="button">Swap</button>
+                    <div>
+                        <label for="target-language">Target Language</label>
+                        <select id="target-language"></select>
+                    </div>
+                </div>
+                <div class="toolbar">
+                    <button class="primary" id="translate-button" type="button">Translate</button>
+                    <button class="secondary" id="copy-button" type="button">Copy Result</button>
+                    <button class="ghost" id="clear-button" type="button">Clear</button>
+                </div>
+                <div class="status" id="status"></div>
+            </div>
+            <div class="translation">
+                <div>
+                    <label for="source-text">Source Text</label>
+                    <textarea id="source-text" placeholder="Type text to translate"></textarea>
+                    <div class="hint" style="margin-top:10px;">Shortcut: Cmd/Ctrl + Enter to translate</div>
+                </div>
+                <div>
+                    <label for="target-text">Translation</label>
+                    <textarea id="target-text" placeholder="Translation appears here" readonly></textarea>
+                    <div class="hint" style="margin-top:10px;">Provider: MyMemory public translation API via HttpProxy.</div>
+                </div>
+            </div>
+            <div class="footer-card">
+                <strong>Notes</strong>
+                <div class="hint" style="margin-top:8px;">
+                    Language preferences are stored per plugin through WaTools plugin storage.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    const storageKey = "preferences";
+    const languages = [
+        {value: "auto", label: "Auto Detect"},
+        {value: "en", label: "English"},
+        {value: "zh-CN", label: "Chinese (Simplified)"},
+        {value: "zh-TW", label: "Chinese (Traditional)"},
+        {value: "ja", label: "Japanese"},
+        {value: "ko", label: "Korean"},
+        {value: "fr", label: "French"},
+        {value: "de", label: "German"},
+        {value: "es", label: "Spanish"},
+        {value: "ru", label: "Russian"}
+    ];
+
+    const sourceLanguageNode = document.getElementById("source-language");
+    const targetLanguageNode = document.getElementById("target-language");
+    const sourceTextNode = document.getElementById("source-text");
+    const targetTextNode = document.getElementById("target-text");
+    const statusNode = document.getElementById("status");
+    const toastNode = document.getElementById("toast");
+    const translateButton = document.getElementById("translate-button");
+
+    let toastTimer = null;
+
+    const showToast = (message) => {
+        toastNode.textContent = message;
+        toastNode.classList.add("visible");
+        if (toastTimer) {
+            clearTimeout(toastTimer);
+        }
+        toastTimer = setTimeout(() => {
+            toastNode.classList.remove("visible");
+        }, 1800);
+    };
+
+    const setStatus = (message, type = "info") => {
+        statusNode.textContent = message || "";
+        statusNode.className = type === "error" ? "status error" : "status";
+    };
+
+    const buildLanguageOptions = (selectNode, selectedValue) => {
+        selectNode.innerHTML = "";
+        languages.forEach((language) => {
+            const option = document.createElement("option");
+            option.value = language.value;
+            option.textContent = language.label;
+            option.selected = language.value === selectedValue;
+            selectNode.appendChild(option);
+        });
+    };
+
+    const savePreferences = async () => {
+        await window.watools.StorageSet(storageKey, {
+            source: sourceLanguageNode.value,
+            target: targetLanguageNode.value
+        });
+    };
+
+    const loadPreferences = async () => {
+        const stored = await window.watools.StorageGet(storageKey);
+        const source = stored?.source || "auto";
+        const target = stored?.target || "zh-CN";
+        buildLanguageOptions(sourceLanguageNode, source);
+        buildLanguageOptions(targetLanguageNode, target);
+    };
+
+    const extractSeedText = () => {
+        if (typeof window.inputValue !== "string") {
+            return "";
+        }
+
+        const value = window.inputValue.trim();
+        if (!value) {
+            return "";
+        }
+        if (/^(fy|translate|翻译)\s+/i.test(value)) {
+            return value.replace(/^(fy|translate|翻译)\s+/i, "");
+        }
+        if (/^(fy|translate|翻译)$/i.test(value)) {
+            return "";
+        }
+        return value;
+    };
+
+    const translateText = async () => {
+        const text = sourceTextNode.value.trim();
+        if (!text) {
+            setStatus("Enter text to translate.", "error");
+            return;
+        }
+
+        if (sourceLanguageNode.value !== "auto" && sourceLanguageNode.value === targetLanguageNode.value) {
+            setStatus("Source and target language must be different.", "error");
+            return;
+        }
+
+        translateButton.disabled = true;
+        setStatus("Translating...");
+
+        const query = new URLSearchParams({
+            q: text,
+            langpair: `${sourceLanguageNode.value}|${targetLanguageNode.value}`
+        });
+
+        try {
+            const response = await window.watools.HttpProxy({
+                url: `https://api.mymemory.translated.net/get?${query.toString()}`,
+                method: "GET",
+                timeout: 30000
+            });
+
+            if (response.status_code < 200 || response.status_code >= 300) {
+                throw new Error(`HTTP ${response.status_code}`);
+            }
+
+            const payload = JSON.parse(response.body);
+            const translatedText = payload?.responseData?.translatedText;
+            if (!translatedText) {
+                throw new Error("Empty translation response");
+            }
+
+            targetTextNode.value = translatedText;
+            await savePreferences();
+            setStatus("Translation complete.");
+        } catch (error) {
+            setStatus(error instanceof Error ? error.message : "Translation failed", "error");
+        } finally {
+            translateButton.disabled = false;
+        }
+    };
+
+    document.getElementById("translate-button").addEventListener("click", () => {
+        void translateText();
+    });
+
+    document.getElementById("copy-button").addEventListener("click", async () => {
+        if (!targetTextNode.value.trim()) {
+            return;
+        }
+        await window.runtime.ClipboardSetText(targetTextNode.value.trim());
+        showToast("Translation copied");
+    });
+
+    document.getElementById("clear-button").addEventListener("click", () => {
+        sourceTextNode.value = "";
+        targetTextNode.value = "";
+        setStatus("");
+        sourceTextNode.focus();
+    });
+
+    document.getElementById("swap-button").addEventListener("click", async () => {
+        if (sourceLanguageNode.value === "auto") {
+            sourceLanguageNode.value = targetLanguageNode.value;
+        } else {
+            const currentSource = sourceLanguageNode.value;
+            sourceLanguageNode.value = targetLanguageNode.value;
+            targetLanguageNode.value = currentSource;
+        }
+
+        const currentSourceText = sourceTextNode.value;
+        sourceTextNode.value = targetTextNode.value;
+        targetTextNode.value = currentSourceText;
+        await savePreferences();
+    });
+
+    sourceLanguageNode.addEventListener("change", () => {
+        void savePreferences();
+    });
+
+    targetLanguageNode.addEventListener("change", () => {
+        void savePreferences();
+    });
+
+    window.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+            event.preventDefault();
+            void translateText();
+        }
+    });
+
+    window.addEventListener("load", async () => {
+        await loadPreferences();
+        sourceTextNode.value = extractSeedText();
+        sourceTextNode.focus();
+        sourceTextNode.setSelectionRange(sourceTextNode.value.length, sourceTextNode.value.length);
+    });
+</script>
+</body>
+</html>

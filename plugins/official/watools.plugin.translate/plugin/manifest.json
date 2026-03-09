@@ -1,0 +1,9 @@
+{
+  "packageId": "watools.plugin.translate",
+  "name": "Translate",
+  "description": "Official translation panel with persisted preferences",
+  "version": "0.1.0",
+  "author": "WaTools",
+  "uiEnabled": true,
+  "entry": "app.js"
+}

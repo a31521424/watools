@@ -76,6 +76,8 @@ Practical consequence:
 
 - `README.md`: public overview
 - `PLUGIN_DEVELOPMENT.md`: plugin packaging/runtime rules
+- `plugins/`: official plugin source tree and packaging workflow
+- `cmd/pluginctl/`: official plugin list/package/install CLI
 - `fronted-plugin/`: local example/reference plugins, not auto-loaded runtime plugins
 
 ## Runtime Flow

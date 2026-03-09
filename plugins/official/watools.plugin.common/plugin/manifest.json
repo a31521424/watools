@@ -1,0 +1,9 @@
+{
+  "packageId": "watools.plugin.common",
+  "name": "Common Plugin",
+  "description": "Official utility plugin for URLs, file paths, and clipboard assets",
+  "version": "0.1.0",
+  "author": "WaTools",
+  "uiEnabled": false,
+  "entry": "app.js"
+}

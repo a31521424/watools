@@ -20,12 +20,12 @@ WaTools aims to provide a fast, modern, and cross-platform alternative for commo
 
 ## ✨ Features
 
--   **Global Access**: Instantly open the app from anywhere with a global hotkey (`Alt+Space`).
+-   **Global Access**: Instantly open the app from anywhere with a global hotkey.
 -   **App Launcher**: Quickly find and launch applications on your system.
--   **Extensible Commands**: Built-in support for a variety of commands.
--   **Simple Calculator**: Perform basic calculations directly in the search bar.
+-   **Plugin System**: Install trusted `.wt` plugins with executable and UI entry types.
+-   **Official Plugins**: Ships with an official plugin source tree for common utilities, calculator, and translation workflows.
 -   **Modern UI**: Clean and intuitive user interface built with React and Tailwind CSS.
--   **Cross-Platform**: Built with Wails, aiming for full support on macOS, Windows, and Linux.
+-   **Cross-Platform Structure**: Built with Wails, with macOS currently being the most complete target.
 
 ---
 
@@ -74,6 +74,59 @@ To get a local copy up and running for development, follow these simple steps.
     wails build
     ```
     The executable will be available in the `build/bin/` directory.
+
+---
+
+## 🔌 Official Plugins
+
+Official plugin sources now live in [`plugins/official`](./plugins/official).
+
+Current official plugins:
+
+-   `watools.plugin.common`: open URLs and file paths, copy pasted file paths, save clipboard images
+-   `watools.plugin.calculator`: command-palette calculator plus calculator panel with persisted history
+-   `watools.plugin.translate`: translation panel with persisted language preferences
+
+`fronted-plugin/` is now legacy reference material only.
+
+### Plugin Commands
+
+List official plugins:
+
+```sh
+go run ./cmd/pluginctl list
+```
+
+Package all official plugins into `plugins/dist`:
+
+```sh
+go run ./cmd/pluginctl package
+```
+
+Install all official plugins into the local WaTools cache:
+
+```sh
+go run ./cmd/pluginctl install
+```
+
+Package or install one plugin by package ID:
+
+```sh
+go run ./cmd/pluginctl package watools.plugin.calculator
+go run ./cmd/pluginctl install watools.plugin.translate
+```
+
+For more details, see:
+
+-   [`plugins/README.md`](./plugins/README.md)
+-   [`PLUGIN_DEVELOPMENT.md`](./PLUGIN_DEVELOPMENT.md)
+
+### Plugin Trust Model
+
+WaTools currently treats installed plugins as trusted code chosen by the user.
+
+-   Plugins are not positioned as a hardened sandbox for arbitrary third-party marketplace code.
+-   Official plugin install and packaging flows are intended for trusted local development and distribution.
 
 ---
 

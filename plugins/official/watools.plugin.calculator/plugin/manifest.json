@@ -1,0 +1,9 @@
+{
+  "packageId": "watools.plugin.calculator",
+  "name": "Calculator",
+  "description": "Official calculator plugin with expression evaluation and history",
+  "version": "0.1.0",
+  "author": "WaTools",
+  "uiEnabled": true,
+  "entry": "app.js"
+}
