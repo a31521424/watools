@@ -7,15 +7,15 @@
     <style>
         :root {
             color-scheme: light;
-            --bg: #eef4f1;
-            --panel: #fbfffc;
-            --border: #c9d9d1;
-            --text: #1f2d28;
-            --muted: #677770;
-            --accent: #217a5f;
-            --accent-soft: rgba(33, 122, 95, 0.12);
-            --danger: #b5443c;
-            --shadow: 0 20px 48px rgba(33, 56, 48, 0.14);
+            --bg: #f6f8f4;
+            --panel: rgba(255, 255, 255, 0.72);
+            --line: rgba(28, 60, 48, 0.12);
+            --text: #173227;
+            --muted: #6f7f78;
+            --accent: #1f8b67;
+            --accent-soft: rgba(31, 139, 103, 0.12);
+            --danger: #b54740;
+            --field: rgba(255, 255, 255, 0.92);
         }
 
         * {
@@ -25,173 +25,214 @@
         body {
             margin: 0;
             background:
-                radial-gradient(circle at top left, rgba(33, 122, 95, 0.12), transparent 24%),
-                linear-gradient(180deg, #f5faf7 0%, var(--bg) 100%);
+                radial-gradient(circle at top left, rgba(31, 139, 103, 0.10), transparent 20%),
+                linear-gradient(180deg, #f8faf7 0%, var(--bg) 100%);
             color: var(--text);
             font: 14px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
         }
 
         .shell {
             min-height: 100vh;
-            padding: 18px;
+            padding: 14px 16px 16px;
         }
 
-        .panel {
-            max-width: 920px;
-            margin: 0 auto;
-            background: rgba(251, 255, 252, 0.96);
-            border: 1px solid var(--border);
-            border-radius: 26px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-
-        .hero {
-            padding: 20px 22px 14px;
-            border-bottom: 1px solid rgba(201, 217, 209, 0.8);
-        }
-
-        .hero h1 {
-            margin: 0;
-            font-size: 28px;
-        }
-
-        .hero p {
-            margin: 8px 0 0;
-            color: var(--muted);
-        }
-
-        .workspace {
-            display: grid;
-            gap: 16px;
-            padding: 18px 22px 22px;
-        }
-
-        .controls,
-        .translation,
-        .footer-card {
-            background: var(--panel);
-            border: 1px solid rgba(201, 217, 209, 0.9);
-            border-radius: 20px;
-            padding: 16px;
-        }
-
-        .row {
-            display: grid;
-            gap: 12px;
-        }
-
-        .row.languages {
-            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-            align-items: end;
-        }
-
-        .translation {
+        .layout {
             display: grid;
             gap: 14px;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            min-height: calc(100vh - 30px);
         }
 
-        label {
-            display: block;
-            font-size: 12px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+        .pane {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            background: var(--panel);
+            backdrop-filter: blur(10px);
+        }
+
+        .pane-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 4px 2px 10px;
+        }
+
+        .pane-title {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .pane-title h1,
+        .pane-title h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 650;
+        }
+
+        .pane-title p {
+            margin: 0;
             color: var(--muted);
-            margin-bottom: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge,
+        .shortcut,
+        .link-button {
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            border: 0;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font: inherit;
+        }
+
+        .shortcut {
+            color: var(--muted);
+            background: rgba(28, 60, 48, 0.06);
+        }
+
+        .link-button {
+            cursor: pointer;
+            transition: background 120ms ease;
+        }
+
+        .link-button:hover {
+            background: rgba(31, 139, 103, 0.18);
+        }
+
+        .editor {
+            flex: 1;
+            display: flex;
         }
 
         textarea,
-        select,
+        input,
         button {
             font: inherit;
         }
 
         textarea,
-        select {
+        input {
             width: 100%;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 14px 16px;
-            background: white;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: var(--field);
             color: var(--text);
             outline: none;
         }
 
-        textarea:focus,
-        select:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(33, 122, 95, 0.12);
-        }
-
         textarea {
-            min-height: 220px;
-            resize: vertical;
+            flex: 1;
+            min-height: 320px;
+            padding: 18px;
+            resize: none;
+            line-height: 1.6;
+            font-size: 15px;
         }
 
-        .toolbar {
+        textarea:focus,
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(31, 139, 103, 0.10);
+        }
+
+        .footer {
             display: flex;
-            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
             flex-wrap: wrap;
-            margin-top: 12px;
-        }
-
-        button {
-            border: 0;
-            border-radius: 999px;
-            padding: 11px 16px;
-            cursor: pointer;
-            transition: transform 120ms ease, opacity 120ms ease;
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-        }
-
-        button:disabled {
-            cursor: wait;
-            opacity: 0.72;
-        }
-
-        .primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .secondary {
-            background: var(--accent-soft);
-            color: var(--accent);
-        }
-
-        .ghost {
-            background: rgba(103, 119, 112, 0.1);
-            color: var(--text);
+            padding: 10px 2px 0;
         }
 
         .status {
-            min-height: 20px;
-            margin-top: 10px;
+            min-height: 18px;
             color: var(--muted);
+            font-size: 13px;
         }
 
         .status.error {
             color: var(--danger);
         }
 
-        .hint {
+        .status.success {
+            color: var(--accent);
+        }
+
+        .shortcut-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .settings {
+            display: none;
+            grid-column: 1 / -1;
+            gap: 10px;
+            padding: 6px 0 2px;
+        }
+
+        .settings.visible {
+            display: grid;
+        }
+
+        .settings-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+        }
+
+        .settings label {
+            font-size: 12px;
             color: var(--muted);
-            font-size: 13px;
+        }
+
+        .settings input {
+            padding: 12px 14px;
+        }
+
+        .settings button {
+            border: 0;
+            border-radius: 14px;
+            background: var(--accent);
+            color: white;
+            padding: 0 14px;
+            cursor: pointer;
+        }
+
+        .helper {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .divider {
+            width: 1px;
+            background: linear-gradient(180deg, rgba(28, 60, 48, 0.02), rgba(28, 60, 48, 0.14), rgba(28, 60, 48, 0.02));
+            justify-self: center;
         }
 
         .toast {
             position: fixed;
-            right: 18px;
-            top: 18px;
-            background: rgba(31, 45, 40, 0.94);
+            right: 16px;
+            top: 14px;
+            background: rgba(23, 50, 39, 0.94);
             color: white;
-            padding: 10px 14px;
+            padding: 9px 13px;
             border-radius: 999px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
             opacity: 0;
             transform: translateY(-8px);
             transition: opacity 120ms ease, transform 120ms ease;
@@ -203,91 +244,107 @@
             transform: translateY(0);
         }
 
-        @media (max-width: 780px) {
-            .translation {
+        @media (max-width: 860px) {
+            .layout {
                 grid-template-columns: 1fr;
             }
 
-            .row.languages {
+            .divider {
+                display: none;
+            }
+
+            .settings-row {
                 grid-template-columns: 1fr;
+            }
+
+            .shortcut-bar {
+                justify-content: flex-start;
             }
         }
     </style>
 </head>
 <body>
 <div class="shell">
-    <div class="panel">
-        <div class="hero">
-            <h1>Translate</h1>
-            <p>Quick translation workspace powered through the WaTools HTTP proxy.</p>
-        </div>
-        <div class="workspace">
-            <div class="controls">
-                <div class="row languages">
-                    <div>
-                        <label for="source-language">Source Language</label>
-                        <select id="source-language"></select>
-                    </div>
-                    <button id="swap-button" class="ghost" type="button">Swap</button>
-                    <div>
-                        <label for="target-language">Target Language</label>
-                        <select id="target-language"></select>
-                    </div>
+    <div class="layout">
+        <section class="pane">
+            <div class="pane-head">
+                <div class="pane-title">
+                    <h1>Source</h1>
+                    <p id="direction-label">AUTO -> EN</p>
                 </div>
-                <div class="toolbar">
-                    <button class="primary" id="translate-button" type="button">Translate</button>
-                    <button class="secondary" id="copy-button" type="button">Copy Result</button>
-                    <button class="ghost" id="clear-button" type="button">Clear</button>
+                <div class="meta">
+                    <span class="badge">DeepL Free</span>
+                    <button id="toggle-settings" class="link-button" type="button">API Key</button>
                 </div>
+            </div>
+            <div class="editor">
+                <textarea id="source-text" placeholder="Paste or type text here. Use Cmd/Ctrl + Enter to translate."></textarea>
+            </div>
+            <div class="footer">
                 <div class="status" id="status"></div>
-            </div>
-            <div class="translation">
-                <div>
-                    <label for="source-text">Source Text</label>
-                    <textarea id="source-text" placeholder="Type text to translate"></textarea>
-                    <div class="hint" style="margin-top:10px;">Shortcut: Cmd/Ctrl + Enter to translate</div>
-                </div>
-                <div>
-                    <label for="target-text">Translation</label>
-                    <textarea id="target-text" placeholder="Translation appears here" readonly></textarea>
-                    <div class="hint" style="margin-top:10px;">Provider: MyMemory public translation API via HttpProxy.</div>
+                <div class="shortcut-bar">
+                    <span class="shortcut">Cmd/Ctrl + Enter Translate</span>
+                    <span class="shortcut">Cmd/Ctrl + Shift + X Swap</span>
                 </div>
             </div>
-            <div class="footer-card">
-                <strong>Notes</strong>
-                <div class="hint" style="margin-top:8px;">
-                    Language preferences are stored per plugin through WaTools plugin storage.
+        </section>
+        <div class="divider" aria-hidden="true"></div>
+        <section class="pane">
+            <div class="pane-head">
+                <div class="pane-title">
+                    <h2>Translation</h2>
+                    <p id="detected-label">Detected source: -</p>
+                </div>
+                <div class="meta">
+                    <span class="badge" id="target-language-badge">Target EN</span>
                 </div>
             </div>
-        </div>
+            <div class="editor">
+                <textarea id="target-text" placeholder="Translation appears here." readonly></textarea>
+            </div>
+            <div class="footer">
+                <div class="helper">Auto source detection by DeepL. Target flips between Chinese and English from the left text.</div>
+                <div class="shortcut-bar">
+                    <span class="shortcut">Cmd/Ctrl + Shift + C Copy</span>
+                    <span class="shortcut">Cmd/Ctrl + , Key</span>
+                </div>
+            </div>
+        </section>
+        <section class="settings" id="settings-panel">
+            <label for="api-key-input">DeepL Free API Key</label>
+            <div class="settings-row">
+                <input id="api-key-input" type="password" placeholder="Paste your DeepL Free auth key">
+                <button id="save-api-key" type="button">Save</button>
+            </div>
+            <div class="helper">Stored in WaTools plugin storage. Press Enter to save, Esc to hide.</div>
+        </section>
     </div>
 </div>
 <div class="toast" id="toast"></div>
 
 <script type="module">
-    const storageKey = "preferences";
-    const languages = [
-        {value: "auto", label: "Auto Detect"},
-        {value: "en", label: "English"},
-        {value: "zh-CN", label: "Chinese (Simplified)"},
-        {value: "zh-TW", label: "Chinese (Traditional)"},
-        {value: "ja", label: "Japanese"},
-        {value: "ko", label: "Korean"},
-        {value: "fr", label: "French"},
-        {value: "de", label: "German"},
-        {value: "es", label: "Spanish"},
-        {value: "ru", label: "Russian"}
-    ];
-
-    const sourceLanguageNode = document.getElementById("source-language");
-    const targetLanguageNode = document.getElementById("target-language");
+    const apiKeyStorageKey = "deepl.authKey";
     const sourceTextNode = document.getElementById("source-text");
     const targetTextNode = document.getElementById("target-text");
     const statusNode = document.getElementById("status");
     const toastNode = document.getElementById("toast");
-    const translateButton = document.getElementById("translate-button");
+    const directionLabel = document.getElementById("direction-label");
+    const detectedLabel = document.getElementById("detected-label");
+    const targetLanguageBadge = document.getElementById("target-language-badge");
+    const settingsPanel = document.getElementById("settings-panel");
+    const toggleSettingsButton = document.getElementById("toggle-settings");
+    const apiKeyInput = document.getElementById("api-key-input");
+    const saveApiKeyButton = document.getElementById("save-api-key");
 
     let toastTimer = null;
+    let apiKey = "";
+    let lastTargetLang = "EN";
+    let isTranslating = false;
+
+    const targetLanguageMeta = {
+        EN: "English",
+        "ZH-HANS": "中文"
+    };
 
     const showToast = (message) => {
         toastNode.textContent = message;
@@ -302,33 +359,19 @@
 
     const setStatus = (message, type = "info") => {
         statusNode.textContent = message || "";
-        statusNode.className = type === "error" ? "status error" : "status";
+        statusNode.className = type === "error" ? "status error" : type === "success" ? "status success" : "status";
     };
 
-    const buildLanguageOptions = (selectNode, selectedValue) => {
-        selectNode.innerHTML = "";
-        languages.forEach((language) => {
-            const option = document.createElement("option");
-            option.value = language.value;
-            option.textContent = language.label;
-            option.selected = language.value === selectedValue;
-            selectNode.appendChild(option);
-        });
+    const containsChinese = (value) => /[\u3400-\u9FFF]/.test(value);
+
+    const getTargetLanguage = (text) => {
+        return containsChinese(text) ? "EN" : "ZH-HANS";
     };
 
-    const savePreferences = async () => {
-        await window.watools.StorageSet(storageKey, {
-            source: sourceLanguageNode.value,
-            target: targetLanguageNode.value
-        });
-    };
-
-    const loadPreferences = async () => {
-        const stored = await window.watools.StorageGet(storageKey);
-        const source = stored?.source || "auto";
-        const target = stored?.target || "zh-CN";
-        buildLanguageOptions(sourceLanguageNode, source);
-        buildLanguageOptions(targetLanguageNode, target);
+    const updateDirectionUI = (text) => {
+        lastTargetLang = getTargetLanguage(text);
+        directionLabel.textContent = `AUTO -> ${targetLanguageMeta[lastTargetLang]}`;
+        targetLanguageBadge.textContent = `Target ${targetLanguageMeta[lastTargetLang]}`;
     };
 
     const extractSeedText = () => {
@@ -341,12 +384,40 @@
             return "";
         }
         if (/^(fy|translate|翻译)\s+/i.test(value)) {
-            return value.replace(/^(fy|translate|翻译)\s+/i, "");
+            return value.replace(/^(fy|translate|翻译)\s+/i, "").trim();
         }
         if (/^(fy|translate|翻译)$/i.test(value)) {
             return "";
         }
         return value;
+    };
+
+    const setSettingsVisible = (visible) => {
+        settingsPanel.classList.toggle("visible", visible);
+        if (visible) {
+            apiKeyInput.focus();
+            apiKeyInput.select();
+        }
+    };
+
+    const loadApiKey = async () => {
+        apiKey = (await window.watools.StorageGet(apiKeyStorageKey)) || "";
+        apiKeyInput.value = apiKey;
+        setSettingsVisible(!apiKey);
+    };
+
+    const saveApiKey = async () => {
+        const nextKey = apiKeyInput.value.trim();
+        if (!nextKey) {
+            setStatus("DeepL auth key is required.", "error");
+            return;
+        }
+
+        apiKey = nextKey;
+        await window.watools.StorageSet(apiKeyStorageKey, apiKey);
+        setStatus("API key saved.", "success");
+        setSettingsVisible(false);
+        showToast("DeepL key saved");
     };
 
     const translateText = async () => {
@@ -356,100 +427,156 @@
             return;
         }
 
-        if (sourceLanguageNode.value !== "auto" && sourceLanguageNode.value === targetLanguageNode.value) {
-            setStatus("Source and target language must be different.", "error");
+        if (!apiKey) {
+            setStatus("Set your DeepL Free API key first.", "error");
+            setSettingsVisible(true);
             return;
         }
 
-        translateButton.disabled = true;
+        if (isTranslating) {
+            return;
+        }
+
+        isTranslating = true;
+        updateDirectionUI(text);
         setStatus("Translating...");
 
-        const query = new URLSearchParams({
-            q: text,
-            langpair: `${sourceLanguageNode.value}|${targetLanguageNode.value}`
+        const formData = new URLSearchParams({
+            auth_key: apiKey,
+            text,
+            target_lang: lastTargetLang
         });
 
         try {
             const response = await window.watools.HttpProxy({
-                url: `https://api.mymemory.translated.net/get?${query.toString()}`,
-                method: "GET",
+                url: "https://api-free.deepl.com/v2/translate",
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: formData.toString(),
                 timeout: 30000
             });
 
             if (response.status_code < 200 || response.status_code >= 300) {
-                throw new Error(`HTTP ${response.status_code}`);
+                let errorPayload = null;
+                if (response.body) {
+                    try {
+                        errorPayload = JSON.parse(response.body);
+                    } catch {
+                        errorPayload = null;
+                    }
+                }
+                throw new Error(errorPayload?.message || `HTTP ${response.status_code}`);
             }
 
             const payload = JSON.parse(response.body);
-            const translatedText = payload?.responseData?.translatedText;
+            const translatedText = payload?.translations?.[0]?.text;
             if (!translatedText) {
                 throw new Error("Empty translation response");
             }
 
+            const detectedSource = payload?.translations?.[0]?.detected_source_language || "AUTO";
             targetTextNode.value = translatedText;
-            await savePreferences();
-            setStatus("Translation complete.");
+            detectedLabel.textContent = `Detected source: ${detectedSource}`;
+            setStatus("Translation complete.", "success");
         } catch (error) {
             setStatus(error instanceof Error ? error.message : "Translation failed", "error");
         } finally {
-            translateButton.disabled = false;
+            isTranslating = false;
         }
     };
 
-    document.getElementById("translate-button").addEventListener("click", () => {
-        void translateText();
-    });
-
-    document.getElementById("copy-button").addEventListener("click", async () => {
+    const copyTranslation = async () => {
         if (!targetTextNode.value.trim()) {
             return;
         }
         await window.runtime.ClipboardSetText(targetTextNode.value.trim());
         showToast("Translation copied");
-    });
+    };
 
-    document.getElementById("clear-button").addEventListener("click", () => {
-        sourceTextNode.value = "";
-        targetTextNode.value = "";
-        setStatus("");
-        sourceTextNode.focus();
-    });
-
-    document.getElementById("swap-button").addEventListener("click", async () => {
-        if (sourceLanguageNode.value === "auto") {
-            sourceLanguageNode.value = targetLanguageNode.value;
-        } else {
-            const currentSource = sourceLanguageNode.value;
-            sourceLanguageNode.value = targetLanguageNode.value;
-            targetLanguageNode.value = currentSource;
+    const swapTranslation = async () => {
+        const source = sourceTextNode.value.trim();
+        const target = targetTextNode.value.trim();
+        if (!source || !target) {
+            return;
         }
 
-        const currentSourceText = sourceTextNode.value;
-        sourceTextNode.value = targetTextNode.value;
-        targetTextNode.value = currentSourceText;
-        await savePreferences();
+        sourceTextNode.value = target;
+        targetTextNode.value = source;
+        updateDirectionUI(target);
+        showToast("Source and translation swapped");
+        await translateText();
+    };
+
+    toggleSettingsButton.addEventListener("click", () => {
+        setSettingsVisible(!settingsPanel.classList.contains("visible"));
     });
 
-    sourceLanguageNode.addEventListener("change", () => {
-        void savePreferences();
+    saveApiKeyButton.addEventListener("click", () => {
+        void saveApiKey();
     });
 
-    targetLanguageNode.addEventListener("change", () => {
-        void savePreferences();
+    apiKeyInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            void saveApiKey();
+        }
+        if (event.key === "Escape") {
+            event.preventDefault();
+            setSettingsVisible(false);
+        }
     });
 
-    window.addEventListener("keydown", (event) => {
+    sourceTextNode.addEventListener("input", () => {
+        updateDirectionUI(sourceTextNode.value);
+    });
+
+    sourceTextNode.addEventListener("keydown", (event) => {
         if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
             event.preventDefault();
             void translateText();
         }
     });
 
+    window.addEventListener("keydown", (event) => {
+        if (!(event.ctrlKey || event.metaKey)) {
+            return;
+        }
+
+        const key = event.key.toLowerCase();
+        if (key === "enter") {
+            event.preventDefault();
+            void translateText();
+            return;
+        }
+        if (event.shiftKey && key === "c") {
+            event.preventDefault();
+            void copyTranslation();
+            return;
+        }
+        if (event.shiftKey && key === "x") {
+            event.preventDefault();
+            void swapTranslation();
+            return;
+        }
+        if (key === ",") {
+            event.preventDefault();
+            setSettingsVisible(true);
+        }
+    });
+
     window.addEventListener("load", async () => {
-        await loadPreferences();
+        await loadApiKey();
         sourceTextNode.value = extractSeedText();
+        updateDirectionUI(sourceTextNode.value);
         sourceTextNode.focus();
         sourceTextNode.setSelectionRange(sourceTextNode.value.length, sourceTextNode.value.length);
+        if (sourceTextNode.value.trim()) {
+            setStatus("Press Cmd/Ctrl + Enter to translate.");
+        } else if (!apiKey) {
+            setStatus("Add your DeepL Free API key to start.", "error");
+        }
     });
 </script>
 </body>

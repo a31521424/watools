@@ -13,7 +13,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.51.0
 	github.com/samber/mo v1.16.0
-	github.com/wailsapp/wails/v2 v2.11.0
+	github.com/wailsapp/wails/v2 v2.10.2
 	golang.design/x/hotkey v0.4.1
 	golang.org/x/image v0.31.0
 	golang.org/x/sys v0.35.0

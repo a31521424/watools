@@ -158,6 +158,7 @@ Trust model:
 - plugins are treated as trusted code chosen by the user
 - the current implementation is not a hardened sandbox boundary
 - do not describe plugins as fully isolated or safe for untrusted marketplace code
+- iframe plugin UIs should not draw their own outer window border/card shell; the host window already provides that frame
 
 ### Plugin API Exposure
 

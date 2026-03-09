@@ -114,6 +114,7 @@ START: 用户需要插件
 1. **UI 布局限制**:
     - ❌ 禁止使用 `alert()`/`confirm()`/`prompt()` - 会阻塞整个应用
     - ⚠️ Modal/Dialog 使用 `position: fixed` 会受 iframe 边界限制
+    - ❌ 不要自己实现插件最外层边框/卡片容器 - WaTools 外层窗口已经有边框
     - ✅ 推荐使用 Toast 通知或 Inline Dialog
     - ✅ 所有覆盖层组件要考虑 iframe viewport 限制
 
