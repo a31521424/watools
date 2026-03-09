@@ -7,48 +7,130 @@
     <style>
         :root {
             color-scheme: light;
-            --bg: #f6f8f4;
-            --panel: rgba(255, 255, 255, 0.72);
-            --line: rgba(28, 60, 48, 0.12);
+            --bg: #f5f7f2;
+            --panel: rgba(255, 255, 255, 0.78);
+            --panel-strong: rgba(255, 255, 255, 0.92);
+            --line: rgba(23, 50, 39, 0.10);
+            --line-strong: rgba(23, 50, 39, 0.16);
             --text: #173227;
-            --muted: #6f7f78;
-            --accent: #1f8b67;
-            --accent-soft: rgba(31, 139, 103, 0.12);
+            --muted: #718078;
+            --accent: #1d8a67;
+            --accent-soft: rgba(29, 138, 103, 0.12);
             --danger: #b54740;
-            --field: rgba(255, 255, 255, 0.92);
+            --shadow: 0 18px 40px rgba(30, 56, 44, 0.08);
         }
 
         * {
             box-sizing: border-box;
         }
 
+        html,
         body {
             margin: 0;
+            min-height: 100%;
+        }
+
+        body {
             background:
-                radial-gradient(circle at top left, rgba(31, 139, 103, 0.10), transparent 20%),
-                linear-gradient(180deg, #f8faf7 0%, var(--bg) 100%);
+                radial-gradient(circle at top left, rgba(29, 138, 103, 0.12), transparent 24%),
+                linear-gradient(180deg, #fbfcf9 0%, var(--bg) 100%);
             color: var(--text);
-            font: 14px/1.45 "SF Pro Text", "Segoe UI", sans-serif;
+            font: 14px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
+            overflow: auto;
+        }
+
+        button,
+        input,
+        textarea {
+            font: inherit;
         }
 
         .shell {
             min-height: 100vh;
+            min-width: 760px;
             padding: 14px 16px 16px;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 12px;
         }
 
-        .layout {
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0 2px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 680;
+            letter-spacing: -0.01em;
+        }
+
+        .brand p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .pill,
+        .ghost-button,
+        .keycap {
+            border: 0;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .pill {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .ghost-button {
+            background: rgba(23, 50, 39, 0.05);
+            color: var(--muted);
+            cursor: pointer;
+            transition: background 120ms ease, color 120ms ease;
+        }
+
+        .ghost-button:hover {
+            background: rgba(23, 50, 39, 0.08);
+            color: var(--text);
+        }
+
+        .workspace {
             display: grid;
-            gap: 14px;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            min-height: calc(100vh - 30px);
+            gap: 12px;
+            min-height: 0;
         }
 
         .pane {
             min-width: 0;
-            display: flex;
-            flex-direction: column;
-            background: var(--panel);
-            backdrop-filter: blur(10px);
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 10px;
         }
 
         .pane-head {
@@ -56,20 +138,19 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 4px 2px 10px;
+            padding: 0 2px;
         }
 
         .pane-title {
             display: flex;
-            align-items: baseline;
-            gap: 10px;
+            flex-direction: column;
+            gap: 2px;
             min-width: 0;
         }
 
-        .pane-title h1,
         .pane-title h2 {
             margin: 0;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 650;
         }
 
@@ -77,89 +158,54 @@
             margin: 0;
             color: var(--muted);
             font-size: 12px;
-            white-space: nowrap;
         }
 
-        .meta {
+        .editor-wrap {
+            min-height: 0;
             display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .badge,
-        .shortcut,
-        .link-button {
-            border-radius: 999px;
-            padding: 6px 10px;
-            font-size: 12px;
-            border: 0;
-            background: var(--accent-soft);
-            color: var(--accent);
-            font: inherit;
-        }
-
-        .shortcut {
-            color: var(--muted);
-            background: rgba(28, 60, 48, 0.06);
-        }
-
-        .link-button {
-            cursor: pointer;
-            transition: background 120ms ease;
-        }
-
-        .link-button:hover {
-            background: rgba(31, 139, 103, 0.18);
-        }
-
-        .editor {
-            flex: 1;
-            display: flex;
-        }
-
-        textarea,
-        input,
-        button {
-            font: inherit;
-        }
-
-        textarea,
-        input {
-            width: 100%;
+            background: var(--panel);
+            backdrop-filter: blur(12px);
             border: 1px solid var(--line);
-            border-radius: 18px;
-            background: var(--field);
-            color: var(--text);
-            outline: none;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
         }
 
         textarea {
+            width: 100%;
             flex: 1;
-            min-height: 320px;
-            padding: 18px;
+            min-height: 0;
+            border: 0;
             resize: none;
-            line-height: 1.6;
+            padding: 18px 18px 20px;
+            background: transparent;
+            color: var(--text);
+            line-height: 1.65;
             font-size: 15px;
+            outline: none;
         }
 
-        textarea:focus,
-        input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(31, 139, 103, 0.10);
+        textarea::placeholder,
+        input::placeholder {
+            color: #8c9992;
         }
 
-        .footer {
+        .editor-wrap:focus-within,
+        .settings-row:focus-within {
+            border-color: var(--line-strong);
+            box-shadow: 0 18px 40px rgba(30, 56, 44, 0.10), 0 0 0 3px rgba(29, 138, 103, 0.10);
+        }
+
+        .pane-foot {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            flex-wrap: wrap;
-            padding: 10px 2px 0;
+            padding: 0 2px;
         }
 
         .status {
-            min-height: 18px;
+            min-height: 20px;
             color: var(--muted);
             font-size: 13px;
         }
@@ -172,67 +218,93 @@
             color: var(--accent);
         }
 
-        .shortcut-bar {
+        .hint-row {
             display: flex;
-            gap: 8px;
             flex-wrap: wrap;
+            gap: 8px;
             justify-content: flex-end;
+        }
+
+        .keycap {
+            background: rgba(23, 50, 39, 0.06);
+            color: var(--muted);
         }
 
         .settings {
             display: none;
-            grid-column: 1 / -1;
+            align-items: center;
             gap: 10px;
-            padding: 6px 0 2px;
+            padding: 12px 14px;
+            background: var(--panel-strong);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
         }
 
         .settings.visible {
             display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .settings-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .settings-copy strong {
+            font-size: 13px;
+            font-weight: 620;
+        }
+
+        .settings-copy span {
+            color: var(--muted);
+            font-size: 12px;
         }
 
         .settings-row {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 10px;
+            min-width: 0;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid var(--line);
+            border-radius: 16px;
         }
 
-        .settings label {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .settings input {
-            padding: 12px 14px;
-        }
-
-        .settings button {
+        .settings-row input {
+            width: 100%;
             border: 0;
-            border-radius: 14px;
+            outline: none;
+            background: transparent;
+            color: var(--text);
+            padding: 8px 10px;
+        }
+
+        .primary-button {
+            border: 0;
+            border-radius: 12px;
+            padding: 10px 14px;
             background: var(--accent);
-            color: white;
-            padding: 0 14px;
+            color: #fff;
             cursor: pointer;
+            transition: filter 120ms ease;
         }
 
-        .helper {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .divider {
-            width: 1px;
-            background: linear-gradient(180deg, rgba(28, 60, 48, 0.02), rgba(28, 60, 48, 0.14), rgba(28, 60, 48, 0.02));
-            justify-self: center;
+        .primary-button:hover {
+            filter: brightness(0.96);
         }
 
         .toast {
             position: fixed;
-            right: 16px;
             top: 14px;
-            background: rgba(23, 50, 39, 0.94);
-            color: white;
+            right: 16px;
             padding: 9px 13px;
             border-radius: 999px;
+            background: rgba(23, 50, 39, 0.94);
+            color: #fff;
             opacity: 0;
             transform: translateY(-8px);
             transition: opacity 120ms ease, transform 120ms ease;
@@ -243,90 +315,89 @@
             opacity: 1;
             transform: translateY(0);
         }
-
-        @media (max-width: 860px) {
-            .layout {
-                grid-template-columns: 1fr;
-            }
-
-            .divider {
-                display: none;
-            }
-
-            .settings-row {
-                grid-template-columns: 1fr;
-            }
-
-            .shortcut-bar {
-                justify-content: flex-start;
-            }
-        }
     </style>
 </head>
 <body>
 <div class="shell">
-    <div class="layout">
+    <header class="topbar">
+        <div class="brand">
+            <h1>Translate</h1>
+            <p id="direction-label">AUTO -> English</p>
+        </div>
+        <div class="topbar-actions">
+            <span class="pill">DeepL Free</span>
+            <button id="toggle-settings" class="ghost-button" type="button">API Key</button>
+        </div>
+    </header>
+
+    <main class="workspace">
         <section class="pane">
             <div class="pane-head">
                 <div class="pane-title">
-                    <h1>Source</h1>
-                    <p id="direction-label">AUTO -> EN</p>
+                    <h2>Source</h2>
+                    <p>DeepL auto-detects the source language.</p>
                 </div>
-                <div class="meta">
-                    <span class="badge">DeepL Free</span>
-                    <button id="toggle-settings" class="link-button" type="button">API Key</button>
-                </div>
+                <span class="pill" id="target-language-badge">Target English</span>
             </div>
-            <div class="editor">
-                <textarea id="source-text" placeholder="Paste or type text here. Use Cmd/Ctrl + Enter to translate."></textarea>
+            <div class="editor-wrap">
+                <textarea id="source-text" spellcheck="false" placeholder="Paste or type text. Cmd/Ctrl + Enter translates."></textarea>
             </div>
-            <div class="footer">
+            <div class="pane-foot">
                 <div class="status" id="status"></div>
-                <div class="shortcut-bar">
-                    <span class="shortcut">Cmd/Ctrl + Enter Translate</span>
-                    <span class="shortcut">Cmd/Ctrl + Shift + X Swap</span>
+                <div class="hint-row">
+                    <span class="keycap">Cmd/Ctrl + Enter</span>
+                    <span class="keycap">Cmd/Ctrl + Shift + X</span>
                 </div>
             </div>
         </section>
-        <div class="divider" aria-hidden="true"></div>
+
         <section class="pane">
             <div class="pane-head">
                 <div class="pane-title">
                     <h2>Translation</h2>
                     <p id="detected-label">Detected source: -</p>
                 </div>
-                <div class="meta">
-                    <span class="badge" id="target-language-badge">Target EN</span>
-                </div>
+                <span class="pill" id="copy-hint">Copy with Cmd/Ctrl + Shift + C</span>
             </div>
-            <div class="editor">
-                <textarea id="target-text" placeholder="Translation appears here." readonly></textarea>
+            <div class="editor-wrap">
+                <textarea id="target-text" spellcheck="false" placeholder="Translation appears here." readonly></textarea>
             </div>
-            <div class="footer">
-                <div class="helper">Auto source detection by DeepL. Target flips between Chinese and English from the left text.</div>
-                <div class="shortcut-bar">
-                    <span class="shortcut">Cmd/Ctrl + Shift + C Copy</span>
-                    <span class="shortcut">Cmd/Ctrl + , Key</span>
+            <div class="pane-foot">
+                <div class="status" id="result-status">Swap and translate back with the keyboard.</div>
+                <div class="hint-row">
+                    <span class="keycap">Cmd/Ctrl + Shift + C</span>
+                    <span class="keycap">Cmd/Ctrl + ,</span>
                 </div>
             </div>
         </section>
-        <section class="settings" id="settings-panel">
-            <label for="api-key-input">DeepL Free API Key</label>
-            <div class="settings-row">
-                <input id="api-key-input" type="password" placeholder="Paste your DeepL Free auth key">
-                <button id="save-api-key" type="button">Save</button>
-            </div>
-            <div class="helper">Stored in WaTools plugin storage. Press Enter to save, Esc to hide.</div>
-        </section>
-    </div>
+    </main>
+
+    <section id="settings-panel" class="settings">
+        <div class="settings-copy">
+            <strong>DeepL Free API Key</strong>
+            <span>Stored with WaTools plugin storage. Press Enter to save, Esc to close.</span>
+        </div>
+        <div class="settings-row">
+            <input id="api-key-input" type="password" autocomplete="off" placeholder="Paste your DeepL Free auth key">
+            <button id="save-api-key" class="primary-button" type="button">Save</button>
+        </div>
+    </section>
 </div>
-<div class="toast" id="toast"></div>
+
+<div id="toast" class="toast"></div>
 
 <script type="module">
     const apiKeyStorageKey = "deepl.authKey";
+    const deeplEndpoint = "https://api-free.deepl.com/v2/translate";
+    const targetLanguageMeta = {
+        EN: "English",
+        "ZH-HANS": "Chinese",
+    };
+
     const sourceTextNode = document.getElementById("source-text");
     const targetTextNode = document.getElementById("target-text");
     const statusNode = document.getElementById("status");
+    const resultStatusNode = document.getElementById("result-status");
     const toastNode = document.getElementById("toast");
     const directionLabel = document.getElementById("direction-label");
     const detectedLabel = document.getElementById("detected-label");
@@ -341,9 +412,51 @@
     let lastTargetLang = "EN";
     let isTranslating = false;
 
-    const targetLanguageMeta = {
-        EN: "English",
-        "ZH-HANS": "中文"
+    const containsChinese = (value) => /[\u3400-\u9FFF]/.test(value);
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const stripTriggerPrefix = (value) => {
+        const trimmed = value.trim();
+        if (!trimmed) {
+            return "";
+        }
+        if (/^(fy|translate|翻译)\s+.+$/i.test(trimmed)) {
+            return trimmed.replace(/^(fy|translate|翻译)\s+/i, "").trim();
+        }
+        if (/^(fy|translate|翻译)$/i.test(trimmed)) {
+            return "";
+        }
+        return trimmed;
+    };
+
+    const extractSeedText = () => {
+        const searchSeed = new URLSearchParams(window.location.search).get("seed");
+        if (typeof searchSeed === "string" && searchSeed.trim()) {
+            return stripTriggerPrefix(searchSeed);
+        }
+        if (typeof window.inputValue === "string" && window.inputValue.trim()) {
+            return stripTriggerPrefix(window.inputValue);
+        }
+        return "";
+    };
+
+    const getTargetLanguage = (text) => containsChinese(text) ? "EN" : "ZH-HANS";
+
+    const updateDirectionUI = (text) => {
+        lastTargetLang = getTargetLanguage(text);
+        const targetLabel = targetLanguageMeta[lastTargetLang];
+        directionLabel.textContent = `AUTO -> ${targetLabel}`;
+        targetLanguageBadge.textContent = `Target ${targetLabel}`;
+    };
+
+    const setStatus = (message, type = "info") => {
+        statusNode.textContent = message || "";
+        statusNode.className = type === "error" ? "status error" : type === "success" ? "status success" : "status";
+    };
+
+    const setResultStatus = (message, type = "info") => {
+        resultStatusNode.textContent = message || "";
+        resultStatusNode.className = type === "error" ? "status error" : type === "success" ? "status success" : "status";
     };
 
     const showToast = (message) => {
@@ -357,46 +470,13 @@
         }, 1800);
     };
 
-    const setStatus = (message, type = "info") => {
-        statusNode.textContent = message || "";
-        statusNode.className = type === "error" ? "status error" : type === "success" ? "status success" : "status";
-    };
-
-    const containsChinese = (value) => /[\u3400-\u9FFF]/.test(value);
-
-    const getTargetLanguage = (text) => {
-        return containsChinese(text) ? "EN" : "ZH-HANS";
-    };
-
-    const updateDirectionUI = (text) => {
-        lastTargetLang = getTargetLanguage(text);
-        directionLabel.textContent = `AUTO -> ${targetLanguageMeta[lastTargetLang]}`;
-        targetLanguageBadge.textContent = `Target ${targetLanguageMeta[lastTargetLang]}`;
-    };
-
-    const extractSeedText = () => {
-        if (typeof window.inputValue !== "string") {
-            return "";
-        }
-
-        const value = window.inputValue.trim();
-        if (!value) {
-            return "";
-        }
-        if (/^(fy|translate|翻译)\s+/i.test(value)) {
-            return value.replace(/^(fy|translate|翻译)\s+/i, "").trim();
-        }
-        if (/^(fy|translate|翻译)$/i.test(value)) {
-            return "";
-        }
-        return value;
-    };
-
     const setSettingsVisible = (visible) => {
         settingsPanel.classList.toggle("visible", visible);
         if (visible) {
             apiKeyInput.focus();
             apiKeyInput.select();
+        } else {
+            sourceTextNode.focus();
         }
     };
 
@@ -404,6 +484,16 @@
         apiKey = (await window.watools.StorageGet(apiKeyStorageKey)) || "";
         apiKeyInput.value = apiKey;
         setSettingsVisible(!apiKey);
+    };
+
+    const waitForHostApi = async () => {
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+            if (window.watools && window.runtime) {
+                return;
+            }
+            await sleep(25);
+        }
+        throw new Error("WaTools host API is not ready");
     };
 
     const saveApiKey = async () => {
@@ -416,14 +506,21 @@
         apiKey = nextKey;
         await window.watools.StorageSet(apiKeyStorageKey, apiKey);
         setStatus("API key saved.", "success");
+        setResultStatus("Ready to translate.", "success");
         setSettingsVisible(false);
         showToast("DeepL key saved");
+
+        if (sourceTextNode.value.trim()) {
+            await translateText({silentEmpty: true});
+        }
     };
 
-    const translateText = async () => {
+    const translateText = async ({silentEmpty = false} = {}) => {
         const text = sourceTextNode.value.trim();
         if (!text) {
-            setStatus("Enter text to translate.", "error");
+            if (!silentEmpty) {
+                setStatus("Enter text to translate.", "error");
+            }
             return;
         }
 
@@ -440,22 +537,21 @@
         isTranslating = true;
         updateDirectionUI(text);
         setStatus("Translating...");
-
-        const formData = new URLSearchParams({
-            auth_key: apiKey,
-            text,
-            target_lang: lastTargetLang
-        });
+        setResultStatus("Waiting for DeepL...");
 
         try {
             const response = await window.watools.HttpProxy({
-                url: "https://api-free.deepl.com/v2/translate",
+                url: deeplEndpoint,
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
+                    "Authorization": `DeepL-Auth-Key ${apiKey}`,
+                    "Content-Type": "application/json",
                 },
-                body: formData.toString(),
-                timeout: 30000
+                body: JSON.stringify({
+                    text: [text],
+                    target_lang: lastTargetLang,
+                }),
+                timeout: 30000,
             });
 
             if (response.status_code < 200 || response.status_code >= 300) {
@@ -467,31 +563,35 @@
                         errorPayload = null;
                     }
                 }
-                throw new Error(errorPayload?.message || `HTTP ${response.status_code}`);
+                throw new Error(errorPayload?.message || response.error || `HTTP ${response.status_code}`);
             }
 
-            const payload = JSON.parse(response.body);
-            const translatedText = payload?.translations?.[0]?.text;
-            if (!translatedText) {
+            const payload = JSON.parse(response.body || "{}");
+            const translation = payload?.translations?.[0];
+            if (!translation?.text) {
                 throw new Error("Empty translation response");
             }
 
-            const detectedSource = payload?.translations?.[0]?.detected_source_language || "AUTO";
-            targetTextNode.value = translatedText;
-            detectedLabel.textContent = `Detected source: ${detectedSource}`;
+            targetTextNode.value = translation.text;
+            detectedLabel.textContent = `Detected source: ${translation.detected_source_language || "AUTO"}`;
             setStatus("Translation complete.", "success");
+            setResultStatus("Copy or swap with the keyboard.", "success");
         } catch (error) {
-            setStatus(error instanceof Error ? error.message : "Translation failed", "error");
+            const message = error instanceof Error ? error.message : "Translation failed";
+            setStatus(message, "error");
+            setResultStatus("Check API key or network response.", "error");
         } finally {
             isTranslating = false;
         }
     };
 
     const copyTranslation = async () => {
-        if (!targetTextNode.value.trim()) {
+        const text = targetTextNode.value.trim();
+        if (!text) {
             return;
         }
-        await window.runtime.ClipboardSetText(targetTextNode.value.trim());
+        await window.runtime.ClipboardSetText(text);
+        setResultStatus("Translation copied.", "success");
         showToast("Translation copied");
     };
 
@@ -504,9 +604,12 @@
 
         sourceTextNode.value = target;
         targetTextNode.value = source;
+        detectedLabel.textContent = "Detected source: -";
         updateDirectionUI(target);
+        setStatus("Source and translation swapped.", "success");
+        setResultStatus("Translating swapped text...", "success");
         showToast("Source and translation swapped");
-        await translateText();
+        await translateText({silentEmpty: true});
     };
 
     toggleSettingsButton.addEventListener("click", () => {
@@ -530,6 +633,12 @@
 
     sourceTextNode.addEventListener("input", () => {
         updateDirectionUI(sourceTextNode.value);
+        setStatus(sourceTextNode.value.trim() ? "Press Cmd/Ctrl + Enter to translate." : "");
+        if (!sourceTextNode.value.trim()) {
+            targetTextNode.value = "";
+            detectedLabel.textContent = "Detected source: -";
+            setResultStatus("Swap and translate back with the keyboard.");
+        }
     });
 
     sourceTextNode.addEventListener("keydown", (event) => {
@@ -567,16 +676,40 @@
     });
 
     window.addEventListener("load", async () => {
-        await loadApiKey();
-        sourceTextNode.value = extractSeedText();
-        updateDirectionUI(sourceTextNode.value);
-        sourceTextNode.focus();
-        sourceTextNode.setSelectionRange(sourceTextNode.value.length, sourceTextNode.value.length);
-        if (sourceTextNode.value.trim()) {
-            setStatus("Press Cmd/Ctrl + Enter to translate.");
-        } else if (!apiKey) {
-            setStatus("Add your DeepL Free API key to start.", "error");
+        try {
+            await waitForHostApi();
+            await loadApiKey();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Plugin initialization failed";
+            setStatus(message, "error");
+            setResultStatus("Reload the plugin panel and try again.", "error");
+            return;
         }
+
+        const seedText = extractSeedText();
+        sourceTextNode.value = seedText;
+        updateDirectionUI(seedText);
+        sourceTextNode.focus();
+        sourceTextNode.setSelectionRange(seedText.length, seedText.length);
+
+        if (seedText) {
+            if (apiKey) {
+                setStatus("Translating seeded text...");
+                await translateText({silentEmpty: true});
+            } else {
+                setStatus("Set your DeepL Free API key first.", "error");
+                setResultStatus("Seeded text is ready on the left.", "error");
+            }
+            return;
+        }
+
+        if (!apiKey) {
+            setStatus("Add your DeepL Free API key to start.", "error");
+            setResultStatus("Open API Key with Cmd/Ctrl + ,", "error");
+            return;
+        }
+
+        setStatus("Paste text on the left. Cmd/Ctrl + Enter translates.");
     });
 </script>
 </body>

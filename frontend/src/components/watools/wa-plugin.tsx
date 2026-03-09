@@ -16,6 +16,7 @@ export const WaPlugin = () => {
 
     const packageId = searchParams.get('packageId') || ''
     const file = searchParams.get('file')
+    const seed = searchParams.get('seed') || ''
 
     const handleHotkey = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -40,12 +41,18 @@ export const WaPlugin = () => {
             setPluginUrl(null)
             return
         }
-        const url = `${plugin.homeUrl}/${safeFile}?t=${Date.now()}`
+        const params = new URLSearchParams({
+            t: Date.now().toString(),
+        })
+        if (seed) {
+            params.set('seed', seed)
+        }
+        const url = `${plugin.homeUrl}/${safeFile}?${params.toString()}`
         setPluginUrl(url)
         return () => {
             setPluginUrl(null)
         }
-    }, [packageId, file, getPluginById]);
+    }, [packageId, file, seed, getPluginById]);
 
 
     const handleIframeLoad = useCallback(() => {

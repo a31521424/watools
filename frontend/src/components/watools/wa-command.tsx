@@ -74,7 +74,14 @@ export const WaCommand = () => {
         }
 
         if (entry.type === 'ui') {
-            navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
+            const params = new URLSearchParams({
+                packageId: entry.packageId,
+                file: entry.file || '',
+            })
+            if (context.input.value.trim()) {
+                params.set('seed', context.input.value)
+            }
+            navigate(`/plugin?${params.toString()}`)
         } else if (entry.type === 'executable') {
             // @ts-ignore
             const previousWaTools = window.watools
