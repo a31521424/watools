@@ -2,6 +2,7 @@ import {useLocation, useSearchParams} from "wouter";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {useAppStore, usePluginStore} from "@/stores";
 import {createWaToolsApi} from "@/api/api";
+import {normalizePluginAssetPath} from "@/lib/plugin";
 
 export const WaPlugin = () => {
     const [searchParams] = useSearchParams()
@@ -32,15 +33,19 @@ export const WaPlugin = () => {
 
     useEffect(() => {
         const plugin = getPluginById(packageId)
-        if (!plugin) {
+        const safeFile = normalizePluginAssetPath(file)
+        const matchedEntry = plugin?.enabled ? plugin.entry.find(entry => entry.type === "ui" && entry.file === safeFile) : undefined
+
+        if (!plugin || !plugin.enabled || !safeFile || !matchedEntry) {
+            setPluginUrl(null)
             return
         }
-        const url = `${plugin.homeUrl}/${file}?t=${Date.now()}`
+        const url = `${plugin.homeUrl}/${safeFile}?t=${Date.now()}`
         setPluginUrl(url)
         return () => {
             setPluginUrl(null)
         }
-    }, [packageId, file]);
+    }, [packageId, file, getPluginById]);
 
 
     const handleIframeLoad = useCallback(() => {
@@ -81,4 +86,3 @@ export const WaPlugin = () => {
         {!pluginUrl && 'loading...'}
     </div>
 }
-

@@ -7,6 +7,7 @@ import {
     UninstallPluginApi,
     TogglePluginApi
 } from "../../wailsjs/go/coordinator/WaAppCoordinator"
+import {sanitizePluginEntries} from "@/lib/plugin";
 
 export const getPlugins = async (): Promise<Plugin[]> => {
     const pluginsData = await GetPluginsApi()
@@ -32,13 +33,13 @@ export const getPlugins = async (): Promise<Plugin[]> => {
         }))
     }
 
-    await Promise.all(plugins.map(async (plugin) => {
+    await Promise.all(plugins.filter(plugin => plugin.enabled).map(async (plugin) => {
         try {
             const entryUrl = await GetPluginJsEntryUrlApi(plugin.packageId)
             if (entryUrl) {
                 const module = await import(/* @vite-ignore */ entryUrl)
                 if (module && module.default && Array.isArray(module.default)) {
-                    plugin.entry = module.default
+                    plugin.entry = await sanitizePluginEntries(plugin, module.default)
                 }
             }
         } catch (error) {

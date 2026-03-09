@@ -18,6 +18,8 @@ import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
 import {getClipboardContent} from "@/api/app";
 import {PluginContext} from "@/schemas/plugin";
 import {useShallow} from "zustand/react/shallow";
+import {createWaToolsApi} from "@/api/api";
+import {useApplicationCommandStore} from "@/stores/applicationCommandStore";
 
 
 export const WaCommand = () => {
@@ -25,6 +27,8 @@ export const WaCommand = () => {
     const commandListRef = useRef<HTMLDivElement>(null)
     const [isPasted, setIsPasted] = React.useState<boolean>(false)
     const {updatePluginUsage} = usePluginStore()
+    const flushPluginUsage = usePluginStore(state => state.flushBufferUpdates)
+    const flushApplicationUsage = useApplicationCommandStore(state => state.flushBufferUpdates)
     const [_, navigate] = useLocation()
 
     // Subscribe to individual store values using selectors
@@ -55,9 +59,11 @@ export const WaCommand = () => {
     const onTriggerCommand = useCallback((command: CommandType) => {
         clearValue()
         TriggerCommandApi(command.triggerId, command.category).then(() => {
-            void HideAppApi()
+            void Promise.allSettled([flushApplicationUsage(), flushPluginUsage()]).finally(() => {
+                void HideAppApi()
+            })
         })
-    }, [clearValue])
+    }, [clearValue, flushApplicationUsage, flushPluginUsage])
 
     const onTriggerPluginCommand = useCallback(async (entry: PluginCommandEntry, context: PluginContext) => {
         // Update plugin usage statistics
@@ -70,14 +76,27 @@ export const WaCommand = () => {
         if (entry.type === 'ui') {
             navigate(`/plugin?packageId=${entry.packageId}&file=${encodeURIComponent(entry.file || '')}`)
         } else if (entry.type === 'executable') {
+            // @ts-ignore
+            const previousWaTools = window.watools
+            // @ts-ignore
+            window.watools = createWaToolsApi(entry.packageId)
             try {
                 entry.execute && await entry.execute(context)
+                await Promise.allSettled([flushApplicationUsage(), flushPluginUsage()])
                 void HideAppApi()
             } catch (error) {
                 Logger.error(`Failed to execute plugin command: ${error}`)
+            } finally {
+                if (previousWaTools) {
+                    // @ts-ignore
+                    window.watools = previousWaTools
+                } else {
+                    // @ts-ignore
+                    delete window.watools
+                }
             }
         }
-    }, [updatePluginUsage, navigate])
+    }, [updatePluginUsage, navigate, flushApplicationUsage, flushPluginUsage])
 
     // Get items from hooks directly
     const applicationItems = useApplicationItems({
@@ -145,7 +164,9 @@ export const WaCommand = () => {
             if (isDevMode()) {
                 return
             }
-            void HideAppApi()
+            void Promise.allSettled([flushApplicationUsage(), flushPluginUsage()]).finally(() => {
+                void HideAppApi()
+            })
         }
     })
 
@@ -157,7 +178,9 @@ export const WaCommand = () => {
                 if (getIsPanelOpen()) {
                     clearValue()
                 } else {
-                    void HideOrShowAppApi()
+                    void Promise.allSettled([flushApplicationUsage(), flushPluginUsage()]).finally(() => {
+                        void HideOrShowAppApi()
+                    })
                 }
             } else if (e.key === "Tab") {
                 e.preventDefault()
@@ -173,7 +196,7 @@ export const WaCommand = () => {
         return () => {
             window.removeEventListener("keydown", handleHotkey)
         }
-    }, [clearValue])
+    }, [clearValue, flushApplicationUsage, flushPluginUsage])
 
     const handlePaste = useCallback(() => {
         setIsPasted(true)

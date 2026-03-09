@@ -14,6 +14,7 @@ import (
 	"watools/pkg/db"
 	"watools/pkg/logger"
 	"watools/pkg/models"
+	"watools/pkg/utils"
 )
 
 type PluginInstaller struct {
@@ -65,6 +66,11 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 		return fmt.Errorf("invalid manifest: %w", err)
 	}
 
+	pluginRoot := filepath.Dir(manifestPath)
+	if _, err := pi.resolvePluginFile(pluginRoot, manifest.Entry); err != nil {
+		return fmt.Errorf("invalid plugin entry: %w", err)
+	}
+
 	// 6. 检查插件是否已安装
 	dbInstance := db.GetWaDB()
 	plugins := dbInstance.GetPlugins(pi.ctx)
@@ -75,13 +81,15 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 	}
 
 	// 7. 创建插件目录
-	pluginDir := filepath.Join(pi.pluginsDir, manifest.PackageID)
+	pluginDir, err := utils.ResolvePathWithinBase(pi.pluginsDir, manifest.PackageID)
+	if err != nil {
+		return fmt.Errorf("invalid package installation path: %w", err)
+	}
 	if err := os.MkdirAll(pluginDir, 0755); err != nil {
 		return fmt.Errorf("failed to create plugin directory: %w", err)
 	}
 
 	// 8. 复制文件到插件目录
-	pluginRoot := filepath.Dir(manifestPath)
 	if err := pi.copyDir(pluginRoot, pluginDir); err != nil {
 		os.RemoveAll(pluginDir) // 清理失败的安装
 		return fmt.Errorf("failed to copy plugin files: %w", err)
@@ -100,6 +108,9 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 // UninstallPlugin uninstalls a plugin
 func (pi *PluginInstaller) UninstallPlugin(packageID string) error {
 	logger.Info(fmt.Sprintf("Uninstalling plugin: %s", packageID))
+	if err := utils.ValidatePluginPackageID(packageID); err != nil {
+		return fmt.Errorf("invalid packageId: %w", err)
+	}
 
 	dbInstance := db.GetWaDB()
 
@@ -120,7 +131,10 @@ func (pi *PluginInstaller) UninstallPlugin(packageID string) error {
 	// 简化: 所有已安装的插件都可以卸载
 
 	// 3. 删除插件目录
-	pluginDir := filepath.Join(pi.pluginsDir, packageID)
+	pluginDir, err := utils.ResolvePathWithinBase(pi.pluginsDir, packageID)
+	if err != nil {
+		return fmt.Errorf("invalid package uninstall path: %w", err)
+	}
 	if err := os.RemoveAll(pluginDir); err != nil {
 		logger.Error(err, fmt.Sprintf("Failed to remove plugin directory: %s", pluginDir))
 	}
@@ -143,11 +157,9 @@ func (pi *PluginInstaller) unzipFile(src, dest string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		fpath := filepath.Join(dest, f.Name)
-
-		// 安全检查: 防止路径遍历攻击
-		if !filepath.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
-			return fmt.Errorf("invalid file path: %s", fpath)
+		fpath, err := utils.ResolvePathWithinBase(dest, f.Name)
+		if err != nil {
+			return fmt.Errorf("invalid file path %q: %w", f.Name, err)
 		}
 
 		if f.FileInfo().IsDir() {
@@ -182,7 +194,7 @@ func (pi *PluginInstaller) unzipFile(src, dest string) error {
 }
 
 func (pi *PluginInstaller) findManifestPath(root string) (string, error) {
-	var manifestPath string
+	var manifestPaths []string
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -191,18 +203,20 @@ func (pi *PluginInstaller) findManifestPath(root string) (string, error) {
 			return nil
 		}
 		if strings.EqualFold(info.Name(), "manifest.json") {
-			manifestPath = path
-			return io.EOF
+			manifestPaths = append(manifestPaths, path)
 		}
 		return nil
 	})
-	if err != nil && err != io.EOF {
+	if err != nil {
 		return "", err
 	}
-	if manifestPath == "" {
+	if len(manifestPaths) == 0 {
 		return "", fmt.Errorf("manifest.json not found")
 	}
-	return manifestPath, nil
+	if len(manifestPaths) > 1 {
+		return "", fmt.Errorf("multiple manifest.json files found")
+	}
+	return manifestPaths[0], nil
 }
 
 // readManifest reads and parses manifest.json
@@ -225,6 +239,9 @@ func (pi *PluginInstaller) validateManifest(manifest *models.PluginMetadata) err
 	if manifest.PackageID == "" {
 		return fmt.Errorf("packageId is required")
 	}
+	if err := utils.ValidatePluginPackageID(manifest.PackageID); err != nil {
+		return err
+	}
 	if manifest.Name == "" {
 		return fmt.Errorf("name is required")
 	}
@@ -235,6 +252,23 @@ func (pi *PluginInstaller) validateManifest(manifest *models.PluginMetadata) err
 		return fmt.Errorf("entry is required")
 	}
 	return nil
+}
+
+func (pi *PluginInstaller) resolvePluginFile(pluginRoot string, relativePath string) (string, error) {
+	resolvedPath, err := utils.ResolvePathWithinBase(pluginRoot, relativePath)
+	if err != nil {
+		return "", err
+	}
+
+	fileInfo, err := os.Stat(resolvedPath)
+	if err != nil {
+		return "", err
+	}
+	if fileInfo.IsDir() {
+		return "", fmt.Errorf("path must point to a file")
+	}
+
+	return resolvedPath, nil
 }
 
 // copyDir recursively copies a directory
