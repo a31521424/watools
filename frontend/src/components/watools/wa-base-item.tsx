@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { CommandItem } from "@/components/ui/command";
+import {RankingMeta} from "@/lib/command-ranking";
 
 export interface BaseItemProps {
   id: string;
@@ -7,6 +8,7 @@ export interface BaseItemProps {
   title: string;
   icon: ReactNode;
   usedCount?: number;
+  rankingMeta?: RankingMeta;
   subtitle?: string;
   badge?: string;
   onSelect: () => void;

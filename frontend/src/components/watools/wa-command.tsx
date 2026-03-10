@@ -20,6 +20,8 @@ import {PluginContext} from "@/schemas/plugin";
 import {useShallow} from "zustand/react/shallow";
 import {createWaToolsApi} from "@/api/api";
 import {useApplicationCommandStore} from "@/stores/applicationCommandStore";
+import {compareRankableItems, createRankingInputContext} from "@/lib/command-ranking";
+import {useCommandRankingStore} from "@/stores";
 
 
 export const WaCommand = () => {
@@ -29,6 +31,8 @@ export const WaCommand = () => {
     const {updatePluginUsage} = usePluginStore()
     const flushPluginUsage = usePluginStore(state => state.flushBufferUpdates)
     const flushApplicationUsage = useApplicationCommandStore(state => state.flushBufferUpdates)
+    const rankingHistory = useCommandRankingStore(state => state.history)
+    const recordSelection = useCommandRankingStore(state => state.recordSelection)
     const [_, navigate] = useLocation()
 
     // Subscribe to individual store values using selectors
@@ -55,6 +59,7 @@ export const WaCommand = () => {
         valueType,
         clipboardContentType: clipboardContentType ?? undefined,
     }), [value, valueType, clipboardContentType])
+    const rankingContext = useMemo(() => createRankingInputContext(pluginInput), [pluginInput])
 
     const onTriggerCommand = useCallback((command: CommandType) => {
         clearValue()
@@ -108,16 +113,22 @@ export const WaCommand = () => {
     // Get items from hooks directly
     const applicationItems = useApplicationItems({
         searchKey: value,
+        rankingContext,
+        rankingHistory,
         onTriggerCommand
     });
 
     const operationItems = useOperationItems({
         searchKey: value,
+        rankingContext,
+        rankingHistory,
         onTriggerCommand
     });
 
     const appFeatureItems = useAppFeatureItems({
         searchKey: value,
+        rankingContext,
+        rankingHistory,
         onTriggerAppFeature: clearValue
     });
 
@@ -125,10 +136,11 @@ export const WaCommand = () => {
     const pluginItems = usePluginItems({
         input: pluginInput,
         clipboard,
+        rankingContext,
+        rankingHistory,
         onTriggerPluginCommand,
     });
 
-    // Combine and sort all items by usedCount only
     const combinedItems = useMemo((): BaseItemProps[] => {
         const allItems = [
             ...pluginItems,
@@ -140,18 +152,30 @@ export const WaCommand = () => {
         const uniqueItems = new Map<string, BaseItemProps>();
         for (const item of allItems) {
             const existing = uniqueItems.get(item.triggerId);
-            if (!existing || (item.usedCount || 0) > (existing.usedCount || 0)) {
+            if (!existing || compareRankableItems(item, existing, rankingContext, rankingHistory) < 0) {
                 uniqueItems.set(item.triggerId, item);
             }
         }
 
-        // Sort by usedCount (higher is better)
-        return Array.from(uniqueItems.values()).sort((a, b) => {
-            const usedCountA = a.usedCount || 0;
-            const usedCountB = b.usedCount || 0;
-            return usedCountB - usedCountA;
-        });
-    }, [applicationItems, operationItems, pluginItems, appFeatureItems]);
+        return Array.from(uniqueItems.values())
+            .sort((a, b) => compareRankableItems(a, b, rankingContext, rankingHistory))
+            .map(item => {
+                const originalOnSelect = item.onSelect;
+                return {
+                    ...item,
+                    onSelect: () => {
+                        if (item.rankingMeta) {
+                            recordSelection({
+                                triggerId: item.triggerId,
+                                source: item.rankingMeta.source,
+                                input: rankingContext,
+                            });
+                        }
+                        originalOnSelect();
+                    }
+                };
+            });
+    }, [applicationItems, operationItems, pluginItems, appFeatureItems, rankingContext, rankingHistory, recordSelection]);
 
     const selectedKey = useMemo(() => {
         return combinedItems.length > 0 ? combinedItems[0].triggerId : undefined

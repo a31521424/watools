@@ -4,6 +4,7 @@ import {PluginContext, PluginEntry} from "@/schemas/plugin";
 import {WaIcon} from "@/components/watools/wa-icon";
 import {AppClipboardContent, AppInput} from "@/schemas/app";
 import {BaseItemProps} from "@/components/watools/wa-base-item";
+import {compareRankableItems, RankingInputContext, RankingSelectionRecord} from "@/lib/command-ranking";
 
 export type PluginCommandEntry = PluginEntry & {
     packageId: string;
@@ -15,10 +16,18 @@ export type PluginCommandEntry = PluginEntry & {
 type UsePluginItemsParams = {
     input: AppInput;
     clipboard: AppClipboardContent | null;
+    rankingContext: RankingInputContext;
+    rankingHistory: RankingSelectionRecord[];
     onTriggerPluginCommand: (entry: PluginCommandEntry, context: PluginContext) => void;
 }
 
-export const usePluginItems = ({input, clipboard, onTriggerPluginCommand}: UsePluginItemsParams) => {
+export const usePluginItems = ({
+    input,
+    clipboard,
+    rankingContext,
+    rankingHistory,
+    onTriggerPluginCommand
+}: UsePluginItemsParams) => {
     const {getEnabledPlugins, plugins} = usePluginStore();
 
     const enabledPlugins = useMemo(() => {
@@ -45,7 +54,6 @@ export const usePluginItems = ({input, clipboard, onTriggerPluginCommand}: UsePl
     const context: PluginContext = useMemo(() => ({
         input,
         clipboard,
-        packageId: ""
     }), [input, clipboard]);
 
     return useMemo((): BaseItemProps[] => {
@@ -69,37 +77,49 @@ export const usePluginItems = ({input, clipboard, onTriggerPluginCommand}: UsePl
             }
         }
 
-        const sortedEntries = Array.from(uniqueEntries.values()).sort((a, b) => {
-            const pluginA = enabledPlugins.find(p => p.packageId === a.packageId);
-            const pluginB = enabledPlugins.find(p => p.packageId === b.packageId);
+        const sortedEntries = Array.from(uniqueEntries.values())
+            .map((entry, index) => ({
+                entry,
+                plugin: enabledPlugins.find(p => p.packageId === entry.packageId),
+                rankingMeta: {
+                    source: "plugin" as const,
+                    usedCount: enabledPlugins.find(p => p.packageId === entry.packageId)?.usedCount || 0,
+                    lastUsedAt: enabledPlugins.find(p => p.packageId === entry.packageId)?.lastUsedAt || null,
+                    sourceOrder: index,
+                }
+            }))
+            .sort((a, b) => {
+                const rankCompare = compareRankableItems({
+                    triggerId: a.entry.triggerId,
+                    title: a.entry.subTitle,
+                    rankingMeta: a.rankingMeta,
+                }, {
+                    triggerId: b.entry.triggerId,
+                    title: b.entry.subTitle,
+                    rankingMeta: b.rankingMeta,
+                }, rankingContext, rankingHistory);
 
-            const usedCountA = pluginA?.usedCount || 0;
-            const usedCountB = pluginB?.usedCount || 0;
+                if (rankCompare !== 0) {
+                    return rankCompare;
+                }
 
-            if (usedCountA !== usedCountB) {
-                return usedCountB - usedCountA;
-            }
+                if (a.entry.type === 'executable' && b.entry.type === 'ui') return -1;
+                if (a.entry.type === 'ui' && b.entry.type === 'executable') return 1;
+                return a.entry.subTitle.localeCompare(b.entry.subTitle);
+            });
 
-            if (a.type === 'executable' && b.type === 'ui') return -1;
-            if (a.type === 'ui' && b.type === 'executable') return 1;
-            return 0;
-        });
-
-        return sortedEntries.slice(0, 3).map(entry => {
-            const plugin = enabledPlugins.find(p => p.packageId === entry.packageId);
-
-            return {
+        return sortedEntries.slice(0, 3).map(({entry, plugin, rankingMeta}) => ({
                 id: entry.triggerId,
                 triggerId: entry.triggerId,
                 title: entry.subTitle,
                 icon: <WaIcon value={entry.icon} size={16}/>,
                 usedCount: plugin?.usedCount || 0,
+                rankingMeta,
                 subtitle: entry.pluginName,
                 badge: entry.type,
                 onSelect: () => {
                     onTriggerPluginCommand(entry, context);
                 }
-            };
-        });
-    }, [input, clipboard, allPluginEntries, onTriggerPluginCommand, context, enabledPlugins]);
+            }));
+    }, [input, clipboard, allPluginEntries, onTriggerPluginCommand, context, enabledPlugins, rankingContext, rankingHistory]);
 };

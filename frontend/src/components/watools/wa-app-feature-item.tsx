@@ -3,9 +3,12 @@ import {BaseItemProps} from "@/components/watools/wa-base-item";
 import Fuse from "fuse.js";
 import {WaIcon} from "@/components/watools/wa-icon";
 import {useLocation} from "wouter";
+import {compareRankableItems, RankingInputContext, RankingSelectionRecord} from "@/lib/command-ranking";
 
 type UseAppFeatureItemsParams = {
     searchKey: string;
+    rankingContext: RankingInputContext;
+    rankingHistory: RankingSelectionRecord[];
     onTriggerAppFeature: () => void;
 }
 
@@ -21,7 +24,12 @@ const LOCAL_APP_FEATURES = [
     },
 ];
 
-export const useAppFeatureItems = ({searchKey, onTriggerAppFeature}: UseAppFeatureItemsParams) => {
+export const useAppFeatureItems = ({
+    searchKey,
+    rankingContext,
+    rankingHistory,
+    onTriggerAppFeature
+}: UseAppFeatureItemsParams) => {
     const [_, navigate] = useLocation();
 
     const appFeatureFuse = useMemo(() => {
@@ -43,15 +51,32 @@ export const useAppFeatureItems = ({searchKey, onTriggerAppFeature}: UseAppFeatu
             return [];
         }
 
-        const results = appFeatureFuse.search(searchKey, {limit: 5});
-        return results.map(result => {
-            const feature = result.item;
+        const results = appFeatureFuse.search(searchKey, {limit: 5})
+            .map((result, index) => ({
+                feature: result.item,
+                rankingMeta: {
+                    source: "app-feature" as const,
+                    sourceOrder: index,
+                }
+            }))
+            .sort((a, b) => compareRankableItems({
+                triggerId: a.feature.id,
+                title: a.feature.name,
+                rankingMeta: a.rankingMeta,
+            }, {
+                triggerId: b.feature.id,
+                title: b.feature.name,
+                rankingMeta: b.rankingMeta,
+            }, rankingContext, rankingHistory));
+
+        return results.map(({feature, rankingMeta}) => {
             return {
                 id: feature.id,
                 triggerId: feature.id,
                 title: feature.name,
                 icon: <WaIcon value={feature.icon} size={16}/>,
                 usedCount: 0,
+                rankingMeta,
                 subtitle: feature.description,
                 badge: "App",
                 onSelect: () => {
@@ -60,6 +85,6 @@ export const useAppFeatureItems = ({searchKey, onTriggerAppFeature}: UseAppFeatu
                 }
             };
         });
-    }, [searchKey, appFeatureFuse, navigate]);
+    }, [searchKey, appFeatureFuse, navigate, onTriggerAppFeature, rankingContext, rankingHistory]);
 
 };
