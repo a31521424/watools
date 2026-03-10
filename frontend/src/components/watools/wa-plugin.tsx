@@ -132,13 +132,13 @@ export const WaPlugin = () => {
         }
     }, [packageId, inputValue, clearInputValue, syncIframeHeight]);
 
-    return <div className="flex-1 overflow-hidden">
+    return <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {pluginUrl && <iframe
             ref={iframeRef}
             style={{
                 height: iframeHeight ? `${iframeHeight}px` : '720px',
             }}
-            className="block w-full border-0"
+            className="block min-h-0 w-full border-0"
             src={pluginUrl} onLoad={handleIframeLoad}
         />}
         {!pluginUrl && 'loading...'}

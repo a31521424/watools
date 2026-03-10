@@ -23,6 +23,15 @@ type WaApp struct {
 
 func (a *WaApp) positionWindow() {
 	runtime.WindowCenter(a.ctx)
+
+	screen, ok := a.getPrimaryScreen()
+	if !ok {
+		return
+	}
+
+	currentX, _ := runtime.WindowGetPosition(a.ctx)
+	_, windowHeight := runtime.WindowGetSize(a.ctx)
+	runtime.WindowSetPosition(a.ctx, currentX, clampWindowTopOffset(screen.Size.Height, windowHeight))
 }
 
 func clampWindowWidth(screenWidth int) int {
@@ -30,26 +39,71 @@ func clampWindowWidth(screenWidth int) int {
 		return 1280
 	}
 
-	width := int(float64(screenWidth) * 0.46)
-	if width < 1080 {
-		width = 1080
+	width := int(float64(screenWidth) * 0.42)
+	if width < 920 {
+		width = 920
 	}
-	if width > 1480 {
-		width = 1480
+	if width > 1320 {
+		width = 1320
 	}
 
-	maxAllowedWidth := screenWidth - 80
-	if maxAllowedWidth < 900 {
+	maxAllowedWidth := screenWidth - 96
+	if maxAllowedWidth < 840 {
 		maxAllowedWidth = screenWidth
 	}
 	if width > maxAllowedWidth {
 		width = maxAllowedWidth
 	}
-	if width < 900 {
-		width = 900
+	if width < 840 {
+		width = 840
 	}
 
 	return width
+}
+
+func clampWindowTopOffset(screenHeight int, windowHeight int) int {
+	if screenHeight <= 0 {
+		return 72
+	}
+
+	offset := int(float64(screenHeight) * 0.12)
+	if offset < 72 {
+		offset = 72
+	}
+	if offset > 132 {
+		offset = 132
+	}
+
+	maxOffset := screenHeight - windowHeight - 32
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+	if offset > maxOffset {
+		offset = maxOffset
+	}
+
+	return offset
+}
+
+func (a *WaApp) getPrimaryScreen() (runtime.Screen, bool) {
+	screens, err := runtime.ScreenGetAll(a.ctx)
+	if err != nil {
+		logger.Error(err, "Failed to get screens")
+		return runtime.Screen{}, false
+	}
+	if len(screens) == 0 {
+		return runtime.Screen{}, false
+	}
+
+	primaryScreen := screens[0]
+	for _, screen := range screens {
+		if screen.IsPrimary {
+			primaryScreen = screen
+			break
+		}
+	}
+
+	return primaryScreen, true
 }
 
 // HotkeyConfigAPI represents a hotkey configuration for API responses
@@ -67,22 +121,9 @@ func GetWaApp() *WaApp {
 }
 
 func (a *WaApp) initWindowSize() {
-	screen, err := runtime.ScreenGetAll(a.ctx)
-	if err != nil {
-		logger.Error(err, "Failed to get screen when init window size")
-		return
-	}
 	width := 1280
 	height := 64
-	if len(screen) > 0 {
-		// Find primary screen and record its size
-		primaryScreen := screen[0]
-		for _, s := range screen {
-			if s.IsPrimary {
-				primaryScreen = s
-				break
-			}
-		}
+	if primaryScreen, ok := a.getPrimaryScreen(); ok {
 		a.lastScreenWidth = primaryScreen.Size.Width
 		a.lastScreenHeight = primaryScreen.Size.Height
 		width = clampWindowWidth(primaryScreen.Size.Width)
@@ -103,23 +144,9 @@ func (a *WaApp) Shutdown(ctx context.Context) {
 
 // checkAndRepositionIfNeeded checks for screen changes and repositions window if needed
 func (a *WaApp) checkAndRepositionIfNeeded() {
-	screen, err := runtime.ScreenGetAll(a.ctx)
-	if err != nil {
-		logger.Error(err, "Failed to get screen for reposition check")
+	primaryScreen, ok := a.getPrimaryScreen()
+	if !ok {
 		return
-	}
-
-	if len(screen) == 0 {
-		return
-	}
-
-	// Find current primary screen
-	primaryScreen := screen[0]
-	for _, s := range screen {
-		if s.IsPrimary {
-			primaryScreen = s
-			break
-		}
 	}
 
 	// Check if screen dimensions changed
@@ -127,11 +154,11 @@ func (a *WaApp) checkAndRepositionIfNeeded() {
 		logger.Info("Screen configuration changed, repositioning window")
 
 		// Update stored dimensions
-		a.lastScreenWidth = primaryScreen.Width
-		a.lastScreenHeight = primaryScreen.Height
+		a.lastScreenWidth = primaryScreen.Size.Width
+		a.lastScreenHeight = primaryScreen.Size.Height
 
 		// Recalculate and set window size
-		width := clampWindowWidth(primaryScreen.Width)
+		width := clampWindowWidth(primaryScreen.Size.Width)
 		height := 64
 
 		runtime.WindowSetSize(a.ctx, width, height)

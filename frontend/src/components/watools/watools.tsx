@@ -40,8 +40,7 @@ const Watools = () => {
         }
     }, [flushApplicationUsage, flushPluginUsage]);
 
-
-    return <div ref={windowRef} className="bg-white w-full rounded-xl overflow-x-hidden scrollbar-hide border-0">
+    return <div ref={windowRef} className="scrollbar-hide flex min-h-0 w-full flex-col overflow-hidden rounded-xl border-0 bg-white">
         <Route path='/'>
             <WaCommand/>
         </Route>

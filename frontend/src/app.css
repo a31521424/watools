@@ -1,5 +1,7 @@
 html, head, body, #root {
     background-color: transparent;
+    margin: 0;
+    width: 100%;
 }
 
 /* Remove accessibility focus outline */
