@@ -1,0 +1,9 @@
+{
+  "packageId": "watools.plugin.textstats",
+  "name": "Text Stats",
+  "description": "Official text statistics panel with multidimensional character analysis",
+  "version": "0.1.0",
+  "author": "WaTools",
+  "uiEnabled": true,
+  "entry": "app.js"
+}

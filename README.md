@@ -23,7 +23,7 @@ WaTools aims to provide a fast, modern, and cross-platform alternative for commo
 -   **Global Access**: Instantly open the app from anywhere with a global hotkey.
 -   **App Launcher**: Quickly find and launch applications on your system.
 -   **Plugin System**: Install trusted `.wt` plugins with executable and UI entry types.
--   **Official Plugins**: Ships with an official plugin source tree for common utilities, calculator, and translation workflows.
+-   **Official Plugins**: Ships with an official plugin source tree for common utilities, calculator, translation, and text statistics workflows.
 -   **Modern UI**: Clean and intuitive user interface built with React and Tailwind CSS.
 -   **Cross-Platform Structure**: Built with Wails, with macOS currently being the most complete target.
 
@@ -86,6 +86,7 @@ Current official plugins:
 -   `watools.plugin.common`: open URLs and file paths, copy pasted file paths, save clipboard images
 -   `watools.plugin.calculator`: command-palette calculator plus calculator panel with persisted history
 -   `watools.plugin.translate`: translation panel with persisted language preferences
+-   `watools.plugin.textstats`: explicit-trigger text statistics panel with seeded input support
 
 `fronted-plugin/` is now legacy reference material only.
 

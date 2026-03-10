@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaTools Text Stats</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5f6f0;
+            --paper: rgba(255, 255, 255, 0.9);
+            --paper-strong: rgba(255, 255, 255, 0.98);
+            --line: rgba(40, 62, 51, 0.12);
+            --line-strong: rgba(40, 62, 51, 0.22);
+            --text: #1e2d26;
+            --muted: #66756f;
+            --accent: #2f7a62;
+            --accent-soft: rgba(47, 122, 98, 0.12);
+            --warm: #b56d33;
+            --shadow: 0 18px 42px rgba(36, 52, 44, 0.09);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(47, 122, 98, 0.12), transparent 30%),
+                radial-gradient(circle at top right, rgba(181, 109, 51, 0.12), transparent 24%),
+                linear-gradient(180deg, #fafbf7 0%, var(--bg) 100%);
+            color: var(--text);
+            font: 14px/1.5 "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
+        }
+
+        button,
+        textarea {
+            font: inherit;
+        }
+
+        .shell {
+            width: min(100%, 1160px);
+            margin: 0 auto;
+            padding: 16px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .hero {
+            display: grid;
+            gap: 10px;
+            padding: 2px 2px 0;
+        }
+
+        .headline {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .headline h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .headline p {
+            margin: 6px 0 0;
+            color: var(--muted);
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.72);
+            padding: 7px 11px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+            gap: 14px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--paper);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .panel-body {
+            padding: 16px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .section-title h2 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .section-title span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 320px;
+            border: 1px solid transparent;
+            border-radius: 18px;
+            padding: 18px;
+            resize: vertical;
+            outline: none;
+            color: var(--text);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 252, 249, 0.94));
+            box-shadow: inset 0 0 0 1px rgba(40, 62, 51, 0.08);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow:
+                inset 0 0 0 1px rgba(47, 122, 98, 0.12),
+                0 0 0 3px rgba(47, 122, 98, 0.10);
+        }
+
+        textarea::placeholder {
+            color: #8a9791;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: transform 120ms ease, opacity 120ms ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        .primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .secondary {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .ghost {
+            background: rgba(30, 45, 38, 0.06);
+            color: var(--text);
+        }
+
+        .status {
+            min-height: 20px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .summary-card {
+            background: var(--paper-strong);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 14px;
+        }
+
+        .summary-card strong {
+            display: block;
+            font-size: 28px;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-top: 6px;
+        }
+
+        .summary-card span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .detail-panels {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .detail-panel {
+            background: var(--paper-strong);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 14px;
+        }
+
+        .detail-panel h3 {
+            margin: 0 0 10px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .metric-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .metric-label {
+            color: var(--muted);
+        }
+
+        .metric-value {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+        }
+
+        .hint-block {
+            margin-top: 12px;
+            border-top: 1px solid rgba(40, 62, 51, 0.08);
+            padding-top: 12px;
+            color: var(--muted);
+            font-size: 12px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .hint-block code {
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: rgba(30, 45, 38, 0.06);
+            color: var(--text);
+        }
+
+        .toast {
+            position: fixed;
+            top: 14px;
+            right: 16px;
+            padding: 9px 13px;
+            border-radius: 999px;
+            background: rgba(30, 45, 38, 0.94);
+            color: #fff;
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity 120ms ease, transform 120ms ease;
+            pointer-events: none;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 980px) {
+            .shell {
+                padding: 12px;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .headline {
+                flex-direction: column;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            textarea {
+                min-height: 240px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <div class="hero">
+        <div class="headline">
+            <div>
+                <h1>字符统计</h1>
+                <p>显式指令唤起，按字符、字母、汉字、数字、标点、Emoji、行段结构和字节维度实时统计。</p>
+            </div>
+            <div class="chip-row">
+                <div class="chip">触发词: count / chars / 字符统计</div>
+                <div class="chip">支持命令后直接跟内容</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="layout">
+        <section class="panel">
+            <div class="panel-body">
+                <div class="section-title">
+                    <h2>文本输入</h2>
+                    <span id="seed-label">等待输入</span>
+                </div>
+                <textarea id="editor" placeholder="输入或粘贴要统计的文本。也可以在 WaTools 中直接输入：字符统计 你好 world 123"></textarea>
+                <div class="toolbar">
+                    <div class="button-row">
+                        <button class="primary" id="copy-summary-button" type="button">复制统计摘要</button>
+                        <button class="secondary" id="sample-button" type="button">填入示例</button>
+                        <button class="ghost" id="clear-button" type="button">清空</button>
+                    </div>
+                    <div class="status" id="status"></div>
+                </div>
+                <div class="hint-block">
+                    <div>示例指令: <code>count hello 世界 123</code> <code>字符统计 今天下雨了吗？</code></div>
+                    <div>快捷键: <code>Cmd/Ctrl + Shift + C</code> 复制摘要, <code>Cmd/Ctrl + L</code> 清空输入。</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-body">
+                <div class="section-title">
+                    <h2>统计总览</h2>
+                    <span id="overview-label">实时更新</span>
+                </div>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <span>字符数</span>
+                        <strong id="stat-characters">0</strong>
+                        <span>按用户可见字符计算</span>
+                    </div>
+                    <div class="summary-card">
+                        <span>非空白字符</span>
+                        <strong id="stat-non-whitespace">0</strong>
+                        <span>去掉空格、制表和换行</span>
+                    </div>
+                    <div class="summary-card">
+                        <span>单词数</span>
+                        <strong id="stat-words">0</strong>
+                        <span>优先使用 `Intl.Segmenter`</span>
+                    </div>
+                    <div class="summary-card">
+                        <span>行数 / 段落</span>
+                        <strong id="stat-lines-paragraphs">0 / 0</strong>
+                        <span>按换行和空行拆分</span>
+                    </div>
+                </div>
+
+                <div class="detail-panels">
+                    <div class="detail-panel">
+                        <h3>字符组成</h3>
+                        <div class="metric-list">
+                            <div class="metric"><span class="metric-label">字母</span><span class="metric-value" id="stat-letters">0</span></div>
+                            <div class="metric"><span class="metric-label">大写 / 小写</span><span class="metric-value" id="stat-letter-case">0 / 0</span></div>
+                            <div class="metric"><span class="metric-label">汉字</span><span class="metric-value" id="stat-han">0</span></div>
+                            <div class="metric"><span class="metric-label">数字</span><span class="metric-value" id="stat-digits">0</span></div>
+                            <div class="metric"><span class="metric-label">标点</span><span class="metric-value" id="stat-punctuation">0</span></div>
+                            <div class="metric"><span class="metric-label">符号</span><span class="metric-value" id="stat-symbols">0</span></div>
+                            <div class="metric"><span class="metric-label">Emoji</span><span class="metric-value" id="stat-emoji">0</span></div>
+                        </div>
+                    </div>
+
+                    <div class="detail-panel">
+                        <h3>结构信息</h3>
+                        <div class="metric-list">
+                            <div class="metric"><span class="metric-label">空白字符</span><span class="metric-value" id="stat-whitespace">0</span></div>
+                            <div class="metric"><span class="metric-label">空格 / 制表</span><span class="metric-value" id="stat-spaces-tabs">0 / 0</span></div>
+                            <div class="metric"><span class="metric-label">换行</span><span class="metric-value" id="stat-line-breaks">0</span></div>
+                            <div class="metric"><span class="metric-label">最长行长度</span><span class="metric-value" id="stat-longest-line">0</span></div>
+                            <div class="metric"><span class="metric-label">平均行长度</span><span class="metric-value" id="stat-average-line">0</span></div>
+                            <div class="metric"><span class="metric-label">唯一字符</span><span class="metric-value" id="stat-unique">0</span></div>
+                        </div>
+                    </div>
+
+                    <div class="detail-panel">
+                        <h3>存储视角</h3>
+                        <div class="metric-list">
+                            <div class="metric"><span class="metric-label">UTF-8 字节</span><span class="metric-value" id="stat-bytes">0</span></div>
+                            <div class="metric"><span class="metric-label">Unicode 码点</span><span class="metric-value" id="stat-codepoints">0</span></div>
+                            <div class="metric"><span class="metric-label">UTF-16 代码单元</span><span class="metric-value" id="stat-codeunits">0</span></div>
+                            <div class="metric"><span class="metric-label">估算阅读分钟</span><span class="metric-value" id="stat-reading-time">0</span></div>
+                            <div class="metric"><span class="metric-label">估算中文阅读分钟</span><span class="metric-value" id="stat-reading-time-cn">0</span></div>
+                            <div class="metric"><span class="metric-label">估算英文阅读分钟</span><span class="metric-value" id="stat-reading-time-en">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    const editor = document.getElementById("editor");
+    const statusNode = document.getElementById("status");
+    const toastNode = document.getElementById("toast");
+    const seedLabel = document.getElementById("seed-label");
+    const overviewLabel = document.getElementById("overview-label");
+    const copySummaryButton = document.getElementById("copy-summary-button");
+    const sampleButton = document.getElementById("sample-button");
+    const clearButton = document.getElementById("clear-button");
+
+    const triggers = ["textcount", "count", "chars", "字符统计", "字数统计", "文本统计"];
+    const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const orderedTriggers = [...triggers].sort((a, b) => b.length - a.length);
+    const prefixPattern = new RegExp(`^(?:${orderedTriggers.map(escapeRegExp).join("|")})(?:\\s+|$)`, "i");
+
+    const statNodes = {
+        characters: document.getElementById("stat-characters"),
+        nonWhitespace: document.getElementById("stat-non-whitespace"),
+        words: document.getElementById("stat-words"),
+        linesParagraphs: document.getElementById("stat-lines-paragraphs"),
+        letters: document.getElementById("stat-letters"),
+        letterCase: document.getElementById("stat-letter-case"),
+        han: document.getElementById("stat-han"),
+        digits: document.getElementById("stat-digits"),
+        punctuation: document.getElementById("stat-punctuation"),
+        symbols: document.getElementById("stat-symbols"),
+        emoji: document.getElementById("stat-emoji"),
+        whitespace: document.getElementById("stat-whitespace"),
+        spacesTabs: document.getElementById("stat-spaces-tabs"),
+        lineBreaks: document.getElementById("stat-line-breaks"),
+        longestLine: document.getElementById("stat-longest-line"),
+        averageLine: document.getElementById("stat-average-line"),
+        unique: document.getElementById("stat-unique"),
+        bytes: document.getElementById("stat-bytes"),
+        codepoints: document.getElementById("stat-codepoints"),
+        codeunits: document.getElementById("stat-codeunits"),
+        readingTime: document.getElementById("stat-reading-time"),
+        readingTimeCn: document.getElementById("stat-reading-time-cn"),
+        readingTimeEn: document.getElementById("stat-reading-time-en")
+    };
+
+    const unicodeSupport = (() => {
+        try {
+            return /\p{L}/u.test("A");
+        } catch (error) {
+            return false;
+        }
+    })();
+
+    const patterns = unicodeSupport ? {
+        letters: /\p{L}/gu,
+        uppercase: /\p{Lu}/gu,
+        lowercase: /\p{Ll}/gu,
+        digits: /\p{N}/gu,
+        punctuation: /\p{P}/gu,
+        symbols: /\p{S}/gu,
+        emoji: /\p{Extended_Pictographic}/gu
+    } : {
+        letters: /[A-Za-z]/g,
+        uppercase: /[A-Z]/g,
+        lowercase: /[a-z]/g,
+        digits: /\d/g,
+        punctuation: /[!"#$%&'()*+,./:;<=>?@[\\\]^_`{|}~-]/g,
+        symbols: /[$+<=>^`|~]/g,
+        emoji: /(?:)/g
+    };
+
+    const graphemeSegmenter = typeof Intl !== "undefined" && Intl.Segmenter
+        ? new Intl.Segmenter("zh-CN", {granularity: "grapheme"})
+        : null;
+    const wordSegmenter = typeof Intl !== "undefined" && Intl.Segmenter
+        ? new Intl.Segmenter("zh-CN", {granularity: "word"})
+        : null;
+
+    const countMatches = (text, regex) => (text.match(regex) || []).length;
+    const formatDecimal = (value) => Number.isFinite(value) ? value.toFixed(1).replace(/\.0$/, "") : "0";
+
+    const showToast = (message) => {
+        toastNode.textContent = message;
+        toastNode.classList.add("visible");
+        window.clearTimeout(showToast.timerId);
+        showToast.timerId = window.setTimeout(() => {
+            toastNode.classList.remove("visible");
+        }, 1800);
+    };
+    showToast.timerId = 0;
+
+    const setStatus = (message) => {
+        statusNode.textContent = message;
+    };
+
+    const stripTriggerPrefix = (value) => {
+        const trimmed = (value || "").trim();
+        if (!trimmed) {
+            return "";
+        }
+
+        if (!prefixPattern.test(trimmed)) {
+            return trimmed;
+        }
+
+        return trimmed.replace(prefixPattern, "").trim();
+    };
+
+    const extractSeedText = () => {
+        const searchSeed = new URLSearchParams(window.location.search).get("seed");
+        if (typeof searchSeed === "string" && searchSeed.trim()) {
+            return stripTriggerPrefix(searchSeed);
+        }
+        if (typeof window.inputValue === "string" && window.inputValue.trim()) {
+            return stripTriggerPrefix(window.inputValue);
+        }
+        return "";
+    };
+
+    const splitGraphemes = (text) => {
+        if (graphemeSegmenter) {
+            return Array.from(graphemeSegmenter.segment(text), (item) => item.segment);
+        }
+        return Array.from(text);
+    };
+
+    const countWords = (text) => {
+        if (!text.trim()) {
+            return 0;
+        }
+
+        if (wordSegmenter) {
+            let count = 0;
+            for (const part of wordSegmenter.segment(text)) {
+                if (part.isWordLike) {
+                    count += 1;
+                }
+            }
+            return count;
+        }
+
+        const latinWords = text.match(/[A-Za-z0-9_]+(?:['-][A-Za-z0-9_]+)*/g) || [];
+        const hanCharacters = text.match(/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/g) || [];
+        return latinWords.length + hanCharacters.length;
+    };
+
+    const calculateStats = (text) => {
+        const normalized = text || "";
+        const graphemes = splitGraphemes(normalized);
+        const lines = normalized.length ? normalized.split(/\r\n|\r|\n/) : [];
+        const lineCount = normalized.length ? lines.length : 0;
+        const paragraphs = normalized.trim()
+            ? normalized.trim().split(/\r?\n\s*\r?\n+/).filter((item) => item.trim().length > 0)
+            : [];
+        const lineBreaks = normalized.match(/\r\n|\r|\n/g) || [];
+        const spaceMatches = normalized.match(/ /g) || [];
+        const tabMatches = normalized.match(/\t/g) || [];
+        const whitespaceMatches = normalized.match(/\s/g) || [];
+        const hanMatches = normalized.match(/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/g) || [];
+        const words = countWords(normalized);
+        const characters = graphemes.length;
+        const nonWhitespace = graphemes.filter((item) => !/^\s$/u.test(item)).length;
+        const longestLine = lines.reduce((max, line) => Math.max(max, splitGraphemes(line).length), 0);
+        const averageLine = lineCount ? characters / lineCount : 0;
+        const bytes = new TextEncoder().encode(normalized).length;
+        const unique = new Set(graphemes).size;
+        const englishWordMatches = normalized.match(/[A-Za-z0-9_]+(?:['-][A-Za-z0-9_]+)*/g) || [];
+        const chineseReadingMinutes = hanMatches.length / 320;
+        const englishReadingMinutes = englishWordMatches.length / 220;
+
+        return {
+            characters,
+            nonWhitespace,
+            words,
+            lines: lineCount,
+            paragraphs: paragraphs.length,
+            letters: countMatches(normalized, patterns.letters),
+            uppercase: countMatches(normalized, patterns.uppercase),
+            lowercase: countMatches(normalized, patterns.lowercase),
+            han: hanMatches.length,
+            digits: countMatches(normalized, patterns.digits),
+            punctuation: countMatches(normalized, patterns.punctuation),
+            symbols: countMatches(normalized, patterns.symbols),
+            emoji: unicodeSupport ? countMatches(normalized, patterns.emoji) : 0,
+            whitespace: whitespaceMatches.length,
+            spaces: spaceMatches.length,
+            tabs: tabMatches.length,
+            lineBreaks: lineBreaks.length,
+            longestLine,
+            averageLine,
+            unique,
+            bytes,
+            codepoints: Array.from(normalized).length,
+            codeunits: normalized.length,
+            readingTime: words / 220,
+            readingTimeCn: chineseReadingMinutes,
+            readingTimeEn: englishReadingMinutes
+        };
+    };
+
+    const buildSummaryText = (stats) => [
+        "文本统计",
+        `字符数: ${stats.characters}`,
+        `非空白字符: ${stats.nonWhitespace}`,
+        `单词数: ${stats.words}`,
+        `行数: ${stats.lines}`,
+        `段落数: ${stats.paragraphs}`,
+        `字母: ${stats.letters} (大写 ${stats.uppercase} / 小写 ${stats.lowercase})`,
+        `汉字: ${stats.han}`,
+        `数字: ${stats.digits}`,
+        `标点: ${stats.punctuation}`,
+        `符号: ${stats.symbols}`,
+        `Emoji: ${stats.emoji}`,
+        `空白字符: ${stats.whitespace} (空格 ${stats.spaces} / 制表 ${stats.tabs} / 换行 ${stats.lineBreaks})`,
+        `唯一字符: ${stats.unique}`,
+        `UTF-8 字节: ${stats.bytes}`,
+        `Unicode 码点: ${stats.codepoints}`,
+        `UTF-16 代码单元: ${stats.codeunits}`,
+        `最长行长度: ${stats.longestLine}`,
+        `平均行长度: ${formatDecimal(stats.averageLine)}`,
+        `估算阅读分钟: ${formatDecimal(stats.readingTime)}`,
+        `估算中文阅读分钟: ${formatDecimal(stats.readingTimeCn)}`,
+        `估算英文阅读分钟: ${formatDecimal(stats.readingTimeEn)}`
+    ].join("\n");
+
+    const render = () => {
+        const text = editor.value;
+        const stats = calculateStats(text);
+
+        statNodes.characters.textContent = String(stats.characters);
+        statNodes.nonWhitespace.textContent = String(stats.nonWhitespace);
+        statNodes.words.textContent = String(stats.words);
+        statNodes.linesParagraphs.textContent = `${stats.lines} / ${stats.paragraphs}`;
+        statNodes.letters.textContent = String(stats.letters);
+        statNodes.letterCase.textContent = `${stats.uppercase} / ${stats.lowercase}`;
+        statNodes.han.textContent = String(stats.han);
+        statNodes.digits.textContent = String(stats.digits);
+        statNodes.punctuation.textContent = String(stats.punctuation);
+        statNodes.symbols.textContent = String(stats.symbols);
+        statNodes.emoji.textContent = String(stats.emoji);
+        statNodes.whitespace.textContent = String(stats.whitespace);
+        statNodes.spacesTabs.textContent = `${stats.spaces} / ${stats.tabs}`;
+        statNodes.lineBreaks.textContent = String(stats.lineBreaks);
+        statNodes.longestLine.textContent = String(stats.longestLine);
+        statNodes.averageLine.textContent = formatDecimal(stats.averageLine);
+        statNodes.unique.textContent = String(stats.unique);
+        statNodes.bytes.textContent = String(stats.bytes);
+        statNodes.codepoints.textContent = String(stats.codepoints);
+        statNodes.codeunits.textContent = String(stats.codeunits);
+        statNodes.readingTime.textContent = formatDecimal(stats.readingTime);
+        statNodes.readingTimeCn.textContent = formatDecimal(stats.readingTimeCn);
+        statNodes.readingTimeEn.textContent = formatDecimal(stats.readingTimeEn);
+
+        overviewLabel.textContent = text.trim()
+            ? `已统计 ${stats.characters} 个字符, ${stats.words} 个单词`
+            : "实时更新";
+        setStatus(text.trim() ? "统计已更新" : "输入文本后自动开始统计");
+
+        render.latestSummary = buildSummaryText(stats);
+    };
+    render.latestSummary = "";
+
+    const copyText = async (value) => {
+        if (!value) {
+            return;
+        }
+
+        if (window.runtime?.ClipboardSetText) {
+            await window.runtime.ClipboardSetText(value);
+            return;
+        }
+
+        await navigator.clipboard.writeText(value);
+    };
+
+    const handleCopySummary = async () => {
+        if (!render.latestSummary) {
+            setStatus("没有可复制的统计内容");
+            return;
+        }
+
+        await copyText(render.latestSummary);
+        setStatus("统计摘要已复制");
+        showToast("已复制统计摘要");
+    };
+
+    copySummaryButton.addEventListener("click", handleCopySummary);
+
+    sampleButton.addEventListener("click", () => {
+        editor.value = "WaTools 让常用工具更快触达。\n\n今天统计这段文本: Hello 世界 12345! 🚀";
+        render();
+        editor.focus();
+        editor.select();
+        showToast("已填入示例文本");
+    });
+
+    clearButton.addEventListener("click", () => {
+        editor.value = "";
+        render();
+        editor.focus();
+    });
+
+    editor.addEventListener("input", render);
+
+    window.addEventListener("keydown", async (event) => {
+        const meta = event.ctrlKey || event.metaKey;
+
+        if (meta && event.shiftKey && event.key.toLowerCase() === "c") {
+            event.preventDefault();
+            await handleCopySummary();
+            return;
+        }
+
+        if (meta && event.key.toLowerCase() === "l") {
+            event.preventDefault();
+            clearButton.click();
+        }
+    });
+
+    const seedText = extractSeedText();
+    if (seedText) {
+        editor.value = seedText;
+        seedLabel.textContent = "已从命令面板带入内容";
+    } else {
+        seedLabel.textContent = "输入显式指令后可在这里继续编辑";
+    }
+
+    render();
+    editor.focus();
+</script>
+</body>
+</html>
