@@ -4,6 +4,7 @@ package app
    #cgo CFLAGS: -x objective-c
    #cgo LDFLAGS: -framework Cocoa -framework Foundation
    #import <Cocoa/Cocoa.h>
+   #import <dispatch/dispatch.h>
 
    static NSRunningApplication *previousActiveApp = nil;
 
@@ -30,6 +31,86 @@ package app
    void hideCurrentWindow() {
        NSApplication *app = [NSApplication sharedApplication];
        [app hide:nil];
+   }
+
+   typedef struct {
+       int ok;
+       int screenWidth;
+       int visibleWidth;
+       int visibleOriginX;
+       int windowWidth;
+       int leftMargin;
+       int rightMargin;
+   } WaWindowPositionMetrics;
+
+   NSWindow* getCurrentAppWindow() {
+       NSWindow *window = [NSApp keyWindow];
+       if (window != nil) {
+           return window;
+       }
+
+       window = [NSApp mainWindow];
+       if (window != nil) {
+           return window;
+       }
+
+       NSArray<NSWindow *> *windows = [NSApp windows];
+       if (windows != nil && [windows count] > 0) {
+           return windows[0];
+       }
+
+       return nil;
+   }
+
+   WaWindowPositionMetrics positionCurrentWindowOnMainThread(int windowWidth, int windowHeight, int topOffset) {
+       WaWindowPositionMetrics metrics = {0};
+       NSWindow *window = getCurrentAppWindow();
+       if (window == nil) {
+           return metrics;
+       }
+
+       NSScreen *screen = [window screen];
+       if (screen == nil) {
+           screen = [NSScreen mainScreen];
+       }
+
+       if (screen == nil) {
+           return metrics;
+       }
+
+       NSRect frame = [screen frame];
+       NSRect visibleFrame = [screen visibleFrame];
+       NSRect windowFrame = [window frame];
+       CGFloat actualWindowWidth = windowFrame.size.width;
+       CGFloat actualWindowHeight = windowFrame.size.height;
+
+       windowFrame.origin.x = frame.origin.x + (frame.size.width - actualWindowWidth) / 2.0;
+       windowFrame.origin.y = visibleFrame.origin.y + visibleFrame.size.height - actualWindowHeight - topOffset;
+
+       [window setFrame:windowFrame display:YES animate:NO];
+
+       metrics.ok = 1;
+       metrics.screenWidth = (int)frame.size.width;
+       metrics.visibleWidth = (int)visibleFrame.size.width;
+       metrics.visibleOriginX = (int)visibleFrame.origin.x;
+       metrics.windowWidth = (int)actualWindowWidth;
+       metrics.leftMargin = (int)(windowFrame.origin.x - frame.origin.x);
+       metrics.rightMargin = (int)((frame.origin.x + frame.size.width) - (windowFrame.origin.x + actualWindowWidth));
+       return metrics;
+   }
+
+   WaWindowPositionMetrics positionCurrentWindow(int windowWidth, int windowHeight, int topOffset) {
+       @autoreleasepool {
+           if ([NSThread isMainThread]) {
+               return positionCurrentWindowOnMainThread(windowWidth, windowHeight, topOffset);
+           }
+
+           __block WaWindowPositionMetrics metrics = {0};
+           dispatch_sync(dispatch_get_main_queue(), ^{
+               metrics = positionCurrentWindowOnMainThread(windowWidth, windowHeight, topOffset);
+           });
+           return metrics;
+       }
    }
 
    // ==================== Clipboard C Functions ====================
@@ -163,6 +244,7 @@ import (
 	"fmt"
 	"time"
 	"unsafe"
+	"watools/pkg/logger"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -223,6 +305,31 @@ func (a *WaApp) HideOrShowApp() {
 	} else {
 		a.HideApp()
 	}
+}
+
+func (a *WaApp) positionWindowOnScreen(windowWidth int, windowHeight int) bool {
+	screen, ok := a.getPrimaryScreen()
+	if !ok {
+		return false
+	}
+
+	topOffset := clampWindowTopOffset(screen.Size.Height, windowHeight)
+	metrics := C.positionCurrentWindow(C.int(windowWidth), C.int(windowHeight), C.int(topOffset))
+	if metrics.ok == 0 {
+		return false
+	}
+
+	logger.Info(fmt.Sprintf(
+		"Window positioning metrics: screenWidth=%d visibleWidth=%d visibleOriginX=%d leftMargin=%d windowWidth=%d rightMargin=%d",
+		int(metrics.screenWidth),
+		int(metrics.visibleWidth),
+		int(metrics.visibleOriginX),
+		int(metrics.leftMargin),
+		int(metrics.windowWidth),
+		int(metrics.rightMargin),
+	))
+
+	return true
 }
 
 // ==================== Clipboard API ====================

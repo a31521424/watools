@@ -74,6 +74,10 @@ func (a *WaApp) HideOrShowApp() {
 	}
 }
 
+func (a *WaApp) positionWindowOnScreen(windowWidth int, windowHeight int) bool {
+	return false
+}
+
 // ==================== Clipboard API ====================
 
 // GetClipboardTypes returns available clipboard type identifiers on Windows

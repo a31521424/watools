@@ -22,6 +22,11 @@ type WaApp struct {
 }
 
 func (a *WaApp) positionWindow() {
+	windowWidth, windowHeight := runtime.WindowGetSize(a.ctx)
+	if a.positionWindowOnScreen(windowWidth, windowHeight) {
+		return
+	}
+
 	runtime.WindowCenter(a.ctx)
 
 	screen, ok := a.getPrimaryScreen()
@@ -30,7 +35,6 @@ func (a *WaApp) positionWindow() {
 	}
 
 	currentX, _ := runtime.WindowGetPosition(a.ctx)
-	_, windowHeight := runtime.WindowGetSize(a.ctx)
 	runtime.WindowSetPosition(a.ctx, currentX, clampWindowTopOffset(screen.Size.Height, windowHeight))
 }
 
