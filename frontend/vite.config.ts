@@ -10,6 +10,12 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    build: {
+        // Desktop-only Wails shell; current main bundle size is acceptable.
+        // Keep the warning threshold above the current lucide-driven bundle,
+        // but low enough to still catch real regressions.
+        chunkSizeWarningLimit: 900,
+    },
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),

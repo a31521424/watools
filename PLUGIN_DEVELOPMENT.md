@@ -115,6 +115,13 @@ START: 用户需要插件
     - ❌ 禁止使用 `alert()`/`confirm()`/`prompt()` - 会阻塞整个应用
     - ⚠️ Modal/Dialog 使用 `position: fixed` 会受 iframe 边界限制
     - ❌ 不要自己实现插件最外层边框/卡片容器 - WaTools 外层窗口已经有边框
+    - ❌ 插件 UI 必须视为 WaTools 主窗口中的**内嵌片段**,不要把插件设计成第二个独立小窗口
+    - ❌ 不要默认使用居中 `max-width` 外壳、大外边距、整块圆角背景、嵌套卡片/面板来营造“窗口套窗口”的效果
+    - ✅ 优先让核心输入区、结果区、列表区直接填充宿主提供的可用视口,只保留必要内边距和轻量分组
+    - ❌ 更进一步,插件页面内部也不应依赖明显的描边边框来构建主视觉层级;优先使用留白、背景色、圆角、阴影或分组间距
+    - ✅ 默认采用**极简、键盘优先**的效率型界面: 先保证输入、结果、历史或核心列表可直接工作,再考虑额外视觉层
+    - ❌ 非必要不要加入数字面板、装饰性统计卡片、强调色按钮组、说明性大段文案
+    - ✅ 如果任务本质是“输入 -> 计算/处理 -> 记录结果”,优先使用 `输入框 + 结果/历史列表 + 少量快捷键提示`
     - ✅ 推荐使用 Toast 通知或 Inline Dialog
     - ✅ 所有覆盖层组件要考虑 iframe viewport 限制
 
@@ -137,6 +144,9 @@ LLM 在输出后必须自检:
 - [ ] 构建模式必须有 `npm run build` 和打包命令
 - [ ] **不使用 alert/confirm/prompt,使用自定义 UI**
 - [ ] **所有快捷键同时监听 ctrlKey 和 metaKey**
+- [ ] **插件页面不自绘边框/描边,WaTools 外层窗口已提供整体边界**
+- [ ] **插件作为宿主内嵌片段铺满可用区域,不要做居中壳层、嵌套圆角窗口或大外边距**
+- [ ] **默认先做极简、键盘优先界面,只保留完成任务所需的最少控件**
 
 ---
 
@@ -995,9 +1005,8 @@ function showInlineDialog(message) {
 
 // CSS
 .inline-dialog {
-    border: 1px solid #ddd;
     border-radius: 8px;
-    background: white;
+    background: rgba(255, 255, 255, 0.96);
     margin: 16px 0;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     animation: slideDown 0.2s ease-out;

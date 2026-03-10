@@ -60,7 +60,7 @@ export function WaPluginManagement() {
     }
 
     return (
-        <div className="mx-auto w-full max-w-[1100px] min-w-0 p-6">
+        <div className="mx-auto flex h-full w-full max-w-[1100px] min-w-0 flex-col overflow-auto p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Plugin Management</h1>
                 <Button onClick={handleInstallPlugin}>

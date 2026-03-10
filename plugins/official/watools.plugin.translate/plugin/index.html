@@ -10,13 +10,11 @@
             --bg: #f4f6f1;
             --panel: rgba(255, 255, 255, 0.88);
             --panel-strong: rgba(255, 255, 255, 0.96);
-            --line: rgba(23, 50, 39, 0.10);
-            --line-strong: rgba(23, 50, 39, 0.16);
+            --line: rgba(23, 50, 39, 0.12);
             --text: #173227;
             --muted: #728079;
             --accent: #1d8a67;
             --danger: #b54740;
-            --shadow: 0 16px 36px rgba(30, 56, 44, 0.07);
         }
 
         * {
@@ -26,16 +24,14 @@
         html,
         body {
             margin: 0;
-            min-height: 100%;
+            height: 100%;
         }
 
         body {
-            background:
-                radial-gradient(circle at top left, rgba(29, 138, 103, 0.10), transparent 28%),
-                linear-gradient(180deg, #fbfcf8 0%, var(--bg) 100%);
+            background: var(--bg);
             color: var(--text);
             font: 14px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
-            overflow: auto;
+            overflow: hidden;
         }
 
         button,
@@ -44,9 +40,9 @@
             font: inherit;
         }
 
-        .shell {
-            width: min(100%, 1180px);
-            margin: 0 auto;
+        .app {
+            height: 100%;
+            overflow: auto;
             padding: 14px 16px 16px;
             display: grid;
             grid-template-rows: auto auto minmax(0, 1fr) auto;
@@ -58,7 +54,6 @@
             align-items: baseline;
             justify-content: space-between;
             gap: 16px;
-            padding: 0 2px;
         }
 
         .title {
@@ -70,9 +65,11 @@
 
         .title h1 {
             margin: 0;
-            font-size: 18px;
-            font-weight: 680;
-            letter-spacing: -0.01em;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
         }
 
         .title p {
@@ -99,11 +96,8 @@
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 10px;
             align-items: center;
-            padding: 10px 12px;
-            background: var(--panel-strong);
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            box-shadow: var(--shadow);
+            padding: 10px 0 12px;
+            border-bottom: 1px solid var(--line);
         }
 
         .settings.visible {
@@ -112,21 +106,22 @@
 
         .settings input {
             width: 100%;
-            border: 1px solid transparent;
+            border: 1px solid var(--line);
             outline: none;
-            background: rgba(255, 255, 255, 0.74);
+            background: rgba(255, 255, 255, 0.92);
             color: var(--text);
             padding: 10px 12px;
-            border-radius: 12px;
+            border-radius: 10px;
         }
 
         .settings input:focus {
-            border-color: var(--line-strong);
+            border-color: rgba(29, 138, 103, 0.45);
+            box-shadow: 0 0 0 3px rgba(29, 138, 103, 0.08);
         }
 
         .primary-button {
             border: 0;
-            border-radius: 12px;
+            border-radius: 10px;
             padding: 10px 14px;
             background: var(--accent);
             color: #fff;
@@ -153,7 +148,6 @@
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            padding: 0 2px;
             color: var(--muted);
             font-size: 12px;
         }
@@ -161,26 +155,24 @@
         .editor-wrap {
             min-height: 0;
             display: flex;
-            background: var(--panel);
-            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.82);
             border: 1px solid var(--line);
-            border-radius: 18px;
-            box-shadow: var(--shadow);
+            border-radius: 10px;
             overflow: hidden;
         }
 
         .editor-wrap:focus-within {
-            border-color: var(--line-strong);
-            box-shadow: 0 18px 42px rgba(30, 56, 44, 0.10), 0 0 0 3px rgba(29, 138, 103, 0.10);
+            border-color: rgba(29, 138, 103, 0.45);
+            box-shadow: 0 0 0 3px rgba(29, 138, 103, 0.08);
         }
 
         textarea {
             width: 100%;
             flex: 1;
-            min-height: 560px;
+            min-height: 520px;
             border: 0;
             resize: none;
-            padding: 18px 18px 20px;
+            padding: 16px 16px 18px;
             background: transparent;
             color: var(--text);
             line-height: 1.68;
@@ -198,7 +190,6 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 0 2px;
         }
 
         .status {
@@ -224,14 +215,14 @@
 
         .toast {
             position: fixed;
-            top: 14px;
+            bottom: 16px;
             right: 16px;
             padding: 9px 13px;
-            border-radius: 999px;
+            border-radius: 10px;
             background: rgba(23, 50, 39, 0.94);
             color: #fff;
             opacity: 0;
-            transform: translateY(-8px);
+            transform: translateY(8px);
             transition: opacity 120ms ease, transform 120ms ease;
             pointer-events: none;
         }
@@ -242,7 +233,7 @@
         }
 
         @media (max-width: 980px) {
-            .shell {
+            .app {
                 padding: 12px;
             }
 
@@ -267,7 +258,7 @@
     </style>
 </head>
 <body>
-<div class="shell">
+<main class="app">
     <header class="topbar">
         <div class="title">
             <h1>Translate</h1>
@@ -307,7 +298,7 @@
         <div class="status" id="status"></div>
         <div class="hints">Auto on edit · Cmd/Ctrl + Enter now · Cmd/Ctrl + Shift + X swap</div>
     </footer>
-</div>
+</main>
 
 <div id="toast" class="toast"></div>
 

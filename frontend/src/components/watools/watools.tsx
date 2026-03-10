@@ -7,8 +7,13 @@ import {useEffect} from "react";
 import {WaApi} from "@/api/api";
 import {usePluginStore} from "@/stores/pluginStore";
 import {useApplicationCommandStore} from "@/stores/applicationCommandStore";
+import {useLocation} from "wouter";
+import {cn} from "@/lib/utils";
+
+const FIXED_PANEL_HEIGHT_CLASS = "h-[760px]"
 
 const Watools = () => {
+    const [location] = useLocation()
     const windowRef = useElementResize<HTMLDivElement>({
         onResize: resizeWindowHeight
     })
@@ -40,7 +45,15 @@ const Watools = () => {
         }
     }, [flushApplicationUsage, flushPluginUsage]);
 
-    return <div ref={windowRef} className="scrollbar-hide flex min-h-0 w-full flex-col overflow-hidden rounded-xl border-0 bg-white">
+    const isFixedHeightRoute = location === '/plugin' || location === '/plugin-management'
+
+    return <div
+        ref={windowRef}
+        className={cn(
+            "scrollbar-hide flex min-h-0 w-full flex-col overflow-hidden rounded-xl border-0 bg-white",
+            isFixedHeightRoute && FIXED_PANEL_HEIGHT_CLASS
+        )}
+    >
         <Route path='/'>
             <WaCommand/>
         </Route>

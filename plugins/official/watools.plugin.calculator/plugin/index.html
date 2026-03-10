@@ -7,204 +7,198 @@
     <style>
         :root {
             color-scheme: light;
-            --bg: #f5f1e8;
-            --panel: #fffdf8;
-            --border: #d9cdbd;
-            --text: #2f241b;
-            --muted: #7a6b5f;
-            --accent: #c96d31;
-            --accent-dark: #8d4519;
-            --success: #2f7d4a;
-            --shadow: 0 18px 50px rgba(99, 66, 33, 0.12);
+            --bg: #f7f4ee;
+            --surface: rgba(255, 255, 255, 0.72);
+            --surface-hover: rgba(255, 255, 255, 0.94);
+            --line: rgba(66, 45, 28, 0.1);
+            --text: #2f241c;
+            --muted: #7b6c5d;
+            --accent: #ad5a31;
+            --success: #256946;
+            --danger: #b14c43;
         }
 
         * {
             box-sizing: border-box;
         }
 
+        html,
         body {
             margin: 0;
-            background:
-                radial-gradient(circle at top right, rgba(201, 109, 49, 0.14), transparent 28%),
-                linear-gradient(180deg, #f8f4ed 0%, var(--bg) 100%);
+            height: 100%;
+        }
+
+        body {
+            background: var(--bg);
             color: var(--text);
-            font: 14px/1.4 "SF Pro Text", "Segoe UI", sans-serif;
+            font: 14px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
         }
 
-        .shell {
-            width: 100%;
-            padding: 18px;
-        }
-
-        .panel {
-            width: min(100%, 860px);
-            margin: 0 auto;
-            background: rgba(255, 253, 248, 0.94);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-
-        .hero {
-            padding: 20px 22px 14px;
-            border-bottom: 1px solid rgba(217, 205, 189, 0.7);
-        }
-
-        .hero h1 {
-            margin: 0;
-            font-size: 26px;
-        }
-
-        .hero p {
-            margin: 8px 0 0;
-            color: var(--muted);
-        }
-
-        .workspace {
-            display: grid;
-            gap: 18px;
-            padding: 18px 22px 22px;
-        }
-
-        .card {
-            background: var(--panel);
-            border: 1px solid rgba(217, 205, 189, 0.85);
-            border-radius: 18px;
-            padding: 16px;
-        }
-
-        label {
-            display: block;
-            font-size: 12px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 10px;
-        }
-
-        textarea,
-        input,
-        button {
+        button,
+        input {
             font: inherit;
         }
 
-        textarea,
-        input {
-            width: 100%;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 14px 16px;
-            background: #fff;
-            color: var(--text);
-            outline: none;
-        }
-
-        textarea:focus,
-        input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(201, 109, 49, 0.14);
-        }
-
-        .actions {
-            display: flex;
+        .app {
+            height: 100%;
+            display: grid;
+            grid-template-rows: auto auto auto minmax(0, 1fr) auto;
             gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 12px;
+            padding: 14px 16px 12px;
         }
 
-        button {
-            border: 0;
-            border-radius: 999px;
-            padding: 11px 16px;
-            cursor: pointer;
-            transition: transform 120ms ease, opacity 120ms ease;
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-        }
-
-        button:disabled {
-            cursor: wait;
-            opacity: 0.7;
-        }
-
-        .primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .secondary {
-            background: rgba(201, 109, 49, 0.12);
-            color: var(--accent-dark);
-        }
-
-        .result {
+        .topbar {
             display: flex;
-            align-items: baseline;
             justify-content: space-between;
+            align-items: baseline;
             gap: 12px;
-            margin-top: 14px;
-            padding: 14px 16px;
-            background: rgba(47, 125, 74, 0.08);
-            border-radius: 14px;
-            border: 1px solid rgba(47, 125, 74, 0.16);
         }
 
-        .result strong {
-            font-size: 24px;
-        }
-
-        .status {
-            min-height: 20px;
-            margin-top: 10px;
+        .topbar h1 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
             color: var(--muted);
         }
 
+        .text-button {
+            padding: 0;
+            background: transparent;
+            color: var(--muted);
+            font-size: 12px;
+            border: 0;
+            cursor: pointer;
+        }
+
+        .text-button:hover {
+            color: var(--text);
+        }
+
+        .status {
+            min-height: 18px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .status.success {
+            color: var(--success);
+        }
+
         .status.error {
-            color: #b4433f;
+            color: var(--danger);
+        }
+
+        .expression-input {
+            width: 100%;
+            min-height: 50px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text);
+            outline: none;
+            font-size: 22px;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+        }
+
+        .expression-input::placeholder {
+            color: #9b8b7d;
+        }
+
+        .expression-input:focus {
+            border-color: rgba(173, 90, 49, 0.45);
+            box-shadow: 0 0 0 3px rgba(173, 90, 49, 0.08);
+        }
+
+        .history-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .history-title {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .history-summary {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .history {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 8px;
         }
 
         .history-list {
             display: grid;
-            gap: 10px;
-            margin-top: 8px;
+            gap: 0;
+            min-height: 0;
+            overflow: auto;
+            border-top: 1px solid var(--line);
         }
 
         .history-item {
-            border: 1px solid rgba(217, 205, 189, 0.85);
-            border-radius: 14px;
-            padding: 12px 14px;
-            background: white;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-areas:
+                "expression result"
+                "meta meta";
+            gap: 3px 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--line);
             cursor: pointer;
         }
 
         .history-item:hover {
-            border-color: var(--accent);
+            background: var(--surface-hover);
+        }
+
+        .history-expression {
+            grid-area: expression;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .history-result {
+            grid-area: result;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            text-align: right;
         }
 
         .history-meta {
+            grid-area: meta;
             color: var(--muted);
             font-size: 12px;
-            margin-top: 6px;
         }
 
         .empty {
             color: var(--muted);
+            font-size: 13px;
+            padding: 12px 0;
         }
 
         .toast {
             position: fixed;
-            right: 18px;
-            top: 18px;
-            background: rgba(47, 36, 27, 0.94);
-            color: white;
-            padding: 10px 14px;
-            border-radius: 999px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+            right: 16px;
+            bottom: 16px;
+            background: rgba(43, 34, 26, 0.94);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 10px;
             opacity: 0;
-            transform: translateY(-8px);
+            transform: translateY(8px);
             transition: opacity 120ms ease, transform 120ms ease;
             pointer-events: none;
         }
@@ -215,78 +209,72 @@
         }
 
         @media (max-width: 640px) {
-            .shell {
+            .app {
                 padding: 12px;
             }
 
-            .hero,
-            .workspace {
-                padding-left: 14px;
-                padding-right: 14px;
+            .expression-input {
+                font-size: 20px;
+                padding: 12px 13px;
             }
 
-            .result {
-                flex-direction: column;
-                align-items: flex-start;
+            .history-item {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "expression"
+                    "result"
+                    "meta";
+            }
+
+            .history-result {
+                text-align: left;
             }
         }
     </style>
 </head>
 <body>
-<div class="shell">
-    <div class="panel">
-        <div class="hero">
-            <h1>Calculator</h1>
-            <p>Evaluate an expression, copy the result, and keep a lightweight history.</p>
-        </div>
-        <div class="workspace">
-            <div class="card">
-                <label for="expression">Expression</label>
-                <input id="expression" type="text" placeholder="Example: (2 + 3) * 4 / 5">
-                <div class="actions">
-                    <button class="primary" id="calculate-button">Calculate</button>
-                    <button class="secondary" id="copy-expression-button" type="button">Copy Expression</button>
-                </div>
-                <div class="status" id="status"></div>
-                <div class="result" id="result-card" hidden>
-                    <div>
-                        <div id="result-expression"></div>
-                        <strong id="result-value"></strong>
-                    </div>
-                    <button class="secondary" id="copy-result-button" type="button">Copy Result</button>
-                </div>
-            </div>
-            <div class="card">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-                    <div>
-                        <label style="margin-bottom:6px;">History</label>
-                        <div class="empty" id="history-summary">No calculations yet.</div>
-                    </div>
-                    <button class="secondary" id="clear-history-button" type="button">Clear History</button>
-                </div>
-                <div class="history-list" id="history-list"></div>
-            </div>
-        </div>
+<main class="app">
+    <div class="topbar">
+        <h1>Calculator</h1>
+        <button id="clear-history-button" class="text-button" type="button">Clear history</button>
     </div>
-</div>
+    <div class="status" id="status">Press Enter to calculate. Click a history row to reuse it.</div>
+    <input id="expression" class="expression-input" type="text" placeholder="Example: (2 + 3) * 4 / 5">
+    <section class="history">
+        <div class="history-head">
+            <div class="history-title">History</div>
+            <div class="history-summary" id="history-summary">No calculations yet.</div>
+        </div>
+        <div class="history-list" id="history-list"></div>
+    </section>
+    <div class="status" id="shortcut-hint">Enter calculate, Cmd/Ctrl+L clear input, Cmd/Ctrl+Shift+C copy latest result, Cmd/Ctrl+Shift+L copy latest line.</div>
+</main>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
-    import {calculateExpression} from "./calculator-core.js";
+    import {calculateExpression, extractExpression} from "./calculator-core.js";
+    import {appendHistory, clearHistory, loadDraft, loadHistory, removeDraft, saveDraft} from "./calculator-storage.js";
 
     const expressionInput = document.getElementById("expression");
     const statusNode = document.getElementById("status");
-    const resultCard = document.getElementById("result-card");
-    const resultExpressionNode = document.getElementById("result-expression");
-    const resultValueNode = document.getElementById("result-value");
-    const historyListNode = document.getElementById("history-list");
     const historySummaryNode = document.getElementById("history-summary");
+    const historyListNode = document.getElementById("history-list");
     const toastNode = document.getElementById("toast");
-    const storageKey = "history";
+    const clearHistoryButton = document.getElementById("clear-history-button");
 
-    let latestResult = null;
     let history = [];
+    let latestOutcome = null;
     let toastTimer = null;
+
+    const setStatus = (message, type = "info") => {
+        statusNode.textContent = message || "";
+        statusNode.className = type === "error"
+            ? "status error"
+            : type === "success"
+                ? "status success"
+                : "status";
+    };
 
     const showToast = (message) => {
         toastNode.textContent = message;
@@ -299,130 +287,202 @@
         }, 1800);
     };
 
-    const setStatus = (message, type = "info") => {
-        statusNode.textContent = message || "";
-        statusNode.className = type === "error" ? "status error" : "status";
+    const copyText = async (value, successMessage) => {
+        const text = String(value || "").trim();
+        if (!text) {
+            return false;
+        }
+
+        if (window.runtime?.ClipboardSetText) {
+            await window.runtime.ClipboardSetText(text);
+        } else {
+            await navigator.clipboard.writeText(text);
+        }
+
+        setStatus(successMessage, "success");
+        showToast(successMessage);
+        return true;
     };
 
-    const persistHistory = async () => {
-        await window.watools.StorageSet(storageKey, history);
+    const getLatestLine = () => {
+        if (!latestOutcome || latestOutcome.type !== "result") {
+            return "";
+        }
+
+        return `${latestOutcome.expression} = ${latestOutcome.displayValue}`;
     };
 
     const renderHistory = () => {
         historyListNode.innerHTML = "";
+
         if (!history.length) {
             historySummaryNode.textContent = "No calculations yet.";
+            historyListNode.innerHTML = '<div class="empty">History is synced through WaTools storage and mirrored to localStorage.</div>';
             return;
         }
 
         historySummaryNode.textContent = `${history.length} saved calculation${history.length > 1 ? "s" : ""}.`;
+
         history.forEach((item) => {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "history-item";
-            button.innerHTML = `
-                <div><strong>${item.expression}</strong></div>
-                <div style="margin-top:4px;">= ${item.result}</div>
-                <div class="history-meta">${new Date(item.createdAt).toLocaleString()}</div>
-            `;
-            button.addEventListener("click", () => {
+            const row = document.createElement("div");
+            row.className = "history-item";
+
+            const expressionNode = document.createElement("div");
+            expressionNode.className = "history-expression";
+            expressionNode.textContent = item.expression;
+
+            const resultNode = document.createElement("div");
+            resultNode.className = "history-result";
+            resultNode.textContent = `= ${item.result}`;
+
+            const metaNode = document.createElement("div");
+            metaNode.className = "history-meta";
+            metaNode.textContent = new Date(item.createdAt).toLocaleString();
+
+            row.addEventListener("click", () => {
                 expressionInput.value = item.expression;
+                saveDraft(item.expression);
                 expressionInput.focus();
+                expressionInput.select();
+                setStatus("Expression restored from history.");
             });
-            historyListNode.appendChild(button);
+
+            row.appendChild(expressionNode);
+            row.appendChild(resultNode);
+            row.appendChild(metaNode);
+            historyListNode.appendChild(row);
         });
     };
 
-    const loadHistory = async () => {
-        const stored = await window.watools.StorageGet(storageKey);
-        history = Array.isArray(stored) ? stored : [];
-        renderHistory();
-    };
-
-    const pushHistory = async (expression, result) => {
-        history = [{
-            expression,
-            result,
-            createdAt: new Date().toISOString()
-        }, ...history].slice(0, 50);
-        await persistHistory();
-        renderHistory();
-    };
-
-    const copyText = async (value, successMessage) => {
-        await window.runtime.ClipboardSetText(String(value));
-        showToast(successMessage);
-    };
-
-    const updateResultCard = (expression, result) => {
-        resultExpressionNode.textContent = expression;
-        resultValueNode.textContent = `= ${result}`;
-        resultCard.hidden = false;
-    };
-
-    const calculate = async () => {
+    const getOutcome = () => {
         const expression = expressionInput.value.trim();
+
         if (!expression) {
-            setStatus("Enter an expression to calculate.", "error");
-            resultCard.hidden = true;
-            return;
+            setStatus("Press Enter to calculate. Click a history row to reuse it.");
+            return null;
         }
 
         const outcome = calculateExpression(expression);
-        if (outcome.type !== "result") {
-            setStatus(outcome.subtitle, "error");
-            resultCard.hidden = true;
-            latestResult = null;
-            return;
+        latestOutcome = outcome.type === "result" ? outcome : latestOutcome;
+
+        if (outcome.type === "result") {
+            setStatus("Press Enter to save this result into history.");
+            return outcome;
         }
 
-        latestResult = outcome.value;
-        setStatus(outcome.subtitle);
-        updateResultCard(expression, outcome.value);
-        await copyText(outcome.value, "Result copied to clipboard");
-        await pushHistory(expression, outcome.value);
+        setStatus(outcome.subtitle, "error");
+        return outcome;
     };
 
-    document.getElementById("calculate-button").addEventListener("click", () => {
-        void calculate();
-    });
+        const runCalculation = async () => {
+            const outcome = getOutcome();
+            if (!outcome || outcome.type !== "result") {
+                return;
+            }
 
-    document.getElementById("copy-expression-button").addEventListener("click", () => {
-        if (!expressionInput.value.trim()) {
-            return;
-        }
-        void copyText(expressionInput.value.trim(), "Expression copied");
-    });
+        history = await appendHistory(outcome.expression, outcome.displayValue);
+        renderHistory();
+        latestOutcome = outcome;
+        expressionInput.value = "";
+        removeDraft();
+        setStatus("Saved to history.", "success");
+        expressionInput.focus();
+    };
 
-    document.getElementById("copy-result-button").addEventListener("click", () => {
-        if (latestResult === null) {
-            return;
-        }
-        void copyText(latestResult, "Result copied");
-    });
-
-    document.getElementById("clear-history-button").addEventListener("click", () => {
-        history = [];
-        void persistHistory().then(() => {
+    clearHistoryButton.addEventListener("click", () => {
+        void clearHistory().then((nextHistory) => {
+            history = nextHistory;
             renderHistory();
             showToast("History cleared");
+            setStatus("History cleared.", "success");
         });
     });
 
+    expressionInput.addEventListener("input", () => {
+        const value = expressionInput.value.trim();
+        if (value) {
+            saveDraft(value);
+            return;
+        }
+
+        removeDraft();
+    });
+
     expressionInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
+        const meta = event.ctrlKey || event.metaKey;
+
+        if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
-            void calculate();
+            void runCalculation();
+            return;
+        }
+
+        if (meta && event.key.toLowerCase() === "l" && !event.shiftKey) {
+            event.preventDefault();
+            expressionInput.value = "";
+            removeDraft();
+            setStatus("Expression cleared.");
+            return;
+        }
+
+        if (meta && event.key === "Enter") {
+            event.preventDefault();
+            void runCalculation();
+        }
+    });
+
+    window.addEventListener("keydown", (event) => {
+        const meta = event.ctrlKey || event.metaKey;
+        if (!meta) {
+            return;
+        }
+
+        const key = event.key.toLowerCase();
+        if (event.shiftKey && key === "c") {
+            event.preventDefault();
+            if (latestOutcome && latestOutcome.type === "result") {
+                void copyText(latestOutcome.displayValue, "Result copied");
+            }
+            return;
+        }
+
+        if (event.shiftKey && key === "e") {
+            event.preventDefault();
+            const value = expressionInput.value.trim();
+            if (value) {
+                void copyText(value, "Expression copied");
+            }
+            return;
+        }
+
+        if (event.shiftKey && key === "l") {
+            event.preventDefault();
+            const line = getLatestLine();
+            if (line) {
+                void copyText(line, "Calculation copied");
+            }
         }
     });
 
     window.addEventListener("load", async () => {
-        const seedValue = typeof window.inputValue === "string" ? window.inputValue.trim() : "";
+        const seedValue = typeof window.inputValue === "string" ? extractExpression(window.inputValue) : "";
+        const draftValue = loadDraft();
+        const initialValue = seedValue || draftValue;
+
         if (seedValue) {
-            expressionInput.value = seedValue.replace(/^(calc|calculator|jsq|计算|计算器)\s+/i, "");
+            setStatus("Seeded from command palette.");
+        } else if (draftValue) {
+            setStatus("Draft restored.");
         }
-        await loadHistory();
+
+        if (initialValue) {
+            expressionInput.value = initialValue;
+        }
+
+        history = await loadHistory();
+        renderHistory();
         expressionInput.focus();
+        expressionInput.select();
     });
 </script>
 </body>

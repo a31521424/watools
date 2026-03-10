@@ -1,19 +1,5 @@
-const isMathExpression = (value) => {
-    if (!value || !/\d/.test(value)) {
-        return false;
-    }
-
-    const cleanExpr = value.replace(/\s+/g, "");
-    return /^[0-9+\-*/.()]+$/.test(cleanExpr);
-};
-
-const extractExpression = (value) => {
-    const trimmed = value.trim();
-    if (/^(calc|calculator|jsq|计算|计算器)\s+/i.test(trimmed)) {
-        return trimmed.replace(/^(calc|calculator|jsq|计算|计算器)\s+/i, "");
-    }
-    return trimmed;
-};
+import {appendHistory} from "./calculator-storage.js";
+import {calculateExpression, canEvaluateExpression, extractExpression} from "./calculator-core.js";
 
 const entry = [
     {
@@ -22,20 +8,12 @@ const entry = [
         icon: "calculator",
         match: (context) => {
             const expression = extractExpression(context.input.value);
-            if (!isMathExpression(expression)) {
+            if (!expression) {
                 return false;
             }
-
-            try {
-                const cleanExpr = expression.replace(/[^0-9+\-*/.() ]/g, "");
-                const result = new Function(`return (${cleanExpr})`)();
-                return typeof result === "number" && Number.isFinite(result);
-            } catch {
-                return false;
-            }
+            return canEvaluateExpression(expression);
         },
         execute: async (context) => {
-            const {calculateExpression} = await import("./calculator-core.js");
             const expression = extractExpression(context.input.value);
             const result = calculateExpression(expression);
 
@@ -43,17 +21,8 @@ const entry = [
                 return;
             }
 
-            await window.runtime.ClipboardSetText(String(result.value));
-
-            const storageKey = "history";
-            const history = await window.watools.StorageGet(storageKey) || [];
-            const nextHistory = [{
-                expression,
-                result: result.value,
-                createdAt: new Date().toISOString()
-            }, ...history].slice(0, 50);
-
-            await window.watools.StorageSet(storageKey, nextHistory);
+            await window.runtime.ClipboardSetText(result.displayValue);
+            await appendHistory(result.expression, result.displayValue);
         }
     },
     {

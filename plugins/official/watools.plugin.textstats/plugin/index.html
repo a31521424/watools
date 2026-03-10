@@ -10,14 +10,11 @@
             --bg: #f5f6f0;
             --paper: rgba(255, 255, 255, 0.9);
             --paper-strong: rgba(255, 255, 255, 0.98);
-            --line: rgba(40, 62, 51, 0.12);
-            --line-strong: rgba(40, 62, 51, 0.22);
+            --line: rgba(30, 45, 38, 0.12);
             --text: #1e2d26;
             --muted: #66756f;
             --accent: #2f7a62;
             --accent-soft: rgba(47, 122, 98, 0.12);
-            --warm: #b56d33;
-            --shadow: 0 18px 42px rgba(36, 52, 44, 0.09);
         }
 
         * {
@@ -27,14 +24,11 @@
         html,
         body {
             margin: 0;
-            min-height: 100%;
+            height: 100%;
         }
 
         body {
-            background:
-                radial-gradient(circle at top left, rgba(47, 122, 98, 0.12), transparent 30%),
-                radial-gradient(circle at top right, rgba(181, 109, 51, 0.12), transparent 24%),
-                linear-gradient(180deg, #fafbf7 0%, var(--bg) 100%);
+            background: var(--bg);
             color: var(--text);
             font: 14px/1.5 "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
         }
@@ -44,72 +38,59 @@
             font: inherit;
         }
 
-        .shell {
-            width: min(100%, 1160px);
-            margin: 0 auto;
-            padding: 16px;
+        .app {
+            height: 100%;
+            overflow: auto;
+            padding: 14px 16px 16px;
             display: grid;
-            gap: 14px;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 12px;
         }
 
         .hero {
             display: grid;
-            gap: 10px;
-            padding: 2px 2px 0;
+            gap: 4px;
         }
 
-        .headline {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 16px;
-        }
-
-        .headline h1 {
+        .hero h1 {
             margin: 0;
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        .headline p {
-            margin: 6px 0 0;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
             color: var(--muted);
         }
 
-        .chip-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .chip {
-            border-radius: 999px;
-            border: 1px solid var(--line);
-            background: rgba(255, 255, 255, 0.72);
-            padding: 7px 11px;
+        .hero p {
+            margin: 0;
             color: var(--muted);
-            font-size: 12px;
         }
 
         .layout {
             display: grid;
             grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
             gap: 14px;
-            align-items: start;
+            align-items: stretch;
+            min-height: 0;
         }
 
         .panel {
-            background: var(--paper);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--line);
-            border-radius: 22px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
+            min-height: 0;
         }
 
         .panel-body {
-            padding: 16px;
+            height: 100%;
+            min-height: 0;
+            padding: 0;
+        }
+
+        .layout > .panel:first-child .panel-body {
+            display: block;
+        }
+
+        .layout > .panel:last-child .panel-body {
+            overflow: auto;
+            padding-right: 2px;
         }
 
         .section-title {
@@ -133,24 +114,20 @@
         textarea {
             width: 100%;
             min-height: 320px;
-            border: 1px solid transparent;
-            border-radius: 18px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
             padding: 18px;
             resize: vertical;
             outline: none;
             color: var(--text);
-            background:
-                linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 252, 249, 0.94));
-            box-shadow: inset 0 0 0 1px rgba(40, 62, 51, 0.08);
+            background: rgba(255, 255, 255, 0.94);
             line-height: 1.7;
             font-size: 15px;
         }
 
         textarea:focus {
-            border-color: var(--accent);
-            box-shadow:
-                inset 0 0 0 1px rgba(47, 122, 98, 0.12),
-                0 0 0 3px rgba(47, 122, 98, 0.10);
+            border-color: rgba(47, 122, 98, 0.45);
+            box-shadow: 0 0 0 3px rgba(47, 122, 98, 0.08);
         }
 
         textarea::placeholder {
@@ -174,7 +151,7 @@
 
         button {
             border: 0;
-            border-radius: 999px;
+            border-radius: 10px;
             padding: 10px 15px;
             cursor: pointer;
             transition: transform 120ms ease, opacity 120ms ease;
@@ -214,7 +191,7 @@
         .summary-card {
             background: var(--paper-strong);
             border: 1px solid var(--line);
-            border-radius: 18px;
+            border-radius: 10px;
             padding: 14px;
         }
 
@@ -240,7 +217,7 @@
         .detail-panel {
             background: var(--paper-strong);
             border: 1px solid var(--line);
-            border-radius: 18px;
+            border-radius: 10px;
             padding: 14px;
         }
 
@@ -275,7 +252,6 @@
 
         .hint-block {
             margin-top: 12px;
-            border-top: 1px solid rgba(40, 62, 51, 0.08);
             padding-top: 12px;
             color: var(--muted);
             font-size: 12px;
@@ -292,14 +268,14 @@
 
         .toast {
             position: fixed;
-            top: 14px;
+            bottom: 16px;
             right: 16px;
             padding: 9px 13px;
-            border-radius: 999px;
+            border-radius: 10px;
             background: rgba(30, 45, 38, 0.94);
             color: #fff;
             opacity: 0;
-            transform: translateY(-8px);
+            transform: translateY(8px);
             transition: opacity 120ms ease, transform 120ms ease;
             pointer-events: none;
         }
@@ -310,7 +286,7 @@
         }
 
         @media (max-width: 980px) {
-            .shell {
+            .app {
                 padding: 12px;
             }
 
@@ -320,10 +296,6 @@
         }
 
         @media (max-width: 640px) {
-            .headline {
-                flex-direction: column;
-            }
-
             .summary-grid {
                 grid-template-columns: 1fr;
             }
@@ -335,18 +307,10 @@
     </style>
 </head>
 <body>
-<div class="shell">
+<main class="app">
     <div class="hero">
-        <div class="headline">
-            <div>
-                <h1>字符统计</h1>
-                <p>显式指令唤起，按字符、字母、汉字、数字、标点、Emoji、行段结构和字节维度实时统计。</p>
-            </div>
-            <div class="chip-row">
-                <div class="chip">触发词: count / chars / 字符统计</div>
-                <div class="chip">支持命令后直接跟内容</div>
-            </div>
-        </div>
+        <h1>字符统计</h1>
+        <p>显式指令唤起，按字符、字母、汉字、数字、标点、Emoji、行段结构和字节维度实时统计。</p>
     </div>
 
     <div class="layout">
@@ -360,7 +324,6 @@
                 <div class="toolbar">
                     <div class="button-row">
                         <button class="primary" id="copy-summary-button" type="button">复制统计摘要</button>
-                        <button class="secondary" id="sample-button" type="button">填入示例</button>
                         <button class="ghost" id="clear-button" type="button">清空</button>
                     </div>
                     <div class="status" id="status"></div>
@@ -442,7 +405,7 @@
             </div>
         </section>
     </div>
-</div>
+</main>
 
 <div class="toast" id="toast"></div>
 
@@ -453,7 +416,6 @@
     const seedLabel = document.getElementById("seed-label");
     const overviewLabel = document.getElementById("overview-label");
     const copySummaryButton = document.getElementById("copy-summary-button");
-    const sampleButton = document.getElementById("sample-button");
     const clearButton = document.getElementById("clear-button");
 
     const triggers = ["textcount", "count", "chars", "字符统计", "字数统计", "文本统计"];
@@ -729,14 +691,6 @@
     };
 
     copySummaryButton.addEventListener("click", handleCopySummary);
-
-    sampleButton.addEventListener("click", () => {
-        editor.value = "WaTools 让常用工具更快触达。\n\n今天统计这段文本: Hello 世界 12345! 🚀";
-        render();
-        editor.focus();
-        editor.select();
-        showToast("已填入示例文本");
-    });
 
     clearButton.addEventListener("click", () => {
         editor.value = "";
