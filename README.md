@@ -120,8 +120,9 @@ go run ./cmd/pluginctl install watools.plugin.translate
 
 For more details, see:
 
+-   [`DOCS/README.md`](docs/README.md)
 -   [`plugins/README.md`](./plugins/README.md)
--   [`PLUGIN_DEVELOPMENT.md`](./PLUGIN_DEVELOPMENT.md)
+-   [`DOCS/PLUGIN_DEVELOPMENT_INDEX.md`](docs/PLUGIN_DEVELOPMENT_INDEX.md)
 
 UI plugin context model:
 
