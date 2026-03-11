@@ -18,30 +18,30 @@
 按任务选择:
 
 - 想快速生成一个新插件:
-  [`01-llm-must-read.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/01-llm-must-read.md)
-  [`02-templates-and-packaging.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/02-templates-and-packaging.md)
+  [`01-llm-must-read.md`](./plugin-development/01-llm-must-read.md)
+  [`02-templates-and-packaging.md`](./plugin-development/02-templates-and-packaging.md)
 - 需要处理输入注入、命令面板带入、剪贴板图片:
-  [`03-runtime-and-context.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/03-runtime-and-context.md)
+  [`03-runtime-and-context.md`](./plugin-development/03-runtime-and-context.md)
 - 需要调用宿主能力、存储、HTTP、剪贴板:
-  [`04-api-and-browser.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/04-api-and-browser.md)
+  [`04-api-and-browser.md`](./plugin-development/04-api-and-browser.md)
 - 需要做复杂 UI、弹层、快捷键:
-  [`05-ui-and-shortcuts.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/05-ui-and-shortcuts.md)
+  [`05-ui-and-shortcuts.md`](./plugin-development/05-ui-and-shortcuts.md)
 - 需要完整类型、最终交付检查:
-  [`06-reference-and-checklist.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/06-reference-and-checklist.md)
+  [`06-reference-and-checklist.md`](./plugin-development/06-reference-and-checklist.md)
 
 ## 模块目录
 
-- [`01-llm-must-read.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/01-llm-must-read.md)
+- [`01-llm-must-read.md`](./plugin-development/01-llm-must-read.md)
   信任模型、快速指南、关键限制、快速检查表
-- [`02-templates-and-packaging.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/02-templates-and-packaging.md)
+- [`02-templates-and-packaging.md`](./plugin-development/02-templates-and-packaging.md)
   简单模式、构建模式、配置、常见打包错误
-- [`03-runtime-and-context.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/03-runtime-and-context.md)
+- [`03-runtime-and-context.md`](./plugin-development/03-runtime-and-context.md)
   PluginContext、UI 注入协议、运行时上下文
-- [`04-api-and-browser.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/04-api-and-browser.md)
+- [`04-api-and-browser.md`](./plugin-development/04-api-and-browser.md)
   `window.runtime`、`window.watools`、API 包装、浏览器 API 限制
-- [`05-ui-and-shortcuts.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/05-ui-and-shortcuts.md)
+- [`05-ui-and-shortcuts.md`](./plugin-development/05-ui-and-shortcuts.md)
   iframe UI 设计、弹层、响应式、跨平台快捷键
-- [`06-reference-and-checklist.md`](/Users/banbxio/Desktop/watools/DOCS/plugin-development/06-reference-and-checklist.md)
+- [`06-reference-and-checklist.md`](./plugin-development/06-reference-and-checklist.md)
   API 附录、完整类型、最终检查清单
 
 ## 兼容性提示

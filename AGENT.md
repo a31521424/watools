@@ -94,7 +94,7 @@ Important implication:
 ### Docs and Examples
 
 - `README.md`: public project overview, partially outdated
-- `DOCS/PLUGIN_DEVELOPMENT_INDEX.md`: plugin packaging/runtime entry index
+- `docs/PLUGIN_DEVELOPMENT_INDEX.md`: plugin packaging/runtime entry index
 - `fronted-plugin/`: sample/reference plugin assets, not the runtime plugin source of truth
 
 ## Real Architecture Details
@@ -371,7 +371,7 @@ Check all of:
 2. coordinator exposure
 3. `frontend/src/api/api.ts`
 4. iframe host setup in `frontend/src/components/watools/wa-plugin.tsx`
-5. `DOCS/PLUGIN_DEVELOPMENT_INDEX.md` and the relevant plugin docs module if developer-facing behavior changed
+5. `docs/PLUGIN_DEVELOPMENT_INDEX.md` and the relevant plugin docs module if developer-facing behavior changed
 
 ### If You Change App Discovery Or Search
 
@@ -409,4 +409,4 @@ Check all of:
 4. the relevant DB/model files under `pkg/`
 5. the matching frontend store/component/api wrapper
 
-If the task is plugin-related, also read `DOCS/PLUGIN_DEVELOPMENT_INDEX.md`.
+If the task is plugin-related, also read `docs/PLUGIN_DEVELOPMENT_INDEX.md`.
