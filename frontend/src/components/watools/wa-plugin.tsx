@@ -11,6 +11,10 @@ export const WaPlugin = () => {
     const [pluginUrl, setPluginUrl] = useState<string | null>(null)
     const [, navigate] = useLocation()
     const inputValue = useAppStore(state => state.value)
+    const inputValueType = useAppStore(state => state.valueType)
+    const clipboardContentType = useAppStore(state => state.clipboardContentType)
+    const clipboardImageBase64 = useAppStore(state => state.imageBase64)
+    const clipboardFiles = useAppStore(state => state.files)
     const clearInputValue = useAppStore(state => state.clearValue)
 
     const packageId = searchParams.get('packageId') || ''
@@ -70,6 +74,24 @@ export const WaPlugin = () => {
         iframeWindow.watools = createWaToolsApi(packageId)
         // @ts-ignore
         iframeWindow.inputValue = inputValue
+        // @ts-ignore
+        iframeWindow.pluginContext = {
+            input: {
+                value: inputValue,
+                valueType: inputValueType,
+                clipboardContentType: clipboardContentType || undefined,
+            },
+            clipboard: clipboardContentType ? {
+                contentType: clipboardContentType,
+                text: clipboardContentType === "text" ? inputValue : null,
+                imageBase64: clipboardImageBase64,
+                files: clipboardFiles,
+            } : null,
+        }
+        iframeWindow.dispatchEvent(new CustomEvent('watools:context-ready', {
+            // @ts-ignore
+            detail: (iframeWindow as any).pluginContext,
+        }))
 
         clearInputValue()
     }

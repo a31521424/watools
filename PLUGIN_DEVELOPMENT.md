@@ -635,6 +635,9 @@ OpenFolder(folderPath: string): Promise<void>
 // 保存 Base64 图片
 SaveBase64Image(base64String: string): Promise<string>
 
+// 写入 Base64 图片到系统剪贴板
+CopyBase64ImageToClipboard(base64String: string): Promise<void>
+
 // 插件存储 API (持久化键值存储，自动注入 packageId)
 StorageGet(key: string): Promise<any>
 StorageSet(key: string, value: any): Promise<void>
@@ -679,6 +682,24 @@ export const api = {
                 return await window.runtime.ClipboardSetText(text);
             }
             return await navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+        },
+        setImage: async (base64String) => {
+            // 优先使用宿主 API，避免 WebView/浏览器权限限制
+            if (window.watools?.CopyBase64ImageToClipboard) {
+                await window.watools.CopyBase64ImageToClipboard(base64String);
+                return true;
+            }
+
+            // 浏览器降级：仅调试时尝试，生产环境不要依赖
+            const blob = await fetch(`data:image/png;base64,${base64String}`).then((res) => res.blob());
+            if (navigator.clipboard?.write && window.ClipboardItem) {
+                await navigator.clipboard.write([
+                    new window.ClipboardItem({[blob.type]: blob})
+                ]);
+                return true;
+            }
+
+            throw new Error('Image clipboard is not available in current context');
         }
     },
 
@@ -726,6 +747,7 @@ export const api = {
 import { api } from './watools-api.js'
 
 await api.clipboard.setText('复制内容')
+await api.clipboard.setImage(base64Image)
 const response = await api.http({url: 'https://api.com'})
 const apiKey = await api.storage.get('apiKey')
 ```
@@ -836,6 +858,21 @@ localStorage.setItem('key', 'value');  // 可用但数据仅在浏览器缓存
 await window.watools.StorageSet('key', 'value');  // 数据库持久化
 ```
 
+#### 4.1 剪贴板图片写入 (强烈建议走宿主 API)
+```javascript
+// ❌ 不要默认依赖
+navigator.clipboard.write([...])  // WebView 中常因权限/焦点/平台限制失败
+
+// ✅ 推荐
+await window.watools.CopyBase64ImageToClipboard(base64Png)
+```
+
+**说明**:
+- 文本剪贴板通常可用 `window.runtime.ClipboardSetText()`
+- 图片剪贴板在 Wails/WebView 中经常无法稳定获得浏览器授权
+- 如果插件需要“复制图片”,应优先准备 PNG Base64 并调用 `window.watools.CopyBase64ImageToClipboard()`
+- 浏览器环境仅把 `navigator.clipboard.write()` 当作调试降级方案,不要作为正式主路径
+
 #### 5. 网络请求 (受 CORS 限制)
 ```javascript
 // ⚠️ 受 CORS 限制
@@ -880,6 +917,7 @@ FormData / URLSearchParams
 // ✅ 剪贴板 (推荐用 Wails API)
 navigator.clipboard.readText()   // 可用但推荐 window.runtime.ClipboardGetText()
 navigator.clipboard.writeText()  // 可用但推荐 window.runtime.ClipboardSetText()
+navigator.clipboard.write()      // 图片写入常受限,推荐 window.watools.CopyBase64ImageToClipboard()
 
 // ✅ Canvas/图形
 <canvas> 元素
@@ -904,6 +942,8 @@ WebGL (如果系统支持)
 | File System Access API | ❌ 不可用 | 拖拽 或 `<input type="file">` |
 | fetch (跨域) | ⚠️ 受限 | window.watools.HttpProxy() |
 | localStorage | ✅ 可用 | window.watools.Storage (推荐) |
+| 剪贴板写文本 | ✅ 可用 | window.runtime.ClipboardSetText() |
+| 剪贴板写图片 | ⚠️ 常受限 | window.watools.CopyBase64ImageToClipboard() |
 | Canvas/Audio/Video | ✅ 可用 | 直接使用 |
 | DOM/Timer/Array | ✅ 可用 | 直接使用 |
 
@@ -1438,6 +1478,7 @@ function isShortcutSafe(shortcut) {
 - `StorageGet/Set/Remove/Clear/Keys()` - 持久化存储
 - `OpenFolder(path)` - 打开文件夹
 - `SaveBase64Image(base64): Promise<path>` - 保存图片
+- `CopyBase64ImageToClipboard(base64): Promise<void>` - 写图片到系统剪贴板
 
 ---
 

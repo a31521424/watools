@@ -1,4 +1,5 @@
 import {
+    CopyBase64ImageToClipboard,
     HttpProxyApi,
     OpenFolder,
     SaveBase64Image,
@@ -12,6 +13,7 @@ import {
 export type WaToolsApi = {
     OpenFolder: typeof OpenFolder;
     SaveBase64Image: typeof SaveBase64Image;
+    CopyBase64ImageToClipboard: typeof CopyBase64ImageToClipboard;
     HttpProxy: typeof HttpProxyApi;
     StorageGet: (key: string) => Promise<any>;
     StorageSet: (key: string, value: any) => Promise<void>;
@@ -24,6 +26,7 @@ export type WaToolsApi = {
 export const createWaToolsApi = (packageId: string): WaToolsApi => ({
     OpenFolder,
     SaveBase64Image,
+    CopyBase64ImageToClipboard,
     HttpProxy: HttpProxyApi,
     StorageGet: (key: string) => GetPluginStorageKeyApi({packageId, key}),
     StorageSet: (key: string, value: any) => SetPluginStorageKeyApi({packageId, key, value}),

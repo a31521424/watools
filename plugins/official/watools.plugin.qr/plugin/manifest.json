@@ -1,0 +1,9 @@
+{
+  "packageId": "watools.plugin.qr",
+  "name": "QR Workspace",
+  "description": "Generate QR from text or decode QR from an image.",
+  "version": "0.0.1",
+  "author": "Codex",
+  "uiEnabled": true,
+  "entry": "app.js"
+}

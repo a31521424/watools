@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaTools QR</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f3f1ea;
+            --panel: rgba(255, 252, 245, 0.9);
+            --panel-strong: rgba(255, 255, 255, 0.98);
+            --line: rgba(71, 61, 42, 0.12);
+            --text: #2f2b21;
+            --muted: #776e5f;
+            --accent: #c05a2b;
+            --accent-soft: rgba(192, 90, 43, 0.12);
+            --danger: #a84331;
+            --success: #2d7a53;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(192, 90, 43, 0.08), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(45, 122, 83, 0.08), transparent 28%),
+                var(--bg);
+            color: var(--text);
+            font: 14px/1.5 "Iowan Old Style", "Palatino Linotype", "PingFang SC", serif;
+            overflow: hidden;
+        }
+
+        button,
+        textarea,
+        input {
+            font: inherit;
+        }
+
+        button {
+            border: 0;
+            border-radius: 12px;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+        }
+
+        .app {
+            height: 100%;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 14px;
+            padding: 14px 16px 16px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .title {
+            display: grid;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .title h1 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .title p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .mode-pill {
+            align-self: flex-start;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.72);
+            color: var(--muted);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .workspace {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(340px, 0.95fr);
+            gap: 14px;
+        }
+
+        .pane {
+            min-width: 0;
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 10px;
+        }
+
+        .pane-head,
+        .pane-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .pane-head {
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .secondary {
+            background: rgba(255, 255, 255, 0.72);
+            color: var(--text);
+        }
+
+        .ghost {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .text-button {
+            padding: 0;
+            background: transparent;
+            color: var(--muted);
+        }
+
+        .text-button:hover:not(:disabled) {
+            color: var(--text);
+            transform: none;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 0;
+            resize: none;
+            border: 0;
+            outline: none;
+            background: var(--panel-strong);
+            color: var(--text);
+            padding: 18px;
+            border-radius: 18px;
+            box-shadow: inset 0 0 0 1px var(--line);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        textarea:focus {
+            box-shadow: inset 0 0 0 1px rgba(192, 90, 43, 0.35), 0 0 0 3px rgba(192, 90, 43, 0.08);
+        }
+
+        textarea::placeholder {
+            color: #9b907e;
+        }
+
+        .image-stage {
+            min-height: 0;
+            position: relative;
+            display: grid;
+            place-items: center;
+            border-radius: 24px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 244, 236, 0.9));
+            box-shadow: inset 0 0 0 1px var(--line);
+            overflow: hidden;
+            padding: 18px;
+        }
+
+        .image-stage.dragging {
+            box-shadow: inset 0 0 0 2px rgba(192, 90, 43, 0.35);
+            background: linear-gradient(135deg, rgba(255, 250, 245, 0.98), rgba(255, 242, 235, 0.96));
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 16px;
+            display: none;
+            background: #fff;
+        }
+
+        .image-preview.visible {
+            display: block;
+        }
+
+        .empty-state {
+            display: grid;
+            justify-items: center;
+            gap: 10px;
+            text-align: center;
+            color: var(--muted);
+            max-width: 280px;
+        }
+
+        .empty-state strong {
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .empty-state span {
+            font-size: 13px;
+        }
+
+        .hint-strip {
+            color: var(--muted);
+            font-size: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .status {
+            min-height: 20px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .status.success {
+            color: var(--success);
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: rgba(47, 43, 33, 0.94);
+            color: #fff;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 120ms ease, transform 120ms ease;
+            pointer-events: none;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @media (max-width: 980px) {
+            .app {
+                padding: 12px;
+            }
+
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .image-stage {
+                min-height: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+<main class="app">
+    <header class="topbar">
+        <div class="title">
+            <h1>QR Workspace</h1>
+            <p>左侧文本生成二维码，右侧图片解析回文本。</p>
+        </div>
+        <div id="mode-pill" class="mode-pill">等待输入</div>
+    </header>
+
+    <section class="workspace">
+        <section class="pane">
+            <div class="pane-head">
+                <span>Text</span>
+                <div class="button-row">
+                    <button id="copy-text-button" class="ghost" type="button">复制文本</button>
+                    <button id="clear-button" class="secondary" type="button">清空</button>
+                </div>
+            </div>
+            <label class="visually-hidden" for="text-input">QR 文本输入</label>
+            <textarea id="text-input" spellcheck="false" placeholder="输入 qr hello world 打开后，这里会自动带入文本。也可以直接粘贴/输入任意文本生成二维码。"></textarea>
+            <div class="pane-foot">
+                <div id="text-meta" class="meta">输入文本会实时生成二维码。</div>
+                <div class="hint-strip">
+                    <span>Cmd/Ctrl + Shift + C 复制文本</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="pane">
+            <div class="pane-head">
+                <span>Image</span>
+                <div class="button-row">
+                    <button id="import-image-button" class="primary" type="button">导入图片</button>
+                    <button id="copy-image-button" class="ghost" type="button">复制图片</button>
+                    <button id="download-image-button" class="secondary" type="button">下载图片</button>
+                </div>
+            </div>
+            <div id="image-stage" class="image-stage" tabindex="0">
+                <img id="image-preview" class="image-preview" alt="QR preview">
+                <div id="empty-state" class="empty-state">
+                    <strong>拖入、粘贴或选择二维码图片</strong>
+                    <span>如果左侧有文本，会在这里自动生成二维码。导入图片后会自动解析出文本。</span>
+                </div>
+            </div>
+            <div class="pane-foot">
+                <div id="image-meta" class="meta">图片支持拖拽、粘贴和文件导入。</div>
+                <div class="hint-strip">
+                    <span>Cmd/Ctrl + Shift + Y 复制图片</span>
+                    <span>Cmd/Ctrl + S 下载图片</span>
+                    <button id="clear-image-button" class="text-button" type="button">移除图片</button>
+                </div>
+            </div>
+        </section>
+    </section>
+
+    <footer class="pane-foot">
+        <div id="status" class="status"></div>
+        <div class="hint-strip">
+            <span>Cmd/Ctrl + L 清空</span>
+            <span>Ctrl/Cmd + V 可直接粘贴图片</span>
+        </div>
+    </footer>
+</main>
+
+<input id="file-input" type="file" accept="image/*" hidden>
+<canvas id="work-canvas" hidden></canvas>
+<div id="toast" class="toast"></div>
+
+<script src="./vendor/qrcode.js"></script>
+<script src="./vendor/jsQR.js"></script>
+<script type="module">
+    const triggers = ["qr", "qrcode", "二维码"];
+    const textInput = document.getElementById("text-input");
+    const imageStage = document.getElementById("image-stage");
+    const imagePreview = document.getElementById("image-preview");
+    const emptyState = document.getElementById("empty-state");
+    const textMeta = document.getElementById("text-meta");
+    const imageMeta = document.getElementById("image-meta");
+    const statusNode = document.getElementById("status");
+    const toastNode = document.getElementById("toast");
+    const fileInput = document.getElementById("file-input");
+    const workCanvas = document.getElementById("work-canvas");
+    const modePill = document.getElementById("mode-pill");
+    const copyTextButton = document.getElementById("copy-text-button");
+    const copyImageButton = document.getElementById("copy-image-button");
+    const downloadImageButton = document.getElementById("download-image-button");
+    const importImageButton = document.getElementById("import-image-button");
+    const clearButton = document.getElementById("clear-button");
+    const clearImageButton = document.getElementById("clear-image-button");
+
+    const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const orderedTriggers = [...triggers].sort((a, b) => b.length - a.length);
+    const triggerPrefixPattern = new RegExp(`^(?:${orderedTriggers.map(escapeRegExp).join("|")})(?:\\s+|$)`, "i");
+
+    const keyboard = {
+        match: (event, key, modifiers = {}) => {
+            if (event.key.toLowerCase() !== key.toLowerCase()) {
+                return false;
+            }
+
+            const primaryPressed = event.ctrlKey || event.metaKey;
+            if (modifiers.primary === true && !primaryPressed) {
+                return false;
+            }
+            if (modifiers.primary === false && primaryPressed) {
+                return false;
+            }
+            if (modifiers.shift !== undefined && modifiers.shift !== event.shiftKey) {
+                return false;
+            }
+            if (modifiers.alt !== undefined && modifiers.alt !== event.altKey) {
+                return false;
+            }
+            return true;
+        }
+    };
+
+    const state = {
+        text: "",
+        imageDataUrl: "",
+        imageLabel: "",
+        imageInfo: null,
+        activeSource: "empty",
+        toastTimer: 0,
+    };
+
+    const hostContext = window.pluginContext || {
+        input: {
+            value: typeof window.inputValue === "string" ? window.inputValue : "",
+            valueType: "text",
+            clipboardContentType: undefined,
+        },
+        clipboard: null,
+    };
+
+    const dataUrlToBlob = async (dataUrl) => {
+        const response = await fetch(dataUrl);
+        return await response.blob();
+    };
+
+    const api = {
+        clipboard: {
+            setText: async (value) => {
+                if (window.runtime?.ClipboardSetText) {
+                    return await window.runtime.ClipboardSetText(value);
+                }
+                await navigator.clipboard.writeText(value);
+                return true;
+            },
+            setImage: async (dataUrl) => {
+                const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
+                if (window.watools?.CopyBase64ImageToClipboard) {
+                    await window.watools.CopyBase64ImageToClipboard(base64);
+                    return true;
+                }
+                const blob = await dataUrlToBlob(dataUrl);
+                if (navigator.clipboard?.write && window.ClipboardItem) {
+                    await navigator.clipboard.write([new window.ClipboardItem({[blob.type]: blob})]);
+                    return true;
+                }
+                throw new Error("当前环境不支持图片复制");
+            }
+        },
+        image: {
+            save: async (dataUrl) => {
+                const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
+                if (window.watools?.SaveBase64Image) {
+                    await window.watools.SaveBase64Image(base64);
+                    return;
+                }
+                const link = document.createElement("a");
+                link.href = dataUrl;
+                link.download = "watools-qr.png";
+                link.click();
+            }
+        }
+    };
+
+    const stripTriggerPrefix = (value) => {
+        const trimmed = (value || "").trim();
+        if (!trimmed) {
+            return "";
+        }
+        if (!triggerPrefixPattern.test(trimmed)) {
+            return trimmed;
+        }
+        return trimmed.replace(triggerPrefixPattern, "").trim();
+    };
+
+    const extractSeedText = (context) => {
+        const searchSeed = new URLSearchParams(window.location.search).get("seed");
+        if (typeof searchSeed === "string" && searchSeed.trim()) {
+            return stripTriggerPrefix(searchSeed);
+        }
+        return stripTriggerPrefix(context?.input?.value || hostContext.input?.value || "");
+    };
+
+    const loadImageElement = (src) => new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("图片加载失败"));
+        image.src = src;
+    });
+
+    const showToast = (message) => {
+        toastNode.textContent = message;
+        toastNode.classList.add("visible");
+        window.clearTimeout(state.toastTimer);
+        state.toastTimer = window.setTimeout(() => {
+            toastNode.classList.remove("visible");
+        }, 1800);
+    };
+
+    const setStatus = (message, type = "info") => {
+        statusNode.textContent = message || "";
+        statusNode.className = type === "error" ? "status error" : type === "success" ? "status success" : "status";
+    };
+
+    const setModeLabel = (message) => {
+        modePill.textContent = message;
+    };
+
+    const updateUiState = () => {
+        const textLength = state.text.length;
+        textMeta.textContent = textLength
+            ? `${textLength} 个字符${state.activeSource === "image" ? " · 来源于图片解析" : " · 正在驱动二维码更新"}`
+            : "输入文本会实时生成二维码。";
+
+        imageMeta.textContent = state.imageDataUrl
+            ? `${state.imageLabel}${state.imageInfo ? ` · ${state.imageInfo.width}×${state.imageInfo.height}` : ""}`
+            : "图片支持拖拽、粘贴和文件导入。";
+
+        copyTextButton.disabled = !state.text;
+        copyImageButton.disabled = !state.imageDataUrl;
+        downloadImageButton.disabled = !state.imageDataUrl;
+        clearImageButton.disabled = !state.imageDataUrl;
+
+        if (!state.text && !state.imageDataUrl) {
+            setModeLabel("等待输入");
+        } else if (state.activeSource === "image") {
+            setModeLabel("图片驱动");
+        } else {
+            setModeLabel("文本驱动");
+        }
+    };
+
+    const setPreviewImage = (dataUrl, label, imageInfo) => {
+        state.imageDataUrl = dataUrl;
+        state.imageLabel = label;
+        state.imageInfo = imageInfo;
+
+        if (dataUrl) {
+            imagePreview.src = dataUrl;
+            imagePreview.classList.add("visible");
+            emptyState.hidden = true;
+        } else {
+            imagePreview.removeAttribute("src");
+            imagePreview.classList.remove("visible");
+            emptyState.hidden = false;
+        }
+
+        updateUiState();
+    };
+
+    const applyTextValue = (value, source) => {
+        state.text = value;
+        textInput.value = value;
+        state.activeSource = source;
+        updateUiState();
+    };
+
+    const renderQrToDataUrl = (text) => {
+        const qr = window.qrcode(0, "M");
+        qr.addData(text);
+        qr.make();
+
+        const moduleCount = qr.getModuleCount();
+        const scale = moduleCount < 33 ? 10 : 8;
+        const margin = 20;
+        const size = moduleCount * scale + margin * 2;
+        const context = workCanvas.getContext("2d");
+
+        workCanvas.width = size;
+        workCanvas.height = size;
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, size, size);
+        context.fillStyle = "#111111";
+
+        for (let row = 0; row < moduleCount; row += 1) {
+            for (let column = 0; column < moduleCount; column += 1) {
+                if (!qr.isDark(row, column)) {
+                    continue;
+                }
+                context.fillRect(
+                    margin + column * scale,
+                    margin + row * scale,
+                    scale,
+                    scale
+                );
+            }
+        }
+
+        return {
+            dataUrl: workCanvas.toDataURL("image/png"),
+            width: size,
+            height: size,
+        };
+    };
+
+    const updateFromText = (value, options = {}) => {
+        applyTextValue(value, "text");
+
+        if (!value) {
+            setPreviewImage("", "", null);
+            setStatus("输入文本后会生成二维码。");
+            return;
+        }
+
+        const qrImage = renderQrToDataUrl(value);
+        setPreviewImage(qrImage.dataUrl, "根据当前文本生成", {width: qrImage.width, height: qrImage.height});
+        setStatus("二维码已更新。", options.silent ? "info" : "success");
+    };
+
+    const decodeQrFromImage = async (src, sourceLabel) => {
+        const image = await loadImageElement(src);
+        const context = workCanvas.getContext("2d", {willReadFrequently: true});
+
+        workCanvas.width = image.naturalWidth || image.width;
+        workCanvas.height = image.naturalHeight || image.height;
+        context.clearRect(0, 0, workCanvas.width, workCanvas.height);
+        context.drawImage(image, 0, 0, workCanvas.width, workCanvas.height);
+
+        const normalizedDataUrl = workCanvas.toDataURL("image/png");
+        const imageData = context.getImageData(0, 0, workCanvas.width, workCanvas.height);
+        const code = window.jsQR(
+            imageData.data,
+            imageData.width,
+            imageData.height,
+            {inversionAttempts: "attemptBoth"}
+        );
+
+        setPreviewImage(normalizedDataUrl, sourceLabel, {
+            width: imageData.width,
+            height: imageData.height,
+        });
+
+        state.activeSource = "image";
+        if (!code?.data) {
+            updateUiState();
+            setStatus("图片已导入，但没有识别到二维码。", "error");
+            return;
+        }
+
+        applyTextValue(code.data, "image");
+        setStatus("已从图片解析出二维码文本。", "success");
+        showToast("二维码已解析");
+    };
+
+    const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+        reader.onerror = () => reject(new Error("文件读取失败"));
+        reader.readAsDataURL(file);
+    });
+
+    const importImageFile = async (file, sourceLabel = "导入图片") => {
+        if (!file) {
+            return;
+        }
+        if (!file.type.startsWith("image/")) {
+            setStatus("请选择图片文件。", "error");
+            return;
+        }
+
+        setStatus("正在解析二维码图片...");
+        const dataUrl = await readFileAsDataUrl(file);
+        await decodeQrFromImage(dataUrl, sourceLabel);
+    };
+
+    const importImageDataUrl = async (dataUrl, sourceLabel = "粘贴图片") => {
+        if (!dataUrl) {
+            return;
+        }
+        setStatus("正在解析二维码图片...");
+        await decodeQrFromImage(dataUrl, sourceLabel);
+    };
+
+    const clearAll = () => {
+        state.text = "";
+        state.activeSource = "empty";
+        textInput.value = "";
+        setPreviewImage("", "", null);
+        setStatus("已清空文本和图片。");
+        showToast("已清空");
+        textInput.focus();
+    };
+
+    const removeImage = () => {
+        setPreviewImage("", "", null);
+        state.activeSource = state.text ? "text" : "empty";
+        updateUiState();
+        setStatus("图片已移除。");
+        if (state.text) {
+            updateFromText(state.text, {silent: true});
+        }
+    };
+
+    const copyText = async () => {
+        if (!state.text) {
+            setStatus("没有可复制的文本。", "error");
+            return;
+        }
+        await api.clipboard.setText(state.text);
+        setStatus("文本已复制。", "success");
+        showToast("文本已复制");
+    };
+
+    const copyImage = async () => {
+        if (!state.imageDataUrl) {
+            setStatus("没有可复制的图片。", "error");
+            return;
+        }
+        await api.clipboard.setImage(state.imageDataUrl);
+        setStatus("图片已复制。", "success");
+        showToast("图片已复制");
+    };
+
+    const downloadImage = async () => {
+        if (!state.imageDataUrl) {
+            setStatus("没有可下载的图片。", "error");
+            return;
+        }
+        await api.image.save(state.imageDataUrl);
+        setStatus("图片已保存。", "success");
+        showToast("图片已保存");
+    };
+
+    textInput.addEventListener("input", () => {
+        updateFromText(textInput.value);
+    });
+
+    copyTextButton.addEventListener("click", () => {
+        void copyText().catch((error) => {
+            setStatus(error?.message || "文本复制失败。", "error");
+        });
+    });
+
+    copyImageButton.addEventListener("click", () => {
+        void copyImage().catch((error) => {
+            setStatus(error?.message || "图片复制失败。", "error");
+        });
+    });
+
+    downloadImageButton.addEventListener("click", () => {
+        void downloadImage().catch((error) => {
+            setStatus(error?.message || "图片保存失败。", "error");
+        });
+    });
+
+    importImageButton.addEventListener("click", () => {
+        fileInput.click();
+    });
+
+    clearButton.addEventListener("click", clearAll);
+    clearImageButton.addEventListener("click", removeImage);
+
+    fileInput.addEventListener("change", () => {
+        const [file] = fileInput.files || [];
+        void importImageFile(file).catch((error) => {
+            setStatus(error?.message || "图片导入失败。", "error");
+        }).finally(() => {
+            fileInput.value = "";
+        });
+    });
+
+    imageStage.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        imageStage.classList.add("dragging");
+    });
+
+    imageStage.addEventListener("dragleave", () => {
+        imageStage.classList.remove("dragging");
+    });
+
+    imageStage.addEventListener("drop", (event) => {
+        event.preventDefault();
+        imageStage.classList.remove("dragging");
+        const [file] = event.dataTransfer?.files || [];
+        void importImageFile(file, "拖入图片").catch((error) => {
+            setStatus(error?.message || "图片导入失败。", "error");
+        });
+    });
+
+    document.addEventListener("paste", (event) => {
+        const items = Array.from(event.clipboardData?.items || []);
+        const imageItem = items.find((item) => item.type.startsWith("image/"));
+        if (!imageItem) {
+            return;
+        }
+        event.preventDefault();
+        const file = imageItem.getAsFile();
+        void importImageFile(file, "剪贴板图片").catch((error) => {
+            setStatus(error?.message || "图片导入失败。", "error");
+        });
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (keyboard.match(event, "c", {primary: true, shift: true})) {
+            event.preventDefault();
+            void copyText().catch((error) => {
+                setStatus(error?.message || "文本复制失败。", "error");
+            });
+            return;
+        }
+
+        if (keyboard.match(event, "y", {primary: true, shift: true})) {
+            event.preventDefault();
+            void copyImage().catch((error) => {
+                setStatus(error?.message || "图片复制失败。", "error");
+            });
+            return;
+        }
+
+        if (keyboard.match(event, "s", {primary: true})) {
+            event.preventDefault();
+            void downloadImage().catch((error) => {
+                setStatus(error?.message || "图片保存失败。", "error");
+            });
+            return;
+        }
+
+        if (keyboard.match(event, "l", {primary: true})) {
+            event.preventDefault();
+            clearAll();
+        }
+    });
+
+    const applyHostContext = (context) => {
+        const seededText = extractSeedText(context);
+        const seededImageBase64 = context?.clipboard?.contentType === "image" && context.clipboard.imageBase64
+            ? `data:image/png;base64,${context.clipboard.imageBase64}`
+            : "";
+
+        if (seededText) {
+            updateFromText(seededText, {silent: true});
+            return;
+        }
+
+        if (seededImageBase64) {
+            void importImageDataUrl(seededImageBase64, "剪贴板图片").catch((error) => {
+                setStatus(error?.message || "图片导入失败。", "error");
+            });
+            return;
+        }
+
+        setStatus("输入文本或导入二维码图片开始处理。");
+    };
+
+    updateUiState();
+    applyHostContext(hostContext);
+
+    window.addEventListener("watools:context-ready", (event) => {
+        applyHostContext(event.detail || window.pluginContext || hostContext);
+    });
+
+    textInput.focus();
+</script>
+</body>
+</html>

@@ -58,6 +58,15 @@ func (a *WaApi) SaveBase64Image(base64Data string) string {
 	return ""
 }
 
+func (a *WaApi) CopyBase64ImageToClipboard(base64Data string) error {
+	imgBytes, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return fmt.Errorf("failed to decode base64 image: %w", err)
+	}
+
+	return a.copyImageBytesToClipboard(imgBytes)
+}
+
 // HttpProxyRequest represents a generic HTTP request
 type HttpProxyRequest struct {
 	URL     string            `json:"url"`

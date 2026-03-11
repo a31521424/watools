@@ -6,6 +6,10 @@ export function ClearPluginStorageApi(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['ClearPluginStorageApi'](arg1);
 }
 
+export function CopyBase64ImageToClipboard(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['CopyBase64ImageToClipboard'](arg1);
+}
+
 export function DeletePluginStorageKeyApi(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['DeletePluginStorageKeyApi'](arg1);
 }

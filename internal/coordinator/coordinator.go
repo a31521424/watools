@@ -179,6 +179,10 @@ func (w *WaAppCoordinator) SaveBase64Image(base64Data string) string {
 	return w.waApi.SaveBase64Image(base64Data)
 }
 
+func (w *WaAppCoordinator) CopyBase64ImageToClipboard(base64Data string) error {
+	return w.waApi.CopyBase64ImageToClipboard(base64Data)
+}
+
 // end region api
 
 // region proxy

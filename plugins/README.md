@@ -12,6 +12,7 @@ This directory is the source of truth for WaTools official plugins.
 
 - `watools.plugin.common`: open URLs and file paths, copy file paths, save clipboard images
 - `watools.plugin.calculator`: executable calculator + calculator panel with history
+- `watools.plugin.qr`: two-pane QR workspace for seeded text generation and clipboard image decoding
 - `watools.plugin.translate`: translation panel with persisted language preferences
 - `watools.plugin.textstats`: explicit-trigger text statistics panel with multidimensional counts
 

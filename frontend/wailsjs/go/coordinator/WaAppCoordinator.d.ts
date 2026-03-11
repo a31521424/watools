@@ -4,6 +4,8 @@ import {app} from '../models';
 
 export function ClearPluginStorageApi(arg1:Record<string, any>):Promise<void>;
 
+export function CopyBase64ImageToClipboard(arg1:string):Promise<void>;
+
 export function DeletePluginStorageKeyApi(arg1:Record<string, any>):Promise<void>;
 
 export function GetApplicationCommandsApi():Promise<Array<any>>;
