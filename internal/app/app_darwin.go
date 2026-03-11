@@ -2,28 +2,62 @@ package app
 
 /*
    #cgo CFLAGS: -x objective-c
-   #cgo LDFLAGS: -framework Cocoa -framework Foundation
+   #cgo LDFLAGS: -framework Cocoa -framework Foundation -framework Carbon
    #import <Cocoa/Cocoa.h>
+   #import <Carbon/Carbon.h>
    #import <dispatch/dispatch.h>
 
    static NSRunningApplication *previousActiveApp = nil;
 
+   void clearPreviousActiveApp() {
+       if (previousActiveApp != nil) {
+           [previousActiveApp release];
+           previousActiveApp = nil;
+       }
+   }
+
    void storePreviousActiveApp() {
-       NSArray *runningApps = [[NSWorkspace sharedWorkspace] runningApplications];
-       for (NSRunningApplication *app in runningApps) {
-           if ([app isActive] &&
-               ![app isEqual:[NSRunningApplication currentApplication]]) {
-               previousActiveApp = app;
+       @autoreleasepool {
+           NSRunningApplication *frontmostApp = [[NSWorkspace sharedWorkspace] frontmostApplication];
+           NSRunningApplication *currentApp = [NSRunningApplication currentApplication];
+           if (frontmostApp == nil || [frontmostApp isEqual:currentApp]) {
                return;
            }
+
+           if (previousActiveApp != nil && [previousActiveApp isEqual:frontmostApp]) {
+               return;
+           }
+
+           clearPreviousActiveApp();
+           previousActiveApp = [frontmostApp retain];
+       }
+   }
+
+   void activateCurrentAppWindowOnMainThread();
+   void returnFocusToPreviousAppOnMainThread();
+
+   void activateCurrentAppWindow() {
+       @autoreleasepool {
+           if ([NSThread isMainThread]) {
+               activateCurrentAppWindowOnMainThread();
+               return;
+           }
+
+           dispatch_sync(dispatch_get_main_queue(), ^{
+               activateCurrentAppWindowOnMainThread();
+           });
        }
    }
 
    void returnFocusToPreviousApp() {
-       if (previousActiveApp != nil && ![previousActiveApp isTerminated]) {
-           [previousActiveApp activateWithOptions:NSApplicationActivateIgnoringOtherApps];
-           dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-               previousActiveApp = nil;
+       @autoreleasepool {
+           if ([NSThread isMainThread]) {
+               returnFocusToPreviousAppOnMainThread();
+               return;
+           }
+
+           dispatch_sync(dispatch_get_main_queue(), ^{
+               returnFocusToPreviousAppOnMainThread();
            });
        }
    }
@@ -60,6 +94,51 @@ package app
        }
 
        return nil;
+   }
+
+   void activateCurrentAppWindowOnMainThread() {
+       NSApplication *app = [NSApplication sharedApplication];
+       NSWindow *window = getCurrentAppWindow();
+
+       [app unhide:nil];
+       if (window != nil) {
+           [window makeKeyAndOrderFront:nil];
+           [window makeMainWindow];
+       }
+
+       if (@available(macOS 14.0, *)) {
+           [app activate];
+       } else {
+           [app activateIgnoringOtherApps:YES];
+       }
+   }
+
+   void returnFocusToPreviousAppOnMainThread() {
+       if (previousActiveApp == nil || [previousActiveApp isTerminated]) {
+           clearPreviousActiveApp();
+           return;
+       }
+
+       NSRunningApplication *currentApp = [NSRunningApplication currentApplication];
+       if (currentApp == nil || ![currentApp isActive]) {
+           clearPreviousActiveApp();
+           return;
+       }
+
+       if (@available(macOS 14.0, *)) {
+           [[NSApplication sharedApplication] yieldActivationToApplication:previousActiveApp];
+           [previousActiveApp activateFromApplication:currentApp options:0];
+       } else {
+           [previousActiveApp activateWithOptions:0];
+       }
+
+       dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+           clearPreviousActiveApp();
+       });
+   }
+
+   int isSecureEventInputEnabled() {
+       return IsSecureEventInputEnabled() ? 1 : 0;
    }
 
    WaWindowPositionMetrics positionCurrentWindowOnMainThread(int windowWidth, int windowHeight, int topOffset) {
@@ -279,6 +358,7 @@ func (a *WaApp) showAppAsPanel() {
 	a.checkAndRepositionIfNeeded()
 	runtime.WindowShow(a.ctx)
 	a.positionWindow()
+	C.activateCurrentAppWindow()
 	a.isHidden = false
 }
 
@@ -305,6 +385,10 @@ func (a *WaApp) HideOrShowApp() {
 	} else {
 		a.HideApp()
 	}
+}
+
+func (a *WaApp) IsSecureEventInputEnabled() bool {
+	return C.isSecureEventInputEnabled() == 1
 }
 
 func (a *WaApp) positionWindowOnScreen(windowWidth int, windowHeight int) bool {

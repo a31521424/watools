@@ -69,6 +69,10 @@ func (w *WaAppCoordinator) GetClipboardContentApi() (*app.ClipboardContent, erro
 	return w.waApp.GetClipboardContent()
 }
 
+func (w *WaAppCoordinator) GetHotkeyEnvironmentStatusApi() app.HotkeyEnvironmentStatus {
+	return w.waApp.GetHotkeyEnvironmentStatus()
+}
+
 // end region app
 
 // region command

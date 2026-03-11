@@ -74,6 +74,10 @@ func (a *WaApp) HideOrShowApp() {
 	}
 }
 
+func (a *WaApp) IsSecureEventInputEnabled() bool {
+	return false
+}
+
 func (a *WaApp) positionWindowOnScreen(windowWidth int, windowHeight int) bool {
 	return false
 }

@@ -117,6 +117,11 @@ type HotkeyConfigAPI struct {
 	Hotkey string `json:"hotkey"`
 }
 
+type HotkeyEnvironmentStatus struct {
+	SecureEventInputEnabled bool   `json:"secureEventInputEnabled"`
+	Note                    string `json:"note"`
+}
+
 func GetWaApp() *WaApp {
 	waAppOnce.Do(func() {
 		waAppInstance = &WaApp{}
@@ -187,6 +192,10 @@ func (a *WaApp) registerHotkeys() {
 	if err := hm.RegisterAll(); err != nil {
 		logger.Error(err, "Failed to register hotkeys")
 	}
+
+	if a.IsSecureEventInputEnabled() {
+		logger.Warning("macOS Secure Event Input is enabled; global hotkeys may be temporarily unavailable while another app owns a password field")
+	}
 }
 
 func (a *WaApp) unregisterHotkeys() {
@@ -243,4 +252,14 @@ func (a *WaApp) UpdateHotkey(apiConfig HotkeyConfigAPI) error {
 
 	logger.Info("Hotkey updated successfully")
 	return nil
+}
+
+func (a *WaApp) GetHotkeyEnvironmentStatus() HotkeyEnvironmentStatus {
+	status := HotkeyEnvironmentStatus{
+		SecureEventInputEnabled: a.IsSecureEventInputEnabled(),
+	}
+	if status.SecureEventInputEnabled {
+		status.Note = "Secure Event Input is enabled by another macOS app. Global hotkeys may not fire while a password field or other secure text input is focused."
+	}
+	return status
 }
