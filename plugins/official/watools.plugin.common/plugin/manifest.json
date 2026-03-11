@@ -1,7 +1,7 @@
 {
   "packageId": "watools.plugin.common",
-  "name": "Common Plugin",
-  "description": "Official utility plugin for URLs, file paths, and clipboard assets",
+  "name": "常用工具",
+  "description": "官方常用工具插件，处理 URL、文件路径和剪贴板资源",
   "version": "0.1.0",
   "author": "WaTools",
   "uiEnabled": false,

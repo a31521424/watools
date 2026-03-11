@@ -9,7 +9,7 @@ const isPathLike = (value) => {
 const entry = [
     {
         type: "executable",
-        subTitle: "Open URL or Path",
+        subTitle: "打开 URL 或路径",
         icon: "external-link",
         match: (context) => {
             const trimmed = context.input.value.trim();
@@ -34,7 +34,7 @@ const entry = [
     },
     {
         type: "executable",
-        subTitle: "Copy File Path",
+        subTitle: "复制文件路径",
         icon: "clipboard-copy",
         match: (context) => context.input.clipboardContentType === "files",
         execute: async (context) => {
@@ -47,7 +47,7 @@ const entry = [
     },
     {
         type: "executable",
-        subTitle: "Save Clipboard Image",
+        subTitle: "保存剪贴板图片",
         icon: "image-down",
         match: (context) => context.input.clipboardContentType === "image",
         execute: async (context) => {

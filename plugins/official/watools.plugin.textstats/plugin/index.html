@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WaTools Text Stats</title>
+    <title>WaTools 文本统计</title>
     <style>
         :root {
             color-scheme: light;
@@ -310,7 +310,7 @@
 <main class="app">
     <div class="hero">
         <h1>字符统计</h1>
-        <p>显式指令唤起，按字符、字母、汉字、数字、标点、Emoji、行段结构和字节维度实时统计。</p>
+        <p>显式指令唤起，按字符、字母、汉字、数字、标点、表情符号和行段结构、字节维度实时统计。</p>
     </div>
 
     <div class="layout">
@@ -374,7 +374,7 @@
                             <div class="metric"><span class="metric-label">数字</span><span class="metric-value" id="stat-digits">0</span></div>
                             <div class="metric"><span class="metric-label">标点</span><span class="metric-value" id="stat-punctuation">0</span></div>
                             <div class="metric"><span class="metric-label">符号</span><span class="metric-value" id="stat-symbols">0</span></div>
-                            <div class="metric"><span class="metric-label">Emoji</span><span class="metric-value" id="stat-emoji">0</span></div>
+                            <div class="metric"><span class="metric-label">表情符号</span><span class="metric-value" id="stat-emoji">0</span></div>
                         </div>
                     </div>
 
@@ -616,7 +616,7 @@
         `数字: ${stats.digits}`,
         `标点: ${stats.punctuation}`,
         `符号: ${stats.symbols}`,
-        `Emoji: ${stats.emoji}`,
+        `表情符号: ${stats.emoji}`,
         `空白字符: ${stats.whitespace} (空格 ${stats.spaces} / 制表 ${stats.tabs} / 换行 ${stats.lineBreaks})`,
         `唯一字符: ${stats.unique}`,
         `UTF-8 字节: ${stats.bytes}`,

@@ -16,7 +16,7 @@ const hasTranslatableContent = (value) => {
 
 const entry = [{
     type: "ui",
-    subTitle: "Open Translation Panel",
+    subTitle: "打开翻译面板",
     icon: "languages",
     match: (context) => {
         const input = context.input.value.trim();

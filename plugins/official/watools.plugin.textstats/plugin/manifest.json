@@ -1,7 +1,7 @@
 {
   "packageId": "watools.plugin.textstats",
-  "name": "Text Stats",
-  "description": "Official text statistics panel with multidimensional character analysis",
+  "name": "文本统计",
+  "description": "官方文本统计面板，支持多维度字符分析",
   "version": "0.1.0",
   "author": "WaTools",
   "uiEnabled": true,

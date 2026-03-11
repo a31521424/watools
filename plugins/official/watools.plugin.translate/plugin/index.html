@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WaTools Translate</title>
+    <title>WaTools 翻译</title>
     <style>
         :root {
             color-scheme: light;
@@ -261,42 +261,42 @@
 <main class="app">
     <header class="topbar">
         <div class="title">
-            <h1>Translate</h1>
-            <p id="direction-label">Auto source detection, target English</p>
+            <h1>翻译</h1>
+            <p id="direction-label">自动检测源语言，目标语言为英文</p>
         </div>
-        <button id="toggle-settings" class="text-button" type="button">API Key</button>
+        <button id="toggle-settings" class="text-button" type="button">API 密钥</button>
     </header>
 
     <section id="settings-panel" class="settings">
-        <input id="api-key-input" type="password" autocomplete="off" placeholder="DeepL Free API Key">
-        <button id="save-api-key" class="primary-button" type="button">Save</button>
+        <input id="api-key-input" type="password" autocomplete="off" placeholder="请输入 DeepL Free API 密钥">
+        <button id="save-api-key" class="primary-button" type="button">保存</button>
     </section>
 
     <main class="workspace">
         <section class="pane">
             <div class="pane-label">
-                <span>Source</span>
-                <span id="source-meta">Auto translate on edit</span>
+                <span>原文</span>
+                <span id="source-meta">编辑后自动翻译</span>
             </div>
             <div class="editor-wrap">
-                <textarea id="source-text" spellcheck="false" placeholder="Paste or type text."></textarea>
+                <textarea id="source-text" spellcheck="false" placeholder="粘贴或输入要翻译的文本。"></textarea>
             </div>
         </section>
 
         <section class="pane">
             <div class="pane-label">
-                <span>Translation</span>
-                <span id="detected-label">Detected -</span>
+                <span>译文</span>
+                <span id="detected-label">检测结果 -</span>
             </div>
             <div class="editor-wrap">
-                <textarea id="target-text" spellcheck="false" placeholder="Translation appears here." readonly></textarea>
+                <textarea id="target-text" spellcheck="false" placeholder="翻译结果会显示在这里。" readonly></textarea>
             </div>
         </section>
     </main>
 
     <footer class="footer">
         <div class="status" id="status"></div>
-        <div class="hints">Auto on edit · Cmd/Ctrl + Enter now · Cmd/Ctrl + Shift + X swap</div>
+        <div class="hints">编辑后自动翻译 · Cmd/Ctrl + Enter 立即翻译 · Cmd/Ctrl + Shift + X 交换文本</div>
     </footer>
 </main>
 
@@ -307,8 +307,8 @@
     const apiKeyLocalStorageKey = "watools.plugin.translate.deepl.authKey";
     const deeplEndpoint = "https://api-free.deepl.com/v2/translate";
     const targetLanguageMeta = {
-        EN: "English",
-        "ZH-HANS": "Chinese",
+        EN: "英文",
+        "ZH-HANS": "简体中文",
     };
 
     const sourceTextNode = document.getElementById("source-text");
@@ -363,12 +363,12 @@
     const updateDirectionUI = (text) => {
         lastTargetLang = getTargetLanguage(text);
         const targetLabel = targetLanguageMeta[lastTargetLang];
-        directionLabel.textContent = `Auto source detection, target ${targetLabel}`;
+        directionLabel.textContent = `自动检测源语言，目标语言为${targetLabel}`;
         if (!text.trim()) {
-            sourceMeta.textContent = "Auto translate on edit";
+            sourceMeta.textContent = "编辑后自动翻译";
             return;
         }
-        sourceMeta.textContent = containsChinese(text) ? "Chinese to English" : "Other language to Chinese";
+        sourceMeta.textContent = containsChinese(text) ? "中文译为英文" : "其他语言译为中文";
     };
 
     const setStatus = (message, type = "info") => {
@@ -438,21 +438,21 @@
             }
             await sleep(25);
         }
-        throw new Error("WaTools host API is not ready");
+        throw new Error("WaTools 宿主 API 尚未就绪");
     };
 
     const saveApiKey = async () => {
         const nextKey = apiKeyInput.value.trim();
         if (!nextKey) {
-            setStatus("DeepL auth key is required.", "error");
+            setStatus("必须填写 DeepL API 密钥。", "error");
             return;
         }
 
         apiKey = nextKey;
         await persistApiKey(apiKey);
-        setStatus("API key saved.", "success");
+        setStatus("API 密钥已保存。", "success");
         setSettingsVisible(false);
-        showToast("DeepL key saved");
+        showToast("DeepL 密钥已保存");
 
         if (sourceTextNode.value.trim()) {
             await translateText({silentEmpty: true, immediate: true});
@@ -463,9 +463,9 @@
         const text = sourceTextNode.value.trim();
         if (!text) {
             targetTextNode.value = "";
-            detectedLabel.textContent = "Detected -";
+            detectedLabel.textContent = "检测结果 -";
             if (!silentEmpty) {
-                setStatus("Enter text to translate.", "error");
+                setStatus("请输入要翻译的文本。", "error");
             } else {
                 setStatus("");
             }
@@ -473,7 +473,7 @@
         }
 
         if (!apiKey) {
-            setStatus("Set your DeepL Free API key first.", "error");
+            setStatus("请先设置 DeepL Free API 密钥。", "error");
             setSettingsVisible(true);
             return;
         }
@@ -485,7 +485,7 @@
         const requestId = ++latestRequestId;
         isTranslating = true;
         updateDirectionUI(text);
-        setStatus(immediate ? "Translating..." : "Auto translating...");
+        setStatus(immediate ? "正在翻译……" : "正在自动翻译……");
 
         try {
             const response = await window.watools.HttpProxy({
@@ -521,18 +521,18 @@
             const payload = JSON.parse(response.body || "{}");
             const translation = payload?.translations?.[0];
             if (!translation?.text) {
-                throw new Error("Empty translation response");
+                throw new Error("翻译接口返回了空结果");
             }
 
             targetTextNode.value = translation.text;
-            detectedLabel.textContent = `Detected ${translation.detected_source_language || "AUTO"}`;
-            setStatus("Translated.", "success");
+            detectedLabel.textContent = `检测结果 ${translation.detected_source_language || "AUTO"}`;
+            setStatus("翻译完成。", "success");
         } catch (error) {
             if (requestId !== latestRequestId) {
                 return;
             }
 
-            const message = error instanceof Error ? error.message : "Translation failed";
+            const message = error instanceof Error ? error.message : "翻译失败";
             setStatus(message, "error");
             if (/auth|forbidden|403|456/i.test(message)) {
                 setSettingsVisible(true);
@@ -559,8 +559,8 @@
             return;
         }
         await window.runtime.ClipboardSetText(text);
-        setStatus("Translation copied.", "success");
-        showToast("Translation copied");
+        setStatus("译文已复制。", "success");
+        showToast("译文已复制");
     };
 
     const swapTranslation = async () => {
@@ -572,10 +572,10 @@
 
         sourceTextNode.value = target;
         targetTextNode.value = source;
-        detectedLabel.textContent = "Detected -";
+        detectedLabel.textContent = "检测结果 -";
         updateDirectionUI(target);
-        setStatus("Swapped.", "success");
-        showToast("Swapped");
+        setStatus("已交换原文和译文。", "success");
+        showToast("已交换");
         await translateText({silentEmpty: true, immediate: true});
     };
 
@@ -605,7 +605,7 @@
                 clearTimeout(autoTranslateTimer);
             }
             targetTextNode.value = "";
-            detectedLabel.textContent = "Detected -";
+            detectedLabel.textContent = "检测结果 -";
             setStatus("");
             return;
         }
@@ -657,7 +657,7 @@
             await waitForHostApi();
             await loadApiKey();
         } catch (error) {
-            const message = error instanceof Error ? error.message : "Plugin initialization failed";
+            const message = error instanceof Error ? error.message : "插件初始化失败";
             setStatus(message, "error");
             return;
         }
@@ -670,20 +670,20 @@
 
         if (seedText) {
             if (apiKey) {
-                setStatus("Translating seeded text...");
+                setStatus("正在翻译带入的文本……");
                 await translateText({silentEmpty: true, immediate: true});
             } else {
-                setStatus("Set your DeepL Free API key first.", "error");
+                setStatus("请先设置 DeepL Free API 密钥。", "error");
             }
             return;
         }
 
         if (!apiKey) {
-            setStatus("Add your DeepL Free API key to start.", "error");
+            setStatus("请先填写 DeepL Free API 密钥后再开始使用。", "error");
             return;
         }
 
-        setStatus("Auto translate is ready.");
+        setStatus("自动翻译已就绪。");
     });
 </script>
 </body>

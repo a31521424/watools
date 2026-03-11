@@ -53,23 +53,23 @@ export function calculateExpression(expression) {
     if (!normalized) {
         return {
             type: "error",
-            title: "Invalid expression",
-            subtitle: "Enter a math expression to calculate"
+            title: "表达式无效",
+            subtitle: "请输入要计算的数学表达式"
         };
     }
 
     if (!ALLOWED_EXPRESSION_PATTERN.test(normalized)) {
         return {
             type: "error",
-            title: "Invalid expression",
-            subtitle: "Only numbers, spaces, parentheses, and + - * / . are supported"
+            title: "表达式无效",
+            subtitle: "仅支持数字、空格、括号以及 + - * / ."
         };
     }
 
     try {
         const result = new Function(`"use strict"; return (${normalized})`)();
         if (typeof result !== "number" || !Number.isFinite(result)) {
-            throw new Error("Invalid calculation result");
+            throw new Error("计算结果无效");
         }
 
         const rounded = roundResult(result);
@@ -78,7 +78,7 @@ export function calculateExpression(expression) {
         return {
             type: "result",
             title: `${normalized} = ${displayValue}`,
-            subtitle: "Calculated successfully",
+            subtitle: "计算成功",
             expression: normalized,
             value: rounded,
             displayValue
@@ -86,8 +86,8 @@ export function calculateExpression(expression) {
     } catch (error) {
         return {
             type: "error",
-            title: "Calculation error",
-            subtitle: error instanceof Error ? error.message : "Unknown error"
+            title: "计算错误",
+            subtitle: error instanceof Error ? error.message : "未知错误"
         };
     }
 }

@@ -1,7 +1,7 @@
 {
   "packageId": "watools.plugin.calculator",
-  "name": "Calculator",
-  "description": "Official calculator plugin with expression evaluation and history",
+  "name": "计算器",
+  "description": "官方计算器插件，支持表达式计算与历史记录",
   "version": "0.1.0",
   "author": "WaTools",
   "uiEnabled": true,

@@ -9,7 +9,7 @@ const triggerPattern = new RegExp(
 
 const entry = [{
     type: "ui",
-    subTitle: "Open Text Statistics Panel",
+    subTitle: "打开文本统计面板",
     icon: "file-text",
     match: (context) => {
         const input = context.input.value.trim();

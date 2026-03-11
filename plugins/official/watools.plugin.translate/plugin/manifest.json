@@ -1,7 +1,7 @@
 {
   "packageId": "watools.plugin.translate",
-  "name": "Translate",
-  "description": "Official translation panel with persisted preferences",
+  "name": "翻译",
+  "description": "官方翻译面板，支持持久化配置",
   "version": "0.1.0",
   "author": "WaTools",
   "uiEnabled": true,

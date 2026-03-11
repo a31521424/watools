@@ -4,7 +4,7 @@ import {calculateExpression, canEvaluateExpression, extractExpression} from "./c
 const entry = [
     {
         type: "executable",
-        subTitle: "Calculate Expression",
+        subTitle: "计算表达式",
         icon: "calculator",
         match: (context) => {
             const expression = extractExpression(context.input.value);
@@ -27,7 +27,7 @@ const entry = [
     },
     {
         type: "ui",
-        subTitle: "Open Calculator Panel",
+        subTitle: "打开计算器面板",
         icon: "calculator",
         match: (context) => {
             const trimmed = context.input.value.trim().toLowerCase();

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WaTools QR</title>
+    <title>WaTools 二维码</title>
     <style>
         :root {
             color-scheme: light;
@@ -320,7 +320,7 @@
 <main class="app">
     <header class="topbar">
         <div class="title">
-            <h1>QR Workspace</h1>
+            <h1>二维码工作区</h1>
             <p>左侧文本生成二维码，右侧图片解析回文本。</p>
         </div>
         <div id="mode-pill" class="mode-pill">等待输入</div>
@@ -329,7 +329,7 @@
     <section class="workspace">
         <section class="pane">
             <div class="pane-head">
-                <span>Text</span>
+                <span>文本</span>
                 <div class="button-row">
                     <button id="copy-text-button" class="ghost" type="button">复制文本</button>
                     <button id="clear-button" class="secondary" type="button">清空</button>
@@ -347,7 +347,7 @@
 
         <section class="pane">
             <div class="pane-head">
-                <span>Image</span>
+                <span>图片</span>
                 <div class="button-row">
                     <button id="import-image-button" class="primary" type="button">导入图片</button>
                     <button id="copy-image-button" class="ghost" type="button">复制图片</button>
@@ -355,7 +355,7 @@
                 </div>
             </div>
             <div id="image-stage" class="image-stage" tabindex="0">
-                <img id="image-preview" class="image-preview" alt="QR preview">
+                <img id="image-preview" class="image-preview" alt="二维码预览">
                 <div id="empty-state" class="empty-state">
                     <strong>拖入、粘贴或选择二维码图片</strong>
                     <span>如果左侧有文本，会在这里自动生成二维码。导入图片后会自动解析出文本。</span>
@@ -691,7 +691,7 @@
             return;
         }
 
-        setStatus("正在解析二维码图片...");
+        setStatus("正在解析二维码图片……");
         const dataUrl = await readFileAsDataUrl(file);
         await decodeQrFromImage(dataUrl, sourceLabel);
     };
@@ -700,7 +700,7 @@
         if (!dataUrl) {
             return;
         }
-        setStatus("正在解析二维码图片...");
+        setStatus("正在解析二维码图片……");
         await decodeQrFromImage(dataUrl, sourceLabel);
     };
 

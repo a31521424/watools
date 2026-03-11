@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WaTools Calculator</title>
+    <title>WaTools 计算器</title>
     <style>
         :root {
             color-scheme: light;
@@ -235,19 +235,19 @@
 <body>
 <main class="app">
     <div class="topbar">
-        <h1>Calculator</h1>
-        <button id="clear-history-button" class="text-button" type="button">Clear history</button>
+        <h1>计算器</h1>
+        <button id="clear-history-button" class="text-button" type="button">清空历史</button>
     </div>
-    <div class="status" id="status">Press Enter to calculate. Click a history row to reuse it.</div>
-    <input id="expression" class="expression-input" type="text" placeholder="Example: (2 + 3) * 4 / 5">
+    <div class="status" id="status">按回车键计算，点击历史记录可重新带入。</div>
+    <input id="expression" class="expression-input" type="text" placeholder="示例：(2 + 3) * 4 / 5">
     <section class="history">
         <div class="history-head">
-            <div class="history-title">History</div>
-            <div class="history-summary" id="history-summary">No calculations yet.</div>
+            <div class="history-title">历史记录</div>
+            <div class="history-summary" id="history-summary">还没有计算记录。</div>
         </div>
         <div class="history-list" id="history-list"></div>
     </section>
-    <div class="status" id="shortcut-hint">Enter calculate, Cmd/Ctrl+L clear input, Cmd/Ctrl+Shift+C copy latest result, Cmd/Ctrl+Shift+L copy latest line.</div>
+    <div class="status" id="shortcut-hint">回车计算，Cmd/Ctrl+L 清空输入，Cmd/Ctrl+Shift+C 复制最新结果，Cmd/Ctrl+Shift+L 复制最新一行。</div>
 </main>
 
 <div class="toast" id="toast"></div>
@@ -316,12 +316,12 @@
         historyListNode.innerHTML = "";
 
         if (!history.length) {
-            historySummaryNode.textContent = "No calculations yet.";
-            historyListNode.innerHTML = '<div class="empty">History is synced through WaTools storage and mirrored to localStorage.</div>';
+            historySummaryNode.textContent = "还没有计算记录。";
+            historyListNode.innerHTML = '<div class="empty">历史记录会同步到 WaTools 插件存储，并镜像保存到 localStorage。</div>';
             return;
         }
 
-        historySummaryNode.textContent = `${history.length} saved calculation${history.length > 1 ? "s" : ""}.`;
+        historySummaryNode.textContent = `已保存 ${history.length} 条计算记录。`;
 
         history.forEach((item) => {
             const row = document.createElement("div");
@@ -344,7 +344,7 @@
                 saveDraft(item.expression);
                 expressionInput.focus();
                 expressionInput.select();
-                setStatus("Expression restored from history.");
+                setStatus("已从历史记录恢复表达式。");
             });
 
             row.appendChild(expressionNode);
@@ -358,7 +358,7 @@
         const expression = expressionInput.value.trim();
 
         if (!expression) {
-            setStatus("Press Enter to calculate. Click a history row to reuse it.");
+            setStatus("按回车键计算，点击历史记录可重新带入。");
             return null;
         }
 
@@ -366,7 +366,7 @@
         latestOutcome = outcome.type === "result" ? outcome : latestOutcome;
 
         if (outcome.type === "result") {
-            setStatus("Press Enter to save this result into history.");
+            setStatus("按回车键可将结果保存到历史记录。");
             return outcome;
         }
 
@@ -385,7 +385,7 @@
         latestOutcome = outcome;
         expressionInput.value = "";
         removeDraft();
-        setStatus("Saved to history.", "success");
+        setStatus("已保存到历史记录。", "success");
         expressionInput.focus();
     };
 
@@ -393,8 +393,8 @@
         void clearHistory().then((nextHistory) => {
             history = nextHistory;
             renderHistory();
-            showToast("History cleared");
-            setStatus("History cleared.", "success");
+            showToast("历史记录已清空");
+            setStatus("历史记录已清空。", "success");
         });
     });
 
@@ -421,7 +421,7 @@
             event.preventDefault();
             expressionInput.value = "";
             removeDraft();
-            setStatus("Expression cleared.");
+            setStatus("表达式已清空。");
             return;
         }
 
@@ -441,7 +441,7 @@
         if (event.shiftKey && key === "c") {
             event.preventDefault();
             if (latestOutcome && latestOutcome.type === "result") {
-                void copyText(latestOutcome.displayValue, "Result copied");
+                void copyText(latestOutcome.displayValue, "结果已复制");
             }
             return;
         }
@@ -450,7 +450,7 @@
             event.preventDefault();
             const value = expressionInput.value.trim();
             if (value) {
-                void copyText(value, "Expression copied");
+                void copyText(value, "表达式已复制");
             }
             return;
         }
@@ -459,7 +459,7 @@
             event.preventDefault();
             const line = getLatestLine();
             if (line) {
-                void copyText(line, "Calculation copied");
+                void copyText(line, "计算结果已复制");
             }
         }
     });
@@ -470,9 +470,9 @@
         const initialValue = seedValue || draftValue;
 
         if (seedValue) {
-            setStatus("Seeded from command palette.");
+            setStatus("已从命令面板带入内容。");
         } else if (draftValue) {
-            setStatus("Draft restored.");
+            setStatus("已恢复上次草稿。");
         }
 
         if (initialValue) {

@@ -9,7 +9,7 @@ const triggerPattern = new RegExp(
 
 const entry = [{
     type: "ui",
-    subTitle: "Open QR Workspace",
+    subTitle: "打开二维码工作区",
     icon: "qr-code",
     match: (context) => {
         const input = (context.input.value || "").trim();
