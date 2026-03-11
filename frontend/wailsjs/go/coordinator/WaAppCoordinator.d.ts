@@ -12,6 +12,8 @@ export function GetApplicationCommandsApi():Promise<Array<any>>;
 
 export function GetClipboardContentApi():Promise<app.ClipboardContent>;
 
+export function GetHotkeyEnvironmentStatusApi():Promise<app.HotkeyEnvironmentStatus>;
+
 export function GetOperatorCommandsApi():Promise<Array<any>>;
 
 export function GetPluginJsEntryUrlApi(arg1:string):Promise<string>;

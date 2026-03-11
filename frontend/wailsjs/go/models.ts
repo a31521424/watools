@@ -26,6 +26,20 @@ export namespace app {
 	        this.files = source["files"];
 	    }
 	}
+	export class HotkeyEnvironmentStatus {
+	    secureEventInputEnabled: boolean;
+	    note: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HotkeyEnvironmentStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.secureEventInputEnabled = source["secureEventInputEnabled"];
+	        this.note = source["note"];
+	    }
+	}
 
 }
 

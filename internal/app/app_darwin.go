@@ -101,15 +101,17 @@ package app
        NSWindow *window = getCurrentAppWindow();
 
        [app unhide:nil];
-       if (window != nil) {
-           [window makeKeyAndOrderFront:nil];
-           [window makeMainWindow];
-       }
-
        if (@available(macOS 14.0, *)) {
            [app activate];
        } else {
            [app activateIgnoringOtherApps:YES];
+       }
+
+       if (window != nil) {
+           [window orderFront:nil];
+           if ([window canBecomeKeyWindow]) {
+               [window makeKeyWindow];
+           }
        }
    }
 

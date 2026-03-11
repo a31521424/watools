@@ -22,6 +22,10 @@ export function GetClipboardContentApi() {
   return window['go']['coordinator']['WaAppCoordinator']['GetClipboardContentApi']();
 }
 
+export function GetHotkeyEnvironmentStatusApi() {
+  return window['go']['coordinator']['WaAppCoordinator']['GetHotkeyEnvironmentStatusApi']();
+}
+
 export function GetOperatorCommandsApi() {
   return window['go']['coordinator']['WaAppCoordinator']['GetOperatorCommandsApi']();
 }
