@@ -94,6 +94,7 @@ export const WaCommand = () => {
             window.watools = createWaToolsApi(entry.packageId)
             try {
                 entry.execute && await entry.execute(context)
+                clearValue()
                 await Promise.allSettled([flushApplicationUsage(), flushPluginUsage()])
                 void HideAppApi()
             } catch (error) {
@@ -108,7 +109,7 @@ export const WaCommand = () => {
                 }
             }
         }
-    }, [updatePluginUsage, navigate, flushApplicationUsage, flushPluginUsage])
+    }, [updatePluginUsage, navigate, clearValue, flushApplicationUsage, flushPluginUsage])
 
     // Get items from hooks directly
     const applicationItems = useApplicationItems({

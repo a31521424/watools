@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"watools/config"
@@ -71,12 +72,28 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 		return fmt.Errorf("invalid plugin entry: %w", err)
 	}
 
-	// 6. 检查插件是否已安装
-	dbInstance := db.GetWaDB()
-	plugins := dbInstance.GetPlugins(pi.ctx)
-	for _, p := range plugins {
-		if p.PackageID == manifest.PackageID {
-			return fmt.Errorf("plugin already installed: %s", manifest.PackageID)
+	// 6. 同包插件安装时，只有版本不低于已安装版本才允许覆盖安装
+	if installedPlugin, found := pi.findInstalledPlugin(manifest.PackageID); found {
+		installedManifest, err := installedPlugin.GetMetadata()
+		if err != nil {
+			return fmt.Errorf("failed to read installed plugin manifest: %w", err)
+		}
+
+		versionComparison, err := comparePluginVersions(manifest.Version, installedManifest.Version)
+		if err != nil {
+			return fmt.Errorf("failed to compare plugin versions: %w", err)
+		}
+		if versionComparison < 0 {
+			return fmt.Errorf(
+				"plugin %s version %s is older than installed version %s",
+				manifest.PackageID,
+				manifest.Version,
+				installedManifest.Version,
+			)
+		}
+
+		if err := pi.UninstallPlugin(manifest.PackageID); err != nil {
+			return fmt.Errorf("failed to replace installed plugin %s: %w", manifest.PackageID, err)
 		}
 	}
 
@@ -248,10 +265,163 @@ func (pi *PluginInstaller) validateManifest(manifest *models.PluginMetadata) err
 	if manifest.Version == "" {
 		return fmt.Errorf("version is required")
 	}
+	if _, err := parsePluginVersion(manifest.Version); err != nil {
+		return fmt.Errorf("version must be a valid numeric semantic version: %w", err)
+	}
 	if manifest.Entry == "" {
 		return fmt.Errorf("entry is required")
 	}
 	return nil
+}
+
+func (pi *PluginInstaller) findInstalledPlugin(packageID string) (*models.PluginState, bool) {
+	plugins := db.GetWaDB().GetPlugins(pi.ctx)
+	for _, plugin := range plugins {
+		if plugin.PackageID == packageID {
+			return plugin, true
+		}
+	}
+	return nil, false
+}
+
+type pluginVersion struct {
+	core       []int
+	prerelease []string
+}
+
+func parsePluginVersion(raw string) (pluginVersion, error) {
+	trimmed := strings.TrimSpace(raw)
+	trimmed = strings.TrimPrefix(trimmed, "v")
+	trimmed = strings.TrimPrefix(trimmed, "V")
+	if trimmed == "" {
+		return pluginVersion{}, fmt.Errorf("empty version")
+	}
+
+	withoutBuild := strings.SplitN(trimmed, "+", 2)[0]
+	parts := strings.SplitN(withoutBuild, "-", 2)
+	corePart := parts[0]
+	if corePart == "" {
+		return pluginVersion{}, fmt.Errorf("missing version core")
+	}
+
+	coreSegments := strings.Split(corePart, ".")
+	core := make([]int, 0, len(coreSegments))
+	for _, segment := range coreSegments {
+		if segment == "" {
+			return pluginVersion{}, fmt.Errorf("invalid core segment in %q", raw)
+		}
+
+		value, err := strconv.Atoi(segment)
+		if err != nil || value < 0 {
+			return pluginVersion{}, fmt.Errorf("invalid numeric segment %q", segment)
+		}
+		core = append(core, value)
+	}
+
+	version := pluginVersion{core: core}
+	if len(parts) == 1 {
+		return version, nil
+	}
+
+	prereleaseSegments := strings.Split(parts[1], ".")
+	for _, segment := range prereleaseSegments {
+		if segment == "" {
+			return pluginVersion{}, fmt.Errorf("invalid prerelease segment in %q", raw)
+		}
+		version.prerelease = append(version.prerelease, segment)
+	}
+
+	return version, nil
+}
+
+func comparePluginVersions(nextVersion string, installedVersion string) (int, error) {
+	next, err := parsePluginVersion(nextVersion)
+	if err != nil {
+		return 0, fmt.Errorf("invalid new version %q: %w", nextVersion, err)
+	}
+
+	current, err := parsePluginVersion(installedVersion)
+	if err != nil {
+		return 0, fmt.Errorf("invalid installed version %q: %w", installedVersion, err)
+	}
+
+	maxCoreLen := len(next.core)
+	if len(current.core) > maxCoreLen {
+		maxCoreLen = len(current.core)
+	}
+	for i := 0; i < maxCoreLen; i++ {
+		nextPart := 0
+		if i < len(next.core) {
+			nextPart = next.core[i]
+		}
+
+		currentPart := 0
+		if i < len(current.core) {
+			currentPart = current.core[i]
+		}
+
+		if nextPart > currentPart {
+			return 1, nil
+		}
+		if nextPart < currentPart {
+			return -1, nil
+		}
+	}
+
+	return comparePrereleaseIdentifiers(next.prerelease, current.prerelease), nil
+}
+
+func comparePrereleaseIdentifiers(next []string, current []string) int {
+	if len(next) == 0 && len(current) == 0 {
+		return 0
+	}
+	if len(next) == 0 {
+		return 1
+	}
+	if len(current) == 0 {
+		return -1
+	}
+
+	maxLen := len(next)
+	if len(current) > maxLen {
+		maxLen = len(current)
+	}
+	for i := 0; i < maxLen; i++ {
+		if i >= len(next) {
+			return -1
+		}
+		if i >= len(current) {
+			return 1
+		}
+
+		nextIdentifier := next[i]
+		currentIdentifier := current[i]
+		nextNumeric, nextNumericErr := strconv.Atoi(nextIdentifier)
+		currentNumeric, currentNumericErr := strconv.Atoi(currentIdentifier)
+
+		switch {
+		case nextNumericErr == nil && currentNumericErr == nil:
+			if nextNumeric > currentNumeric {
+				return 1
+			}
+			if nextNumeric < currentNumeric {
+				return -1
+			}
+		case nextNumericErr == nil && currentNumericErr != nil:
+			return -1
+		case nextNumericErr != nil && currentNumericErr == nil:
+			return 1
+		default:
+			if nextIdentifier > currentIdentifier {
+				return 1
+			}
+			if nextIdentifier < currentIdentifier {
+				return -1
+			}
+		}
+	}
+
+	return 0
 }
 
 func (pi *PluginInstaller) resolvePluginFile(pluginRoot string, relativePath string) (string, error) {
