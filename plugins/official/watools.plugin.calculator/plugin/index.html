@@ -287,6 +287,26 @@
         }, 1800);
     };
 
+    const readHostContext = () => window.pluginContext || {
+        input: {
+            value: typeof window.inputValue === "string" ? window.inputValue : "",
+            valueType: "text",
+            clipboardContentType: undefined,
+        },
+        clipboard: null,
+    };
+
+    const extractSeedValue = (context = readHostContext()) => {
+        const inputValue = context?.input?.value;
+        if (typeof inputValue === "string" && inputValue.trim()) {
+            return extractExpression(inputValue);
+        }
+        if (typeof window.inputValue === "string" && window.inputValue.trim()) {
+            return extractExpression(window.inputValue);
+        }
+        return "";
+    };
+
     const copyText = async (value, successMessage) => {
         const text = String(value || "").trim();
         if (!text) {
@@ -464,9 +484,8 @@
         }
     });
 
-    window.addEventListener("load", async () => {
-        const seedValue = typeof window.inputValue === "string" ? extractExpression(window.inputValue) : "";
-        const draftValue = loadDraft();
+    const applyHostContext = ({context, draftValue = ""}) => {
+        const seedValue = extractSeedValue(context);
         const initialValue = seedValue || draftValue;
 
         if (seedValue) {
@@ -478,6 +497,15 @@
         if (initialValue) {
             expressionInput.value = initialValue;
         }
+    };
+
+    window.addEventListener("watools:context-ready", (event) => {
+        applyHostContext({context: event.detail || readHostContext()});
+    });
+
+    window.addEventListener("load", async () => {
+        const draftValue = loadDraft();
+        applyHostContext({context: readHostContext(), draftValue});
 
         history = await loadHistory();
         renderHistory();

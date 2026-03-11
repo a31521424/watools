@@ -512,13 +512,23 @@
         return trimmed.replace(prefixPattern, "").trim();
     };
 
-    const extractSeedText = () => {
+    const readHostContext = () => window.pluginContext || {
+        input: {
+            value: typeof window.inputValue === "string" ? window.inputValue : "",
+            valueType: "text",
+            clipboardContentType: undefined,
+        },
+        clipboard: null,
+    };
+
+    const extractSeedText = (context = readHostContext()) => {
         const searchSeed = new URLSearchParams(window.location.search).get("seed");
         if (typeof searchSeed === "string" && searchSeed.trim()) {
             return stripTriggerPrefix(searchSeed);
         }
-        if (typeof window.inputValue === "string" && window.inputValue.trim()) {
-            return stripTriggerPrefix(window.inputValue);
+        const inputValue = context?.input?.value;
+        if (typeof inputValue === "string" && inputValue.trim()) {
+            return stripTriggerPrefix(inputValue);
         }
         return "";
     };
@@ -715,16 +725,24 @@
         }
     });
 
-    const seedText = extractSeedText();
-    if (seedText) {
-        editor.value = seedText;
-        seedLabel.textContent = "已从命令面板带入内容";
-    } else {
-        seedLabel.textContent = "输入显式指令后可在这里继续编辑";
-    }
+    const applyHostContext = (context) => {
+        const seedText = extractSeedText(context);
+        if (seedText) {
+            editor.value = seedText;
+            seedLabel.textContent = "已从命令面板带入内容";
+        } else {
+            seedLabel.textContent = "输入显式指令后可在这里继续编辑";
+        }
 
-    render();
-    editor.focus();
+        render();
+        editor.focus();
+    };
+
+    applyHostContext(readHostContext());
+
+    window.addEventListener("watools:context-ready", (event) => {
+        applyHostContext(event.detail || readHostContext());
+    });
 </script>
 </body>
 </html>

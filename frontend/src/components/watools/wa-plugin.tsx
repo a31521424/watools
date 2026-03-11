@@ -1,8 +1,9 @@
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {useLocation, useSearchParams} from "wouter";
 import {useAppStore, usePluginStore} from "@/stores";
 import {createWaToolsApi} from "@/api/api";
 import {normalizePluginAssetPath} from "@/lib/plugin";
+import {buildPluginContext, getLegacySeedValue, resolvePluginLaunchContext} from "@/lib/plugin-context";
 
 export const WaPlugin = () => {
     const [searchParams] = useSearchParams()
@@ -19,7 +20,20 @@ export const WaPlugin = () => {
 
     const packageId = searchParams.get('packageId') || ''
     const file = searchParams.get('file')
+    const launchId = searchParams.get('launchId')
     const seed = searchParams.get('seed') || ''
+    const liveContext = useMemo(() => buildPluginContext(
+        inputValue,
+        inputValueType,
+        clipboardContentType || undefined,
+        clipboardImageBase64,
+        clipboardFiles,
+    ), [inputValue, inputValueType, clipboardContentType, clipboardImageBase64, clipboardFiles])
+    const launchContext = useMemo(() => resolvePluginLaunchContext({
+        launchId,
+        seed,
+        liveContext,
+    }), [launchId, seed, liveContext])
 
     const handleHotkey = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -47,15 +61,16 @@ export const WaPlugin = () => {
         const params = new URLSearchParams({
             t: Date.now().toString(),
         })
-        if (seed) {
-            params.set('seed', seed)
+        const legacySeed = getLegacySeedValue(launchContext)
+        if (legacySeed) {
+            params.set('seed', legacySeed)
         }
         const url = `${plugin.homeUrl}/${safeFile}?${params.toString()}`
         setPluginUrl(url)
         return () => {
             setPluginUrl(null)
         }
-    }, [packageId, file, seed, getPluginById]);
+    }, [packageId, file, launchContext, getPluginById]);
 
     const handleIframeLoad = () => {
         if (!iframeRef.current) {
@@ -73,21 +88,9 @@ export const WaPlugin = () => {
         // @ts-ignore
         iframeWindow.watools = createWaToolsApi(packageId)
         // @ts-ignore
-        iframeWindow.inputValue = inputValue
+        iframeWindow.inputValue = launchContext.input.value
         // @ts-ignore
-        iframeWindow.pluginContext = {
-            input: {
-                value: inputValue,
-                valueType: inputValueType,
-                clipboardContentType: clipboardContentType || undefined,
-            },
-            clipboard: clipboardContentType ? {
-                contentType: clipboardContentType,
-                text: clipboardContentType === "text" ? inputValue : null,
-                imageBase64: clipboardImageBase64,
-                files: clipboardFiles,
-            } : null,
-        }
+        iframeWindow.pluginContext = launchContext
         iframeWindow.dispatchEvent(new CustomEvent('watools:context-ready', {
             // @ts-ignore
             detail: (iframeWindow as any).pluginContext,

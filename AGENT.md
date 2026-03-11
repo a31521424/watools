@@ -209,10 +209,14 @@ The iframe plugin host sets:
 
 - `iframeWindow.runtime = window.runtime`
 - `iframeWindow.watools = createWaToolsApi(packageId)`
+- `iframeWindow.pluginContext = PluginContext`
+- `watools:context-ready` with `PluginContext` in `event.detail`
 
 That means:
 
 - plugins should use `window.watools`
+- UI plugins should read launch data from `window.pluginContext`
+- UI plugins should handle `watools:context-ready` for the authoritative context handoff
 - storage calls are package-scoped only when the plugin is hosted through `createWaToolsApi(packageId)`
 - direct assumptions about `window.go` are the wrong abstraction here
 

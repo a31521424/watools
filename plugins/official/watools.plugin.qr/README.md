@@ -2,8 +2,8 @@
 
 QR workspace for two trigger paths:
 
-- `qr <text>` or `二维码 <text>`: seed text and render a QR image immediately
-- clipboard image + `qr`: seed the clipboard image and decode QR content into text
+- `qr <text>` or `二维码 <text>`: receive seeded text from WaTools plugin context and render a QR image immediately
+- clipboard image + `qr`: receive the clipboard image from WaTools plugin context and decode QR content into text
 
 UI notes:
 

@@ -5,7 +5,7 @@ Official text statistics panel for explicit command-triggered analysis.
 ## Features
 
 - explicit trigger only, no generic text matching
-- seed input support from the WaTools command panel
+- command-context prefill support from the WaTools command panel
 - live multidimensional text statistics
 - Unicode-aware counts for letters, Han characters, punctuation, symbols, emoji, and more
 - quick copy for a plain-text summary

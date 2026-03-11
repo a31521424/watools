@@ -54,3 +54,5 @@ go run ./cmd/pluginctl install watools.plugin.translate
 - The generated `.wt` archive contains the files at the root of `plugin/`, not the parent directory.
 - `go run ./cmd/pluginctl install ...` uses the same backend installer logic as the app.
 - `fronted-plugin/` is now legacy reference material. New official plugins belong here.
+- UI plugins should read launch data from `window.pluginContext` and `watools:context-ready`.
+- `seed` query params and `window.inputValue` are compatibility fallbacks only.

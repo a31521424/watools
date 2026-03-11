@@ -347,13 +347,23 @@
         return trimmed;
     };
 
-    const extractSeedText = () => {
+    const readHostContext = () => window.pluginContext || {
+        input: {
+            value: typeof window.inputValue === "string" ? window.inputValue : "",
+            valueType: "text",
+            clipboardContentType: undefined,
+        },
+        clipboard: null,
+    };
+
+    const extractSeedText = (context = readHostContext()) => {
         const searchSeed = new URLSearchParams(window.location.search).get("seed");
         if (typeof searchSeed === "string" && searchSeed.trim()) {
             return stripTriggerPrefix(searchSeed);
         }
-        if (typeof window.inputValue === "string" && window.inputValue.trim()) {
-            return stripTriggerPrefix(window.inputValue);
+        const inputValue = context?.input?.value;
+        if (typeof inputValue === "string" && inputValue.trim()) {
+            return stripTriggerPrefix(inputValue);
         }
         return "";
     };
@@ -652,17 +662,8 @@
         }
     });
 
-    window.addEventListener("load", async () => {
-        try {
-            await waitForHostApi();
-            await loadApiKey();
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "插件初始化失败";
-            setStatus(message, "error");
-            return;
-        }
-
-        const seedText = extractSeedText();
+    const applyHostContext = async (context) => {
+        const seedText = extractSeedText(context);
         sourceTextNode.value = seedText;
         updateDirectionUI(seedText);
         sourceTextNode.focus();
@@ -684,6 +685,23 @@
         }
 
         setStatus("自动翻译已就绪。");
+    };
+
+    window.addEventListener("watools:context-ready", (event) => {
+        void applyHostContext(event.detail || readHostContext());
+    });
+
+    window.addEventListener("load", async () => {
+        try {
+            await waitForHostApi();
+            await loadApiKey();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "插件初始化失败";
+            setStatus(message, "error");
+            return;
+        }
+
+        await applyHostContext(readHostContext());
     });
 </script>
 </body>

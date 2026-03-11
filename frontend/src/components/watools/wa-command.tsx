@@ -22,6 +22,7 @@ import {createWaToolsApi} from "@/api/api";
 import {useApplicationCommandStore} from "@/stores/applicationCommandStore";
 import {compareRankableItems, createRankingInputContext} from "@/lib/command-ranking";
 import {useCommandRankingStore} from "@/stores";
+import {persistPluginLaunchContext} from "@/lib/plugin-context";
 
 
 export const WaCommand = () => {
@@ -83,6 +84,10 @@ export const WaCommand = () => {
                 packageId: entry.packageId,
                 file: entry.file || '',
             })
+            const launchId = persistPluginLaunchContext(context)
+            if (launchId) {
+                params.set('launchId', launchId)
+            }
             if (context.input.value.trim()) {
                 params.set('seed', context.input.value)
             }

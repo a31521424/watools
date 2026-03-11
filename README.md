@@ -22,7 +22,7 @@ WaTools aims to provide a fast, modern, and cross-platform alternative for commo
 
 -   **Global Access**: Instantly open the app from anywhere with a global hotkey.
 -   **App Launcher**: Quickly find and launch applications on your system.
--   **Plugin System**: Install trusted `.wt` plugins with executable and UI entry types.
+-   **Plugin System**: Install trusted `.wt` plugins with executable and UI entry types, with a unified launch context for iframe plugins.
 -   **Official Plugins**: Ships with an official plugin source tree for common utilities, calculator, translation, and text statistics workflows.
 -   **Modern UI**: Clean and intuitive user interface built with React and Tailwind CSS.
 -   **Cross-Platform Structure**: Built with Wails, with macOS currently being the most complete target.
@@ -87,7 +87,7 @@ Current official plugins:
 -   `watools.plugin.calculator`: command-palette calculator plus calculator panel with persisted history
 -   `watools.plugin.qr`: two-pane QR workspace for text-to-image generation and image-to-text decoding
 -   `watools.plugin.translate`: translation panel with persisted language preferences
--   `watools.plugin.textstats`: explicit-trigger text statistics panel with seeded input support
+-   `watools.plugin.textstats`: explicit-trigger text statistics panel with command-context prefilling support
 
 `fronted-plugin/` is now legacy reference material only.
 
@@ -122,6 +122,13 @@ For more details, see:
 
 -   [`plugins/README.md`](./plugins/README.md)
 -   [`PLUGIN_DEVELOPMENT.md`](./PLUGIN_DEVELOPMENT.md)
+
+UI plugin context model:
+
+-   `match(context)` and `execute(context)` receive `PluginContext`
+-   iframe UI plugins should read the same `PluginContext` from `window.pluginContext`
+-   iframe UI plugins should also listen for `watools:context-ready`
+-   `seed` query params and `window.inputValue` are compatibility fallbacks, not the recommended interface
 
 ### Plugin Trust Model
 

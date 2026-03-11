@@ -412,6 +412,9 @@ export default entry;
 **关键点**:
 - ESC 键由主应用自动处理,无需实现
 - 使用 `<script type="module">` 导入模块
+- UI 插件统一从 `window.pluginContext` 读取启动上下文
+- UI 插件应监听 `watools:context-ready` 事件,不要只依赖页面初次加载时的全局变量
+- `seed` 查询参数和 `window.inputValue` 仅作为兼容旧插件的降级方案
 
 ## 常见错误与解决
 
@@ -556,6 +559,47 @@ type PluginContext = {
     } | null
 }
 ```
+
+### UI 插件上下文注入
+
+WaTools 对 UI 插件和 Executable 插件使用**同一份 `PluginContext` 数据模型**。
+
+- `match(context)` / `execute(context)` 直接接收 `PluginContext`
+- iframe UI 插件通过 `window.pluginContext` 读取同一份 `PluginContext`
+- 宿主会在 iframe 就绪后再派发一次 `watools:context-ready`
+- 新插件应把 `window.pluginContext` + `watools:context-ready` 视为唯一推荐入口
+- `?seed=...` 和 `window.inputValue` 仅用于兼容旧插件或浏览器单独调试
+
+**推荐模式**:
+
+```javascript
+const readHostContext = () => window.pluginContext || {
+    input: {
+        value: typeof window.inputValue === "string" ? window.inputValue : "",
+        valueType: "text",
+        clipboardContentType: undefined,
+    },
+    clipboard: null,
+};
+
+const applyHostContext = (context) => {
+    const inputValue = context?.input?.value || "";
+    // 根据 input / clipboard 更新你的 UI
+};
+
+applyHostContext(readHostContext());
+
+window.addEventListener("watools:context-ready", (event) => {
+    applyHostContext(event.detail || readHostContext());
+});
+```
+
+**约束**:
+
+- 不要把插件核心逻辑只绑定在 `window.location.search` 的 `seed` 参数上
+- 不要假设 `window.inputValue` 一定存在
+- 文本、图片、文件三类带入数据都应从 `PluginContext` 读取
+- 如果插件需要命令面板输入预填充,优先读取 `context.input.value`
 
 **示例**:
 ```javascript
@@ -1514,6 +1558,15 @@ type AppClipboardContent = {
     files: string[] | null
 }
 
+declare global {
+    interface Window {
+        runtime?: any
+        watools?: any
+        inputValue?: string // 兼容旧插件
+        pluginContext?: PluginContext
+    }
+}
+
 // HttpProxy
 type HttpProxyRequest = {
     url: string
@@ -1573,6 +1626,8 @@ type EnvironmentInfo = {
 - [ ] 使用 API 包装 (防止浏览器调试崩溃)
 - [ ] HTTP 请求使用 `window.watools.HttpProxy`
 - [ ] 存储使用 `window.watools.StorageXxx`
+- [ ] UI 插件通过 `window.pluginContext` 读取上下文
+- [ ] UI 插件监听 `watools:context-ready`
 - [ ] 不使用 alert/confirm/prompt (用自定义 UI)
 - [ ] 不使用 window.open() (用 BrowserOpenURL)
 

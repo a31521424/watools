@@ -14,7 +14,7 @@ Official translation panel plugin, now built around DeepL Free.
   - non-Chinese input -> Simplified Chinese output
 - quick swap and copy workflow
 - shortcut-first UI with minimal visible controls
-- seeded input is accepted from plugin launch params and auto-prefilled
+- seeded input is accepted from the unified WaTools plugin context and auto-prefilled
 
 ## Match Rules
 
@@ -24,7 +24,7 @@ Official translation panel plugin, now built around DeepL Free.
 - exact keywords `fy`, `translate`, `翻译`
 - generic text containing Chinese or Latin letters also surfaces the translation panel
 - when opened through `fy/translate/翻译`, the prefix is stripped and only the trailing text is prefilled
-- when opened with seeded content from the WaTools command panel, the source text is auto-filled directly into the left editor
+- when opened with seeded content from the WaTools command panel, the source text is auto-filled directly into the left editor through the host plugin context
 
 ## Shortcuts
 

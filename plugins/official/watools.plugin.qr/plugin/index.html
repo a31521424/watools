@@ -443,7 +443,7 @@
         toastTimer: 0,
     };
 
-    const hostContext = window.pluginContext || {
+    const readHostContext = () => window.pluginContext || {
         input: {
             value: typeof window.inputValue === "string" ? window.inputValue : "",
             valueType: "text",
@@ -511,7 +511,7 @@
         if (typeof searchSeed === "string" && searchSeed.trim()) {
             return stripTriggerPrefix(searchSeed);
         }
-        return stripTriggerPrefix(context?.input?.value || hostContext.input?.value || "");
+        return stripTriggerPrefix(context?.input?.value || readHostContext().input?.value || "");
     };
 
     const loadImageElement = (src) => new Promise((resolve, reject) => {
@@ -876,10 +876,10 @@
     };
 
     updateUiState();
-    applyHostContext(hostContext);
+    applyHostContext(readHostContext());
 
     window.addEventListener("watools:context-ready", (event) => {
-        applyHostContext(event.detail || window.pluginContext || hostContext);
+        applyHostContext(event.detail || readHostContext());
     });
 
     textInput.focus();
