@@ -12,7 +12,6 @@
             --surface: #ffffff;
             --surface-soft: #f8fbff;
             --line: rgba(28, 47, 67, 0.12);
-            --line-strong: rgba(28, 47, 67, 0.2);
             --text: #162433;
             --muted: #627487;
             --accent: #1968ab;
@@ -39,6 +38,7 @@
         }
 
         button,
+        input,
         textarea {
             font: inherit;
         }
@@ -47,10 +47,6 @@
             border: 0;
             background: transparent;
             cursor: pointer;
-        }
-
-        code {
-            font: 12px/1.5 "JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace;
         }
 
         .app {
@@ -71,16 +67,10 @@
         }
 
         .title {
-            min-width: 0;
-            display: flex;
-            align-items: center;
-        }
-
-        .title strong {
+            color: var(--muted);
             font-size: 12px;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: var(--muted);
         }
 
         .toolbar {
@@ -90,7 +80,9 @@
             gap: 8px;
         }
 
-        .toolbar button {
+        .toolbar button,
+        .panel-actions button,
+        .panel-head button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -98,15 +90,18 @@
             padding: 0 12px;
             border: 1px solid var(--line);
             color: var(--text);
+            background: var(--surface);
         }
 
-        .toolbar button.primary {
+        .toolbar button.primary,
+        .panel-actions button.primary {
             border-color: rgba(25, 104, 171, 0.16);
             background: var(--accent);
             color: #fff;
         }
 
-        .toolbar button.ghost {
+        .toolbar button.ghost,
+        .panel-actions button.ghost {
             background: var(--accent-soft);
             color: var(--accent);
             border-color: transparent;
@@ -124,22 +119,22 @@
             height: 100%;
         }
 
-        .preview-panel {
+        .path-panel {
             position: absolute;
             top: 0;
             right: 0;
             bottom: 0;
-            width: min(390px, calc(100vw - 56px));
+            width: min(360px, calc(100vw - 56px));
             display: grid;
-            grid-template-rows: auto auto minmax(0, 1fr) auto;
-            gap: 10px;
+            grid-template-rows: auto auto auto minmax(0, 1fr);
+            gap: 12px;
             padding: 14px;
             background: var(--surface);
             border-left: 1px solid var(--line);
             transition: transform 160ms ease, opacity 160ms ease;
         }
 
-        .preview-panel.collapsed {
+        .path-panel.collapsed {
             transform: translateX(100%);
             opacity: 0;
             pointer-events: none;
@@ -147,224 +142,66 @@
 
         .panel-head {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
             gap: 12px;
         }
 
         .panel-title {
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field-label {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .row {
             display: flex;
-            align-items: center;
+            gap: 8px;
+        }
+
+        .row input {
             min-width: 0;
+            flex: 1;
         }
 
-        .panel-title strong {
-            font-size: 15px;
-        }
-
-        .panel-head button {
-            min-width: 34px;
-            min-height: 34px;
-            border: 1px solid var(--line);
-            color: var(--muted);
-        }
-
-        .parse-strip {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .parse-chip {
-            padding: 5px 9px;
-            border: 1px solid transparent;
-            background: rgba(21, 43, 61, 0.06);
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .parse-chip.success {
-            background: rgba(34, 114, 76, 0.1);
-            color: var(--success);
-        }
-
-        .parse-chip.error {
-            background: rgba(172, 76, 69, 0.1);
-            color: var(--danger);
-        }
-
-        .tree-wrap {
-            min-height: 0;
-            overflow: auto;
-            padding-right: 2px;
-        }
-
-        .empty-state {
-            height: 100%;
-            min-height: 220px;
-            display: grid;
-            place-items: center;
-            padding: 24px;
-            border: 1px dashed var(--line-strong);
-            background: var(--surface-soft);
-            text-align: center;
-            color: var(--muted);
-        }
-
-        .empty-state strong {
-            display: block;
-            margin-bottom: 6px;
-            color: var(--text);
-            font-size: 15px;
-        }
-
-        .tree {
-            display: grid;
-            gap: 8px;
-        }
-
-        details.node-group {
-            border: 1px solid var(--line);
-            overflow: hidden;
-            background: var(--surface);
-        }
-
-        details.node-group > summary {
-            list-style: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 9px 10px;
-            cursor: pointer;
-        }
-
-        details.node-group > summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .summary-main {
-            min-width: 0;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: baseline;
-            gap: 8px;
-        }
-
-        .node-key {
-            color: var(--accent);
-            font: 12px/1.5 "JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace;
-            word-break: break-word;
-        }
-
-        .node-type,
-        .node-meta {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .children {
-            display: grid;
-            gap: 8px;
-            padding: 0 10px 10px 18px;
-            border-top: 1px solid rgba(28, 47, 67, 0.08);
-        }
-
-        .node-row {
-            display: grid;
-            gap: 6px;
-            padding-top: 8px;
-            padding-left: 12px;
-            border-left: 1px dashed rgba(28, 47, 67, 0.14);
-            cursor: pointer;
-        }
-
-        .node-row.selected,
-        details.node-group.selected {
-            border-color: rgba(25, 104, 171, 0.24);
-            box-shadow: inset 0 0 0 1px rgba(25, 104, 171, 0.18);
-            background: rgba(25, 104, 171, 0.05);
-        }
-
-        .node-value {
-            margin: 0;
-            padding: 8px 10px;
-            background: rgba(21, 43, 61, 0.05);
-            color: var(--text);
-            font: 12px/1.6 "JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .value-string {
-            color: #9a431c;
-        }
-
-        .value-number {
-            color: #245ca8;
-        }
-
-        .value-boolean {
-            color: #28744f;
-        }
-
-        .value-null {
-            color: #7f5ca6;
-        }
-
-        .inspector {
-            display: grid;
-            gap: 10px;
-            padding-top: 12px;
-            border-top: 1px solid var(--line);
-        }
-
-        .inspector-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .inspector-head strong {
-            font-size: 14px;
-        }
-
-        .inspector-head span {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .inspector-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .inspector-actions button {
-            min-height: 32px;
-            padding: 0 10px;
-            border: 1px solid var(--line);
-            color: var(--text);
-        }
-
-        .inspector-actions button.ghost {
-            background: var(--accent-soft);
-            border-color: transparent;
-            color: var(--accent);
-        }
-
-        .inspector-output {
+        input,
+        textarea {
             width: 100%;
-            min-height: 92px;
-            max-height: 140px;
             border: 1px solid var(--line);
-            padding: 10px 12px;
-            resize: vertical;
             outline: none;
+            padding: 10px 12px;
             background: var(--surface-soft);
             color: var(--text);
             font: 12px/1.6 "JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace;
+        }
+
+        textarea {
+            resize: none;
+        }
+
+        #path-input {
+            min-height: 120px;
+        }
+
+        #extract-output {
+            min-height: 0;
+            height: 100%;
+        }
+
+        .panel-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .status-bar {
@@ -416,35 +253,34 @@
                 justify-content: flex-start;
             }
 
-            .preview-panel {
+            .path-panel {
                 top: auto;
                 left: 0;
                 right: 0;
                 width: auto;
-                max-height: 48vh;
+                max-height: 52vh;
                 border-left: 0;
                 border-top: 1px solid var(--line);
             }
 
-            .preview-panel.collapsed {
+            .path-panel.collapsed {
                 transform: translateY(100%);
             }
-
         }
     </style>
 </head>
 <body>
 <main class="app">
     <header class="topbar">
-        <div class="title">
-            <strong>JSON</strong>
-        </div>
+        <div class="title">JSON</div>
 
         <div class="toolbar">
-            <button id="toggle-preview-button" type="button">显示节点面板</button>
+            <button id="toggle-panel-button" type="button">Path</button>
             <button id="format-button" class="primary" type="button">格式化</button>
             <button id="compress-button" type="button">压缩</button>
-            <button id="copy-button" class="ghost" type="button">复制 JSON</button>
+            <button id="parse-query-button" type="button">Parse</button>
+            <button id="query-button" type="button">Query</button>
+            <button id="copy-button" class="ghost" type="button">复制</button>
             <button id="clear-button" type="button">清空</button>
         </div>
     </header>
@@ -452,30 +288,33 @@
     <section class="workspace">
         <div id="editor-container"></div>
 
-        <aside id="preview-panel" class="preview-panel collapsed">
+        <aside id="path-panel" class="path-panel collapsed">
             <div class="panel-head">
-                <div class="panel-title">
-                    <strong>节点</strong>
-                </div>
-                <button id="panel-toggle-button" type="button" aria-label="隐藏节点面板">→</button>
+                <div class="panel-title">Path</div>
+                <button id="close-panel-button" type="button">关闭</button>
             </div>
 
-            <div id="parse-strip" class="parse-strip"></div>
-            <div id="tree-wrap" class="tree-wrap"></div>
-
-            <div class="inspector">
-                <div class="inspector-head">
-                    <div>
-                        <strong>提取</strong>
-                        <span id="selected-meta">未选择节点</span>
-                    </div>
-                    <div class="inspector-actions">
-                        <button id="copy-path-button" class="ghost" type="button">复制路径</button>
-                        <button id="copy-node-button" class="ghost" type="button">复制节点</button>
-                    </div>
+            <div class="field">
+                <div class="field-label">当前</div>
+                <div class="row">
+                    <input id="current-path" type="text" readonly>
+                    <button id="copy-path-button" class="ghost" type="button">复制</button>
+                    <button id="use-path-button" type="button">带入</button>
                 </div>
-                <textarea id="inspector-output" class="inspector-output" spellcheck="false" readonly></textarea>
             </div>
+
+            <div class="field">
+                <div class="field-label">路径</div>
+                <textarea id="path-input" spellcheck="false"></textarea>
+                <div class="panel-actions">
+                    <button id="extract-button" class="primary" type="button">提取</button>
+                    <button id="build-query-button" type="button">Query</button>
+                    <button id="copy-output-button" class="ghost" type="button">复制结果</button>
+                    <button id="clear-output-button" type="button">清空</button>
+                </div>
+            </div>
+
+            <textarea id="extract-output" spellcheck="false" readonly></textarea>
         </aside>
     </section>
 
@@ -488,26 +327,30 @@
 
 <script src="./vendor/monaco/vs/loader.js"></script>
 <script type="module">
-    const triggers = ["json"];
-    const previewNodeLimit = 1000;
+    const triggers = ["json", "url2params", "query2params", "qs2params"];
 
     const editorContainer = document.getElementById("editor-container");
-    const previewPanel = document.getElementById("preview-panel");
-    const parseStrip = document.getElementById("parse-strip");
-    const treeWrap = document.getElementById("tree-wrap");
+    const pathPanel = document.getElementById("path-panel");
     const statusPill = document.getElementById("status-pill");
     const toastNode = document.getElementById("toast");
-    const selectedMeta = document.getElementById("selected-meta");
-    const inspectorOutput = document.getElementById("inspector-output");
+    const currentPathInput = document.getElementById("current-path");
+    const pathInput = document.getElementById("path-input");
+    const extractOutput = document.getElementById("extract-output");
 
-    const togglePreviewButton = document.getElementById("toggle-preview-button");
-    const panelToggleButton = document.getElementById("panel-toggle-button");
+    const togglePanelButton = document.getElementById("toggle-panel-button");
+    const closePanelButton = document.getElementById("close-panel-button");
     const formatButton = document.getElementById("format-button");
     const compressButton = document.getElementById("compress-button");
+    const parseQueryButton = document.getElementById("parse-query-button");
+    const queryButton = document.getElementById("query-button");
     const copyButton = document.getElementById("copy-button");
     const clearButton = document.getElementById("clear-button");
     const copyPathButton = document.getElementById("copy-path-button");
-    const copyNodeButton = document.getElementById("copy-node-button");
+    const usePathButton = document.getElementById("use-path-button");
+    const extractButton = document.getElementById("extract-button");
+    const buildQueryButton = document.getElementById("build-query-button");
+    const copyOutputButton = document.getElementById("copy-output-button");
+    const clearOutputButton = document.getElementById("clear-output-button");
 
     const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const orderedTriggers = [...triggers].sort((a, b) => b.length - a.length);
@@ -516,23 +359,13 @@
     const state = {
         editor: null,
         monaco: null,
-        parsedValue: null,
-        isValid: false,
-        selectedPath: "",
-        selectedValue: undefined,
         validateTimer: 0,
         toastTimer: 0,
-        selectedNodeElement: null,
         previewCollapsed: true,
-    };
-
-    const typeLabels = {
-        object: "object",
-        array: "array",
-        string: "string",
-        number: "number",
-        boolean: "boolean",
-        null: "null",
+        isValid: false,
+        parsedValue: undefined,
+        parsedTree: null,
+        currentPath: "",
     };
 
     const keyboard = {
@@ -558,21 +391,6 @@
         }
     };
 
-    const normalizeLineEndings = (value) => String(value || "").replace(/\r\n?/g, "\n");
-
-    const monacoBaseUrl = new URL("./vendor/monaco/vs", window.location.href).toString();
-    const workerMainUrl = new URL("./vendor/monaco/vs/base/worker/workerMain.js", window.location.href).toString();
-
-    window.MonacoEnvironment = {
-        getWorkerUrl: () => {
-            const source = `
-                self.MonacoEnvironment = { baseUrl: ${JSON.stringify(`${monacoBaseUrl}/`)} };
-                importScripts(${JSON.stringify(workerMainUrl)});
-            `;
-            return `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
-        }
-    };
-
     const showToast = (message) => {
         toastNode.textContent = message;
         toastNode.classList.add("visible");
@@ -591,6 +409,8 @@
                 : "status-pill";
     };
 
+    const normalizeLineEndings = (value) => String(value || "").replace(/\r\n?/g, "\n");
+
     const writeClipboardText = async (value) => {
         if (window.runtime?.ClipboardSetText) {
             await window.runtime.ClipboardSetText(value);
@@ -601,157 +421,6 @@
             return;
         }
         throw new Error("当前环境不支持文本复制");
-    };
-
-    const stripTriggerPrefix = (value) => {
-        const trimmed = normalizeLineEndings(value).trim();
-        if (!trimmed) {
-            return "";
-        }
-        if (!triggerPrefixPattern.test(trimmed)) {
-            return trimmed;
-        }
-        return trimmed.replace(triggerPrefixPattern, "").trim();
-    };
-
-    const readHostContext = () => window.pluginContext || {
-        input: {
-            value: typeof window.inputValue === "string" ? window.inputValue : "",
-            valueType: "text",
-            clipboardContentType: undefined,
-        },
-        clipboard: null,
-    };
-
-    const extractSeedText = (context) => {
-        const searchSeed = new URLSearchParams(window.location.search).get("seed");
-        if (typeof searchSeed === "string" && searchSeed.trim()) {
-            return stripTriggerPrefix(searchSeed);
-        }
-
-        const inputValue = context?.input?.value;
-        if (typeof inputValue === "string" && inputValue.trim()) {
-            return stripTriggerPrefix(inputValue);
-        }
-
-        if (typeof window.inputValue === "string" && window.inputValue.trim()) {
-            return stripTriggerPrefix(window.inputValue);
-        }
-
-        return "";
-    };
-
-    const getJsonType = (value) => {
-        if (value === null) {
-            return "null";
-        }
-        if (Array.isArray(value)) {
-            return "array";
-        }
-        return typeof value === "object" ? "object" : typeof value;
-    };
-
-    const isExpandable = (value) => value !== null && typeof value === "object";
-
-    const shouldAutoFormatJsonText = (value) => {
-        const trimmed = normalizeLineEndings(value).trim();
-        if (!trimmed) {
-            return false;
-        }
-
-        return (trimmed.startsWith("{") && trimmed.endsWith("}"))
-            || (trimmed.startsWith("[") && trimmed.endsWith("]"));
-    };
-
-    const parseJsonText = (value) => {
-        const source = normalizeLineEndings(value);
-        const trimmed = source.trim();
-        if (!trimmed) {
-            return {ok: false, error: "请输入 JSON。"};
-        }
-
-        try {
-            return {
-                ok: true,
-                value: JSON.parse(trimmed),
-            };
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "JSON 解析失败";
-            const positionMatch = message.match(/position\s+(\d+)/i);
-            if (!positionMatch) {
-                return {ok: false, error: message};
-            }
-
-            const position = Number(positionMatch[1]);
-            if (!Number.isFinite(position)) {
-                return {ok: false, error: message};
-            }
-
-            const prefix = trimmed.slice(0, position);
-            const lines = prefix.split("\n");
-            const line = lines.length;
-            const column = lines[lines.length - 1].length + 1;
-            return {
-                ok: false,
-                error: `${message}（第 ${line} 行，第 ${column} 列）`,
-            };
-        }
-    };
-
-    const describeValueForInspector = (value) => {
-        if (typeof value === "string") {
-            return value;
-        }
-        return JSON.stringify(value, null, 2);
-    };
-
-    const describeValueInline = (value) => {
-        if (typeof value === "string") {
-            return JSON.stringify(value);
-        }
-        if (typeof value === "number") {
-            return String(value);
-        }
-        if (typeof value === "boolean") {
-            return value ? "true" : "false";
-        }
-        if (value === null) {
-            return "null";
-        }
-        return JSON.stringify(value);
-    };
-
-    const formatPathSegment = (parentPath, key, isArrayItem) => {
-        if (isArrayItem) {
-            return `${parentPath}[${key}]`;
-        }
-        if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key)) {
-            return `${parentPath}.${key}`;
-        }
-        return `${parentPath}[${JSON.stringify(key)}]`;
-    };
-
-    const getValueClassName = (value) => {
-        if (typeof value === "string") {
-            return "node-value value-string";
-        }
-        if (typeof value === "number") {
-            return "node-value value-number";
-        }
-        if (typeof value === "boolean") {
-            return "node-value value-boolean";
-        }
-        if (value === null) {
-            return "node-value value-null";
-        }
-        return "node-value";
-    };
-
-    const createParseChip = (label, type = "") => {
-        const chip = document.createElement("span");
-        chip.className = type ? `parse-chip ${type}` : "parse-chip";
-        chip.textContent = label;
-        return chip;
     };
 
     const getEditorValue = () => state.editor ? state.editor.getValue() : "";
@@ -778,194 +447,541 @@
 
     const updateActionState = () => {
         const hasText = getEditorValue().trim().length > 0;
-        formatButton.disabled = !hasText || !state.editor;
-        clearButton.disabled = !hasText || !state.editor;
-        compressButton.disabled = !state.isValid || !state.editor;
+        formatButton.disabled = !state.editor || !hasText;
+        compressButton.disabled = !state.editor || !state.isValid;
+        parseQueryButton.disabled = !hasText;
+        queryButton.disabled = !state.isValid;
         copyButton.disabled = !hasText;
-        copyPathButton.disabled = !state.selectedPath;
-        copyNodeButton.disabled = !state.selectedPath;
+        clearButton.disabled = !state.editor || !hasText;
+        copyPathButton.disabled = !state.currentPath;
+        usePathButton.disabled = !state.currentPath;
+        extractButton.disabled = !state.isValid;
+        buildQueryButton.disabled = !state.isValid;
+        copyOutputButton.disabled = !extractOutput.value.trim();
+        clearOutputButton.disabled = !pathInput.value.trim() && !extractOutput.value.trim();
     };
 
-    const clearSelectedNode = () => {
-        if (state.selectedNodeElement) {
-            state.selectedNodeElement.classList.remove("selected");
+    const togglePanel = (force) => {
+        if (typeof force === "boolean") {
+            state.previewCollapsed = !force;
+        } else {
+            state.previewCollapsed = !state.previewCollapsed;
         }
-        state.selectedNodeElement = null;
-        state.selectedPath = "";
-        state.selectedValue = undefined;
-        selectedMeta.textContent = "未选择节点";
-        inspectorOutput.value = "";
+        pathPanel.classList.toggle("collapsed", state.previewCollapsed);
+        togglePanelButton.textContent = state.previewCollapsed ? "Path" : "隐藏";
+    };
+
+    const clearPathState = () => {
+        state.currentPath = "";
+        currentPathInput.value = "";
         updateActionState();
     };
 
-    const selectNode = (path, value, element) => {
-        if (state.selectedNodeElement) {
-            state.selectedNodeElement.classList.remove("selected");
+    const formatPathSegment = (parentPath, key, isArrayItem) => {
+        if (isArrayItem) {
+            return `${parentPath}[${key}]`;
         }
-        state.selectedNodeElement = element;
-        if (state.selectedNodeElement) {
-            state.selectedNodeElement.classList.add("selected");
+        if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key)) {
+            return `${parentPath}.${key}`;
         }
-        state.selectedPath = path;
-        state.selectedValue = value;
-        selectedMeta.textContent = `${path} · ${typeLabels[getJsonType(value)] || typeof value}`;
-        inspectorOutput.value = describeValueForInspector(value);
-        updateActionState();
+        return `${parentPath}[${JSON.stringify(key)}]`;
     };
 
-    const renderEmptyState = (title, message) => {
-        treeWrap.innerHTML = "";
-        const empty = document.createElement("div");
-        empty.className = "empty-state";
-        const content = document.createElement("div");
-        const strong = document.createElement("strong");
-        const span = document.createElement("span");
-        strong.textContent = title;
-        span.textContent = message;
-        content.appendChild(strong);
-        content.appendChild(span);
-        empty.appendChild(content);
-        treeWrap.appendChild(empty);
-    };
+    class JsonTreeParser {
+        constructor(text) {
+            this.text = text;
+            this.index = 0;
+            this.length = text.length;
+        }
 
-    const renderTree = (value) => {
-        treeWrap.innerHTML = "";
-        const root = document.createElement("div");
-        root.className = "tree";
-        const budget = {count: 0, truncated: false};
-
-        const buildNode = (label, currentValue, path) => {
-            if (budget.count >= previewNodeLimit) {
-                budget.truncated = true;
-                return null;
+        parse() {
+            this.skipWhitespace();
+            const node = this.parseValue("$");
+            this.skipWhitespace();
+            if (this.index !== this.length) {
+                this.error("Unexpected token");
             }
-            budget.count += 1;
+            return node;
+        }
 
-            if (isExpandable(currentValue)) {
-                const group = document.createElement("details");
-                group.className = "node-group";
-                group.open = true;
-                group.dataset.path = path;
+        parseValue(path, rangeStart) {
+            this.skipWhitespace();
+            const actualStart = this.index;
+            const start = typeof rangeStart === "number" ? rangeStart : actualStart;
+            const char = this.text[this.index];
 
-                const summary = document.createElement("summary");
-                const summaryMain = document.createElement("div");
-                summaryMain.className = "summary-main";
+            if (char === "{") {
+                return this.parseObject(path, start);
+            }
+            if (char === "[") {
+                return this.parseArray(path, start);
+            }
+            if (char === "\"") {
+                const value = this.parseStringLiteral();
+                return {path, start, end: this.index, value, children: []};
+            }
+            if (char === "-" || /[0-9]/.test(char)) {
+                const value = this.parseNumberLiteral();
+                return {path, start, end: this.index, value, children: []};
+            }
+            if (this.text.startsWith("true", this.index)) {
+                this.index += 4;
+                return {path, start, end: this.index, value: true, children: []};
+            }
+            if (this.text.startsWith("false", this.index)) {
+                this.index += 5;
+                return {path, start, end: this.index, value: false, children: []};
+            }
+            if (this.text.startsWith("null", this.index)) {
+                this.index += 4;
+                return {path, start, end: this.index, value: null, children: []};
+            }
 
-                const key = document.createElement("span");
-                key.className = "node-key";
-                key.textContent = label;
+            this.error("Unexpected token");
+        }
 
-                const type = document.createElement("span");
-                type.className = "node-type";
-                type.textContent = typeLabels[getJsonType(currentValue)] || typeof currentValue;
+        parseObject(path, start) {
+            const children = [];
+            const value = {};
+            this.expect("{");
+            this.skipWhitespace();
 
-                const meta = document.createElement("span");
-                meta.className = "node-meta";
-                meta.textContent = Array.isArray(currentValue)
-                    ? `${currentValue.length} 项`
-                    : `${Object.keys(currentValue).length} 键`;
+            if (this.peek() === "}") {
+                this.index += 1;
+                return {path, start, end: this.index, value, children};
+            }
 
-                summaryMain.appendChild(key);
-                summaryMain.appendChild(type);
-                summary.appendChild(summaryMain);
-                summary.appendChild(meta);
-                group.appendChild(summary);
+            while (this.index < this.length) {
+                this.skipWhitespace();
+                const keyStart = this.index;
+                const key = this.parseStringLiteral();
+                this.skipWhitespace();
+                this.expect(":");
+                const child = this.parseValue(formatPathSegment(path, key, false), keyStart);
+                value[key] = child.value;
+                children.push(child);
+                this.skipWhitespace();
 
-                summary.addEventListener("click", (event) => {
-                    event.preventDefault();
-                    group.open = !group.open;
-                    selectNode(path, currentValue, group);
-                });
-
-                const children = document.createElement("div");
-                children.className = "children";
-
-                const entries = Array.isArray(currentValue)
-                    ? currentValue.map((item, index) => [String(index), item])
-                    : Object.entries(currentValue);
-
-                if (!entries.length) {
-                    const emptyNode = document.createElement("pre");
-                    emptyNode.className = "node-value";
-                    emptyNode.textContent = Array.isArray(currentValue) ? "[]" : "{}";
-                    children.appendChild(emptyNode);
-                } else {
-                    entries.forEach(([childKey, childValue]) => {
-                        const childPath = Array.isArray(currentValue)
-                            ? formatPathSegment(path, childKey, true)
-                            : formatPathSegment(path, childKey, false);
-                        const child = buildNode(childKey, childValue, childPath);
-                        if (child) {
-                            children.appendChild(child);
-                        }
-                    });
+                const next = this.peek();
+                if (next === ",") {
+                    this.index += 1;
+                    continue;
                 }
-
-                group.appendChild(children);
-                return group;
+                if (next === "}") {
+                    this.index += 1;
+                    break;
+                }
+                this.error("Unexpected token");
             }
 
-            const row = document.createElement("div");
-            row.className = "node-row";
-            row.dataset.path = path;
-
-            const summaryMain = document.createElement("div");
-            summaryMain.className = "summary-main";
-
-            const key = document.createElement("span");
-            key.className = "node-key";
-            key.textContent = label;
-
-            const type = document.createElement("span");
-            type.className = "node-type";
-            type.textContent = typeLabels[getJsonType(currentValue)] || typeof currentValue;
-
-            const valueNode = document.createElement("pre");
-            valueNode.className = getValueClassName(currentValue);
-            valueNode.textContent = describeValueInline(currentValue);
-
-            summaryMain.appendChild(key);
-            summaryMain.appendChild(type);
-            row.appendChild(summaryMain);
-            row.appendChild(valueNode);
-            row.addEventListener("click", () => {
-                selectNode(path, currentValue, row);
-            });
-            return row;
-        };
-
-        const rootNode = buildNode("$", value, "$");
-        if (rootNode) {
-            root.appendChild(rootNode);
+            return {path, start, end: this.index, value, children};
         }
 
-        if (budget.truncated) {
-            const truncated = document.createElement("div");
-            truncated.className = "empty-state";
-            const content = document.createElement("div");
-            const strong = document.createElement("strong");
-            const span = document.createElement("span");
-            strong.textContent = "已截断";
-            span.textContent = "节点过多";
-            content.appendChild(strong);
-            content.appendChild(span);
-            truncated.appendChild(content);
-            root.appendChild(truncated);
+        parseArray(path, start) {
+            const children = [];
+            const value = [];
+            this.expect("[");
+            this.skipWhitespace();
+
+            if (this.peek() === "]") {
+                this.index += 1;
+                return {path, start, end: this.index, value, children};
+            }
+
+            let itemIndex = 0;
+            while (this.index < this.length) {
+                const child = this.parseValue(formatPathSegment(path, String(itemIndex), true));
+                value.push(child.value);
+                children.push(child);
+                itemIndex += 1;
+                this.skipWhitespace();
+
+                const next = this.peek();
+                if (next === ",") {
+                    this.index += 1;
+                    continue;
+                }
+                if (next === "]") {
+                    this.index += 1;
+                    break;
+                }
+                this.error("Unexpected token");
+            }
+
+            return {path, start, end: this.index, value, children};
         }
 
-        treeWrap.appendChild(root);
+        parseStringLiteral() {
+            const quote = this.peek();
+            if (quote !== "\"") {
+                this.error("Expected string");
+            }
+            this.index += 1;
+            let result = "";
+
+            while (this.index < this.length) {
+                const char = this.text[this.index];
+                if (char === "\"") {
+                    this.index += 1;
+                    return result;
+                }
+                if (char === "\\") {
+                    this.index += 1;
+                    const escaped = this.text[this.index];
+                    if (escaped === "\"" || escaped === "\\" || escaped === "/") {
+                        result += escaped;
+                    } else if (escaped === "b") {
+                        result += "\b";
+                    } else if (escaped === "f") {
+                        result += "\f";
+                    } else if (escaped === "n") {
+                        result += "\n";
+                    } else if (escaped === "r") {
+                        result += "\r";
+                    } else if (escaped === "t") {
+                        result += "\t";
+                    } else if (escaped === "u") {
+                        const hex = this.text.slice(this.index + 1, this.index + 5);
+                        if (!/^[0-9a-fA-F]{4}$/.test(hex)) {
+                            this.error("Invalid unicode escape");
+                        }
+                        result += String.fromCharCode(parseInt(hex, 16));
+                        this.index += 4;
+                    } else {
+                        this.error("Invalid escape");
+                    }
+                    this.index += 1;
+                    continue;
+                }
+                result += char;
+                this.index += 1;
+            }
+
+            this.error("Unterminated string");
+        }
+
+        parseNumberLiteral() {
+            const source = this.text.slice(this.index);
+            const match = source.match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+            if (!match) {
+                this.error("Invalid number");
+            }
+            this.index += match[0].length;
+            return Number(match[0]);
+        }
+
+        skipWhitespace() {
+            while (this.index < this.length && /\s/.test(this.text[this.index])) {
+                this.index += 1;
+            }
+        }
+
+        expect(char) {
+            if (this.text[this.index] !== char) {
+                this.error(`Expected ${char}`);
+            }
+            this.index += 1;
+        }
+
+        peek() {
+            return this.text[this.index];
+        }
+
+        error(message) {
+            throw new Error(message);
+        }
+    }
+
+    const findDeepestNodeAtOffset = (node, offset) => {
+        if (!node || offset < node.start || offset > node.end) {
+            return null;
+        }
+        for (const child of node.children || []) {
+            const match = findDeepestNodeAtOffset(child, offset);
+            if (match) {
+                return match;
+            }
+        }
+        return node;
     };
 
-    const renderFromText = () => {
-        const rawText = normalizeLineEndings(getEditorValue());
-        parseStrip.innerHTML = "";
-        clearSelectedNode();
+    const updateCurrentPathFromCursor = () => {
+        if (!state.editor || !state.parsedTree || !state.isValid) {
+            clearPathState();
+            return;
+        }
 
+        const model = getModel();
+        const position = state.editor.getPosition();
+        if (!model || !position) {
+            clearPathState();
+            return;
+        }
+
+        const offset = model.getOffsetAt(position);
+        const node = findDeepestNodeAtOffset(state.parsedTree, offset)
+            || (offset > 0 ? findDeepestNodeAtOffset(state.parsedTree, offset - 1) : null)
+            || state.parsedTree;
+
+        state.currentPath = node?.path || "";
+        currentPathInput.value = state.currentPath;
+        updateActionState();
+    };
+
+    const parseJsonText = (value) => {
+        const source = normalizeLineEndings(value);
+        const trimmed = source.trim();
+        if (!trimmed) {
+            return {ok: false, error: "请输入 JSON。"};
+        }
+
+        try {
+            const leadingOffset = source.length - source.trimStart().length;
+            const tree = new JsonTreeParser(trimmed).parse();
+            const shiftTreeOffset = (node, delta) => {
+                node.start += delta;
+                node.end += delta;
+                (node.children || []).forEach((child) => shiftTreeOffset(child, delta));
+            };
+            shiftTreeOffset(tree, leadingOffset);
+            return {
+                ok: true,
+                tree,
+                value: tree.value,
+            };
+        } catch (error) {
+            try {
+                JSON.parse(trimmed);
+                return {ok: false, error: error instanceof Error ? error.message : "JSON 解析失败"};
+            } catch (jsonError) {
+                const message = jsonError instanceof Error ? jsonError.message : "JSON 解析失败";
+                const positionMatch = message.match(/position\s+(\d+)/i);
+                if (!positionMatch) {
+                    return {ok: false, error: message};
+                }
+                const position = Number(positionMatch[1]);
+                const prefix = trimmed.slice(0, position);
+                const lines = prefix.split("\n");
+                const line = lines.length;
+                const column = lines[lines.length - 1].length + 1;
+                return {ok: false, error: `${message}（第 ${line} 行，第 ${column} 列）`};
+            }
+        }
+    };
+
+    const smartDecode = (value) => {
+        let current = String(value ?? "");
+        for (let i = 0; i < 2; i += 1) {
+            if (!/%[0-9a-fA-F]{2}/.test(current)) {
+                break;
+            }
+            try {
+                const decoded = decodeURIComponent(current);
+                if (decoded === current) {
+                    break;
+                }
+                current = decoded;
+            } catch (error) {
+                break;
+            }
+        }
+        return current;
+    };
+
+    const normalizeParamValue = (value) => {
+        const decoded = smartDecode(value);
+        const trimmed = decoded.trim();
+        if (
+            (trimmed.startsWith("{") && trimmed.endsWith("}"))
+            || (trimmed.startsWith("[") && trimmed.endsWith("]"))
+            || trimmed === "true"
+            || trimmed === "false"
+            || trimmed === "null"
+            || /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(trimmed)
+            || ((trimmed.startsWith("\"") && trimmed.endsWith("\"")) || (trimmed.startsWith("'") && trimmed.endsWith("'")))
+        ) {
+            try {
+                if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
+                    return JSON.parse(`"${trimmed.slice(1, -1).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`);
+                }
+                return JSON.parse(trimmed);
+            } catch (error) {
+                return decoded;
+            }
+        }
+        return decoded;
+    };
+
+    const appendQueryParam = (target, key, value) => {
+        if (!(key in target)) {
+            target[key] = value;
+            return;
+        }
+        if (Array.isArray(target[key])) {
+            target[key].push(value);
+            return;
+        }
+        target[key] = [target[key], value];
+    };
+
+    const parseQueryCandidate = (input) => {
+        let candidate = input.trim();
+        if (!candidate) {
+            return null;
+        }
+
+        try {
+            const url = new URL(candidate);
+            if ([...url.searchParams.keys()].length > 0) {
+                const result = {};
+                for (const [key, value] of url.searchParams.entries()) {
+                    appendQueryParam(result, smartDecode(key), normalizeParamValue(value));
+                }
+                return result;
+            }
+        } catch (error) {
+            // ignore
+        }
+
+        const questionIndex = candidate.indexOf("?");
+        if (questionIndex >= 0) {
+            candidate = candidate.slice(questionIndex + 1);
+        }
+        const hashIndex = candidate.indexOf("#");
+        if (hashIndex >= 0) {
+            candidate = candidate.slice(0, hashIndex);
+        }
+        candidate = candidate.replace(/^\?/, "");
+        if (!candidate || !/[=&]/.test(candidate)) {
+            return null;
+        }
+
+        const params = new URLSearchParams(candidate);
+        const result = {};
+        let hasEntries = false;
+        for (const [key, value] of params.entries()) {
+            hasEntries = true;
+            appendQueryParam(result, smartDecode(key), normalizeParamValue(value));
+        }
+        return hasEntries ? result : null;
+    };
+
+    const convertUrlParamsInput = (input) => {
+        const trimmed = input.trim();
+        if (!trimmed) {
+            return null;
+        }
+
+        const candidates = [trimmed];
+        const once = smartDecode(trimmed);
+        if (once !== trimmed) {
+            candidates.push(once);
+        }
+        const twice = smartDecode(once);
+        if (twice !== once) {
+            candidates.push(twice);
+        }
+
+        for (const candidate of candidates) {
+            const parsed = parseQueryCandidate(candidate);
+            if (parsed) {
+                return parsed;
+            }
+        }
+        return null;
+    };
+
+    const appendQueryPair = (params, key, value) => {
+        if (value === undefined) {
+            return;
+        }
+        if (value === null) {
+            params.append(key, "null");
+            return;
+        }
+        if (Array.isArray(value)) {
+            value.forEach((item) => {
+                if (item !== null && typeof item === "object") {
+                    params.append(key, JSON.stringify(item));
+                    return;
+                }
+                params.append(key, typeof item === "string" ? item : JSON.stringify(item));
+            });
+            return;
+        }
+        if (typeof value === "object") {
+            params.append(key, JSON.stringify(value));
+            return;
+        }
+        params.append(key, typeof value === "string" ? value : JSON.stringify(value));
+    };
+
+    const buildQueryStringFromJson = (rootValue) => {
+        if (!rootValue || typeof rootValue !== "object" || Array.isArray(rootValue)) {
+            throw new Error("根节点必须是对象");
+        }
+
+        const params = new URLSearchParams();
+        Object.entries(rootValue).forEach(([key, value]) => {
+            appendQueryPair(params, key, value);
+        });
+        return params.toString();
+    };
+
+    const parseCommandInput = (value) => {
+        const trimmed = normalizeLineEndings(value).trim();
+        if (!trimmed) {
+            return {trigger: "", payload: ""};
+        }
+
+        const match = trimmed.match(/^([a-zA-Z0-9_-]+)(?:\s+([\s\S]*))?$/);
+        if (!match) {
+            return {trigger: "", payload: trimmed};
+        }
+
+        const trigger = match[1].toLowerCase();
+        const payload = typeof match[2] === "string" ? match[2].trim() : "";
+        return {trigger, payload};
+    };
+
+    const readHostContext = () => window.pluginContext || {
+        input: {
+            value: typeof window.inputValue === "string" ? window.inputValue : "",
+            valueType: "text",
+            clipboardContentType: undefined,
+        },
+        clipboard: null,
+    };
+
+    const extractCommandSeed = (context) => {
+        const searchSeed = new URLSearchParams(window.location.search).get("seed");
+        const seedValue = typeof searchSeed === "string" && searchSeed.trim()
+            ? searchSeed
+            : typeof context?.input?.value === "string" && context.input.value.trim()
+                ? context.input.value
+                : typeof window.inputValue === "string"
+                    ? window.inputValue
+                    : "";
+        return parseCommandInput(seedValue);
+    };
+
+    const shouldAutoFormatJsonText = (value) => {
+        const trimmed = normalizeLineEndings(value).trim();
+        if (!trimmed) {
+            return false;
+        }
+        return (trimmed.startsWith("{") && trimmed.endsWith("}"))
+            || (trimmed.startsWith("[") && trimmed.endsWith("]"));
+    };
+
+    const renderValidation = () => {
+        const rawText = normalizeLineEndings(getEditorValue());
         if (!rawText.trim()) {
             state.isValid = false;
-            state.parsedValue = null;
-            parseStrip.appendChild(createParseChip("空"));
-            renderEmptyState("空", "无内容");
+            state.parsedValue = undefined;
+            state.parsedTree = null;
+            extractOutput.value = "";
+            clearPathState();
             setStatus("");
             updateActionState();
             return;
@@ -974,9 +990,10 @@
         const parsed = parseJsonText(rawText);
         if (!parsed.ok) {
             state.isValid = false;
-            state.parsedValue = null;
-            parseStrip.appendChild(createParseChip("无效", "error"));
-            renderEmptyState("无效", parsed.error);
+            state.parsedValue = undefined;
+            state.parsedTree = null;
+            extractOutput.value = "";
+            clearPathState();
             setStatus("JSON 无效", "error");
             updateActionState();
             return;
@@ -984,27 +1001,21 @@
 
         state.isValid = true;
         state.parsedValue = parsed.value;
-        const rootType = getJsonType(parsed.value);
-        const minifiedLength = JSON.stringify(parsed.value).length;
-
-        parseStrip.appendChild(createParseChip("有效", "success"));
-        parseStrip.appendChild(createParseChip(rootType));
-        parseStrip.appendChild(createParseChip(`${minifiedLength}`));
-        renderTree(parsed.value);
-        selectNode("$", parsed.value, treeWrap.querySelector("[data-path='$']"));
+        state.parsedTree = parsed.tree;
         setStatus("");
+        updateCurrentPathFromCursor();
         updateActionState();
     };
 
     const validateNow = () => {
         window.clearTimeout(state.validateTimer);
-        renderFromText();
+        renderValidation();
     };
 
     const scheduleValidate = () => {
         window.clearTimeout(state.validateTimer);
         state.validateTimer = window.setTimeout(() => {
-            renderFromText();
+            renderValidation();
         }, 120);
     };
 
@@ -1030,83 +1041,299 @@
     };
 
     const copyEditorJson = async () => {
-        if (state.isValid) {
-            await writeClipboardText(JSON.stringify(state.parsedValue, null, 2));
-            setStatus("已复制", "success");
-            showToast("已复制 JSON");
-            return;
-        }
-
-        const text = getEditorValue();
+        const text = state.isValid
+            ? JSON.stringify(state.parsedValue, null, 2)
+            : getEditorValue();
         if (!text.trim()) {
             throw new Error("没有可复制内容。");
         }
-
         await writeClipboardText(text);
         setStatus("已复制", "success");
-        showToast("已复制原始文本");
+        showToast("已复制");
     };
 
-    const copySelectedPath = async () => {
-        if (!state.selectedPath) {
-            throw new Error("请先选择一个节点。");
+    const decodeQuotedPathValue = (raw, quote) => {
+        let result = "";
+        for (let index = 0; index < raw.length; index += 1) {
+            const char = raw[index];
+            if (char !== "\\") {
+                result += char;
+                continue;
+            }
+
+            index += 1;
+            const escaped = raw[index];
+            if (escaped === undefined) {
+                throw new Error("无效 Path");
+            }
+            if (escaped === quote || escaped === "\\" || escaped === "/") {
+                result += escaped;
+                continue;
+            }
+            if (escaped === "b") {
+                result += "\b";
+                continue;
+            }
+            if (escaped === "f") {
+                result += "\f";
+                continue;
+            }
+            if (escaped === "n") {
+                result += "\n";
+                continue;
+            }
+            if (escaped === "r") {
+                result += "\r";
+                continue;
+            }
+            if (escaped === "t") {
+                result += "\t";
+                continue;
+            }
+            if (escaped === "u") {
+                const hex = raw.slice(index + 1, index + 5);
+                if (!/^[0-9a-fA-F]{4}$/.test(hex)) {
+                    throw new Error("无效 Path");
+                }
+                result += String.fromCharCode(parseInt(hex, 16));
+                index += 4;
+                continue;
+            }
+            result += escaped;
         }
-        await writeClipboardText(state.selectedPath);
-        setStatus("路径已复制", "success");
-        showToast("已复制节点路径");
+        return result;
     };
 
-    const copySelectedNode = async () => {
-        if (!state.selectedPath) {
-            throw new Error("请先选择一个节点。");
+    const parsePathExpression = (expression) => {
+        const input = expression.trim();
+        if (!input) {
+            return [];
         }
-        const payload = typeof state.selectedValue === "string"
-            ? state.selectedValue
-            : JSON.stringify(state.selectedValue, null, 2);
-        await writeClipboardText(payload);
-        setStatus("节点已复制", "success");
-        showToast("已复制节点内容");
+        if (input === "$") {
+            return [];
+        }
+        if (!input.startsWith("$")) {
+            throw new Error("Path 必须以 $ 开头");
+        }
+
+        const segments = [];
+        let index = 1;
+
+        while (index < input.length) {
+            const char = input[index];
+            if (char === ".") {
+                index += 1;
+                let start = index;
+                while (index < input.length && /[A-Za-z0-9_$]/.test(input[index])) {
+                    index += 1;
+                }
+                if (start === index) {
+                    throw new Error("无效 Path");
+                }
+                segments.push(input.slice(start, index));
+                continue;
+            }
+
+            if (char === "[") {
+                index += 1;
+                if (input[index] === "\"" || input[index] === "'") {
+                    const quote = input[index];
+                    index += 1;
+                    let raw = "";
+                    while (index < input.length) {
+                        const current = input[index];
+                        if (current === "\\") {
+                            raw += current + input[index + 1];
+                            index += 2;
+                            continue;
+                        }
+                        if (current === quote) {
+                            break;
+                        }
+                        raw += current;
+                        index += 1;
+                    }
+                    if (input[index] !== quote) {
+                        throw new Error("无效 Path");
+                    }
+                    segments.push(decodeQuotedPathValue(raw, quote));
+                    index += 1;
+                    if (input[index] !== "]") {
+                        throw new Error("无效 Path");
+                    }
+                    index += 1;
+                    continue;
+                }
+
+                let start = index;
+                while (index < input.length && /[0-9]/.test(input[index])) {
+                    index += 1;
+                }
+                if (start === index || input[index] !== "]") {
+                    throw new Error("无效 Path");
+                }
+                segments.push(Number(input.slice(start, index)));
+                index += 1;
+                continue;
+            }
+
+            throw new Error("无效 Path");
+        }
+
+        return segments;
     };
 
-    const clearEditor = () => {
-        replaceEditorValue("");
+    const lookupValueByPath = (rootValue, expression) => {
+        const segments = parsePathExpression(expression);
+        let current = rootValue;
+
+        for (const segment of segments) {
+            if (Array.isArray(current) && typeof segment === "number") {
+                if (segment < 0 || segment >= current.length) {
+                    return {found: false};
+                }
+                current = current[segment];
+                continue;
+            }
+            if (current && typeof current === "object" && Object.prototype.hasOwnProperty.call(current, segment)) {
+                current = current[segment];
+                continue;
+            }
+            return {found: false};
+        }
+
+        return {found: true, value: current};
+    };
+
+    const describeExtractedValue = (value) => {
+        return typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    };
+
+    const runExtraction = () => {
+        if (!state.isValid) {
+            throw new Error("当前内容不是有效 JSON。");
+        }
+
+        const lines = pathInput.value
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean);
+
+        if (!lines.length) {
+            throw new Error("请输入 Path。");
+        }
+
+        if (lines.length === 1) {
+            const result = lookupValueByPath(state.parsedValue, lines[0]);
+            if (!result.found) {
+                extractOutput.value = "";
+                setStatus("未找到", "error");
+                updateActionState();
+                return;
+            }
+            extractOutput.value = describeExtractedValue(result.value);
+            setStatus("已提取", "success");
+            updateActionState();
+            return;
+        }
+
+        const output = lines.map((line) => {
+            try {
+                const result = lookupValueByPath(state.parsedValue, line);
+                return result.found
+                    ? {path: line, value: result.value}
+                    : {path: line, error: "not found"};
+            } catch (error) {
+                return {path: line, error: error instanceof Error ? error.message : "invalid path"};
+            }
+        });
+
+        extractOutput.value = JSON.stringify(output, null, 2);
+        setStatus("已提取", "success");
+        updateActionState();
+    };
+
+    const runBuildQuery = () => {
+        if (!state.isValid) {
+            throw new Error("当前内容不是有效 JSON。");
+        }
+        const query = buildQueryStringFromJson(state.parsedValue);
+        extractOutput.value = query;
+        setStatus("已生成", "success");
+        updateActionState();
+    };
+
+    const runParseCurrentEditorAsParams = () => {
+        const current = getEditorValue().trim();
+        if (!current) {
+            throw new Error("没有可解析内容。");
+        }
+        const converted = convertUrlParamsInput(current);
+        if (!converted) {
+            throw new Error("未识别为 URL 或 query string。");
+        }
+        replaceEditorValue(JSON.stringify(converted, null, 2));
+        validateNow();
+        setStatus("已转换", "success");
+    };
+
+    const applyHostContext = (context) => {
+        if (!state.editor) {
+            return;
+        }
+
+        const {trigger, payload} = extractCommandSeed(context);
+        if (!trigger || !payload) {
+            validateNow();
+            return;
+        }
+
+        if (trigger === "url2params") {
+            const converted = convertUrlParamsInput(payload);
+            if (converted) {
+                replaceEditorValue(JSON.stringify(converted, null, 2));
+                validateNow();
+                setStatus("已转换", "success");
+                focusEditor();
+                return;
+            }
+        }
+
+        if (triggerPrefixPattern.test(`${trigger} ${payload}`) && shouldAutoFormatJsonText(payload)) {
+            const parsed = parseJsonText(payload);
+            if (parsed.ok) {
+                replaceEditorValue(JSON.stringify(parsed.value, null, 2));
+                validateNow();
+                setStatus("已格式化", "success");
+                focusEditor();
+                return;
+            }
+        }
+
+        replaceEditorValue(payload);
         validateNow();
         focusEditor();
     };
 
-    const togglePreview = () => {
-        state.previewCollapsed = !state.previewCollapsed;
-        previewPanel.classList.toggle("collapsed", state.previewCollapsed);
-        togglePreviewButton.textContent = state.previewCollapsed ? "显示节点面板" : "隐藏节点面板";
-    };
-
-    const tryApplyAutoFormat = (value, sourceLabel) => {
-        if (!shouldAutoFormatJsonText(value)) {
-            return false;
-        }
-
-        const parsed = parseJsonText(value);
-        if (!parsed.ok) {
-            return false;
-        }
-
-        replaceEditorValue(JSON.stringify(parsed.value, null, 2));
-        validateNow();
-        setStatus("已格式化", "success");
-        return true;
-    };
-
     const bindEditorEvents = () => {
+        state.editor.onDidChangeModelContent(() => {
+            scheduleValidate();
+        });
+
+        state.editor.onDidChangeCursorPosition(() => {
+            updateCurrentPathFromCursor();
+        });
+
         const inputArea = editorContainer.querySelector("textarea.inputarea");
         if (inputArea) {
             inputArea.addEventListener("paste", (event) => {
                 const pastedText = event.clipboardData?.getData("text");
-                if (typeof pastedText !== "string" || !shouldAutoFormatJsonText(pastedText)) {
+                if (typeof pastedText !== "string" || !shouldAutoFormatJsonText(pastedText) || !state.editor) {
                     return;
                 }
 
                 const parsed = parseJsonText(pastedText);
-                if (!parsed.ok || !state.editor) {
+                if (!parsed.ok) {
                     return;
                 }
 
@@ -1124,13 +1351,8 @@
                 state.editor.pushUndoStop();
                 validateNow();
                 setStatus("已格式化", "success");
-                showToast("粘贴内容已格式化");
             });
         }
-
-        state.editor.onDidChangeModelContent(() => {
-            scheduleValidate();
-        });
     };
 
     const configureMonaco = (monaco) => {
@@ -1181,10 +1403,10 @@
         });
 
         bindEditorEvents();
-        updateActionState();
         validateNow();
         focusEditor();
         setStatus("");
+        updateActionState();
     };
 
     const loadMonaco = () => new Promise((resolve, reject) => {
@@ -1195,7 +1417,7 @@
 
         window.require.config({
             paths: {
-                vs: monacoBaseUrl,
+                vs: new URL("./vendor/monaco/vs", window.location.href).toString(),
             },
         });
 
@@ -1207,17 +1429,17 @@
         }, reject);
     });
 
-    togglePreviewButton.addEventListener("click", () => {
-        togglePreview();
+    togglePanelButton.addEventListener("click", () => {
+        togglePanel();
     });
 
-    panelToggleButton.addEventListener("click", () => {
-        togglePreview();
+    closePanelButton.addEventListener("click", () => {
+        togglePanel(false);
     });
 
     formatButton.addEventListener("click", () => {
         formatCurrentJson().catch((error) => {
-            setStatus(error instanceof Error ? error.message : "格式化失败。", "error");
+            setStatus(error instanceof Error ? error.message : "格式化失败", "error");
         });
     });
 
@@ -1225,72 +1447,128 @@
         try {
             compressCurrentJson();
         } catch (error) {
-            setStatus(error instanceof Error ? error.message : "压缩失败。", "error");
+            setStatus(error instanceof Error ? error.message : "压缩失败", "error");
+        }
+    });
+
+    parseQueryButton.addEventListener("click", () => {
+        try {
+            runParseCurrentEditorAsParams();
+        } catch (error) {
+            setStatus(error instanceof Error ? error.message : "转换失败", "error");
         }
     });
 
     copyButton.addEventListener("click", () => {
         copyEditorJson().catch((error) => {
-            setStatus(error instanceof Error ? error.message : "复制失败。", "error");
+            setStatus(error instanceof Error ? error.message : "复制失败", "error");
         });
+    });
+
+    queryButton.addEventListener("click", () => {
+        try {
+            runBuildQuery();
+            togglePanel(true);
+        } catch (error) {
+            setStatus(error instanceof Error ? error.message : "生成失败", "error");
+        }
     });
 
     clearButton.addEventListener("click", () => {
-        clearEditor();
+        replaceEditorValue("");
+        validateNow();
+        focusEditor();
     });
 
     copyPathButton.addEventListener("click", () => {
-        copySelectedPath().catch((error) => {
-            setStatus(error instanceof Error ? error.message : "复制失败。", "error");
+        writeClipboardText(currentPathInput.value).then(() => {
+            setStatus("路径已复制", "success");
+            showToast("已复制");
+        }).catch((error) => {
+            setStatus(error instanceof Error ? error.message : "复制失败", "error");
         });
     });
 
-    copyNodeButton.addEventListener("click", () => {
-        copySelectedNode().catch((error) => {
-            setStatus(error instanceof Error ? error.message : "复制失败。", "error");
+    usePathButton.addEventListener("click", () => {
+        const value = currentPathInput.value.trim();
+        if (!value) {
+            return;
+        }
+        if (pathInput.value.trim()) {
+            pathInput.value = `${pathInput.value.replace(/\s+$/, "")}\n${value}`;
+        } else {
+            pathInput.value = value;
+        }
+        updateActionState();
+    });
+
+    extractButton.addEventListener("click", () => {
+        try {
+            runExtraction();
+        } catch (error) {
+            setStatus(error instanceof Error ? error.message : "提取失败", "error");
+        }
+    });
+
+    buildQueryButton.addEventListener("click", () => {
+        try {
+            runBuildQuery();
+        } catch (error) {
+            setStatus(error instanceof Error ? error.message : "生成失败", "error");
+        }
+    });
+
+    copyOutputButton.addEventListener("click", () => {
+        writeClipboardText(extractOutput.value).then(() => {
+            setStatus("已复制", "success");
+            showToast("已复制");
+        }).catch((error) => {
+            setStatus(error instanceof Error ? error.message : "复制失败", "error");
         });
+    });
+
+    clearOutputButton.addEventListener("click", () => {
+        pathInput.value = "";
+        extractOutput.value = "";
+        updateActionState();
+    });
+
+    pathInput.addEventListener("input", () => {
+        updateActionState();
     });
 
     window.addEventListener("keydown", (event) => {
         if (keyboard.match(event, "Enter", {primary: true})) {
             event.preventDefault();
             formatCurrentJson().catch((error) => {
-                setStatus(error instanceof Error ? error.message : "格式化失败。", "error");
+                setStatus(error instanceof Error ? error.message : "格式化失败", "error");
             });
             return;
         }
 
         if (keyboard.match(event, "c", {primary: true, shift: true})) {
             event.preventDefault();
-            const action = state.selectedPath ? copySelectedNode : copyEditorJson;
-            action().catch((error) => {
-                setStatus(error instanceof Error ? error.message : "复制失败。", "error");
+            const task = extractOutput.value.trim()
+                ? writeClipboardText(extractOutput.value)
+                : copyEditorJson();
+            Promise.resolve(task).then(() => {
+                if (extractOutput.value.trim()) {
+                    setStatus("已复制", "success");
+                    showToast("已复制");
+                }
+            }).catch((error) => {
+                setStatus(error instanceof Error ? error.message : "复制失败", "error");
             });
             return;
         }
 
         if (keyboard.match(event, "l", {primary: true})) {
             event.preventDefault();
-            clearEditor();
+            replaceEditorValue("");
+            validateNow();
+            focusEditor();
         }
     });
-
-    const applyHostContext = (context) => {
-        const seedText = extractSeedText(context);
-        if (!state.editor) {
-            return;
-        }
-        if (!seedText) {
-            validateNow();
-            return;
-        }
-        if (!tryApplyAutoFormat(seedText, "带入文本")) {
-            replaceEditorValue(seedText);
-            validateNow();
-            setStatus("已带入命令文本。", "success");
-        }
-        focusEditor();
-    };
 
     loadMonaco()
         .then((monaco) => {
@@ -1301,8 +1579,7 @@
             });
         })
         .catch((error) => {
-            setStatus("加载失败", "error");
-            renderEmptyState("失败", "加载失败");
+            setStatus(error instanceof Error ? error.message : "加载失败", "error");
         });
 </script>
 </body>

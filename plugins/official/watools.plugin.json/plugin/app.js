@@ -1,4 +1,4 @@
-const triggers = ["json"];
+const triggers = ["json", "url2params", "query2params", "qs2params"];
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
