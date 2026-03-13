@@ -47,6 +47,7 @@
             padding: 10px 14px;
             cursor: pointer;
             transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+            white-space: nowrap;
         }
 
         button:hover:not(:disabled) {
@@ -247,6 +248,21 @@
             display: flex;
             flex-wrap: nowrap;
             gap: 12px;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .hint-strip::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hint-strip > * {
+            flex: 0 0 auto;
+            white-space: nowrap;
         }
 
         .status {
