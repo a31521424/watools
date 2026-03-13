@@ -7,14 +7,14 @@
     <style>
         :root {
             color-scheme: light;
-            --bg: #f4f6f1;
-            --panel: rgba(255, 255, 255, 0.88);
-            --panel-strong: rgba(255, 255, 255, 0.96);
-            --line: rgba(23, 50, 39, 0.12);
-            --text: #173227;
-            --muted: #728079;
-            --accent: #1d8a67;
-            --danger: #b54740;
+            --bg: #f3f6fa;
+            --panel: #ffffff;
+            --panel-strong: #f8fbff;
+            --line: rgba(28, 47, 67, 0.12);
+            --text: #162433;
+            --muted: #627487;
+            --accent: #1968ab;
+            --danger: #ac4c45;
         }
 
         * {
@@ -30,7 +30,7 @@
         body {
             background: var(--bg);
             color: var(--text);
-            font: 14px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
+            font: 14px/1.5 "IBM Plex Sans", "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
             overflow: hidden;
         }
 
@@ -43,10 +43,10 @@
         .app {
             height: 100%;
             overflow: auto;
-            padding: 14px 16px 16px;
             display: grid;
             grid-template-rows: auto auto minmax(0, 1fr) auto;
             gap: 12px;
+            background: var(--panel-strong);
         }
 
         .topbar {
@@ -54,6 +54,9 @@
             align-items: baseline;
             justify-content: space-between;
             gap: 16px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--line);
+            background: var(--panel);
         }
 
         .title {
@@ -96,8 +99,9 @@
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 10px;
             align-items: center;
-            padding: 10px 0 12px;
+            padding: 0 14px 12px;
             border-bottom: 1px solid var(--line);
+            background: var(--panel);
         }
 
         .settings.visible {
@@ -108,20 +112,18 @@
             width: 100%;
             border: 1px solid var(--line);
             outline: none;
-            background: rgba(255, 255, 255, 0.92);
+            background: var(--panel-strong);
             color: var(--text);
             padding: 10px 12px;
-            border-radius: 10px;
         }
 
         .settings input:focus {
-            border-color: rgba(29, 138, 103, 0.45);
-            box-shadow: 0 0 0 3px rgba(29, 138, 103, 0.08);
+            border-color: rgba(25, 104, 171, 0.4);
+            box-shadow: 0 0 0 3px rgba(25, 104, 171, 0.08);
         }
 
         .primary-button {
             border: 0;
-            border-radius: 10px;
             padding: 10px 14px;
             background: var(--accent);
             color: #fff;
@@ -133,6 +135,7 @@
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 14px;
             min-height: 0;
+            padding: 0 14px;
         }
 
         .pane {
@@ -155,15 +158,14 @@
         .editor-wrap {
             min-height: 0;
             display: flex;
-            background: rgba(255, 255, 255, 0.82);
+            background: var(--panel);
             border: 1px solid var(--line);
-            border-radius: 10px;
             overflow: hidden;
         }
 
         .editor-wrap:focus-within {
-            border-color: rgba(29, 138, 103, 0.45);
-            box-shadow: 0 0 0 3px rgba(29, 138, 103, 0.08);
+            border-color: rgba(25, 104, 171, 0.4);
+            box-shadow: 0 0 0 3px rgba(25, 104, 171, 0.08);
         }
 
         textarea {
@@ -190,6 +192,9 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
+            padding: 8px 14px 10px;
+            border-top: 1px solid var(--line);
+            background: var(--panel);
         }
 
         .status {
@@ -233,10 +238,6 @@
         }
 
         @media (max-width: 980px) {
-            .app {
-                padding: 12px;
-            }
-
             .workspace {
                 grid-template-columns: 1fr;
             }

@@ -7,15 +7,16 @@
     <style>
         :root {
             color-scheme: light;
-            --bg: #f7f4ee;
-            --surface: rgba(255, 255, 255, 0.72);
-            --surface-hover: rgba(255, 255, 255, 0.94);
-            --line: rgba(66, 45, 28, 0.1);
-            --text: #2f241c;
-            --muted: #7b6c5d;
-            --accent: #ad5a31;
-            --success: #256946;
-            --danger: #b14c43;
+            --bg: #f3f6fa;
+            --surface: #ffffff;
+            --surface-soft: #f8fbff;
+            --surface-hover: #f1f6fb;
+            --line: rgba(28, 47, 67, 0.12);
+            --text: #162433;
+            --muted: #627487;
+            --accent: #1968ab;
+            --success: #22724c;
+            --danger: #ac4c45;
         }
 
         * {
@@ -31,7 +32,7 @@
         body {
             background: var(--bg);
             color: var(--text);
-            font: 14px/1.5 "SF Pro Text", "Segoe UI", sans-serif;
+            font: 14px/1.5 "IBM Plex Sans", "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
         }
 
         button,
@@ -44,7 +45,8 @@
             display: grid;
             grid-template-rows: auto auto auto minmax(0, 1fr) auto;
             gap: 10px;
-            padding: 14px 16px 12px;
+            padding: 10px 14px 8px;
+            background: var(--surface-soft);
         }
 
         .topbar {
@@ -52,6 +54,8 @@
             justify-content: space-between;
             align-items: baseline;
             gap: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--line);
         }
 
         .topbar h1 {
@@ -94,9 +98,8 @@
             width: 100%;
             min-height: 50px;
             border: 1px solid var(--line);
-            border-radius: 10px;
             padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.9);
+            background: var(--surface);
             color: var(--text);
             outline: none;
             font-size: 22px;
@@ -109,8 +112,8 @@
         }
 
         .expression-input:focus {
-            border-color: rgba(173, 90, 49, 0.45);
-            box-shadow: 0 0 0 3px rgba(173, 90, 49, 0.08);
+            border-color: rgba(25, 104, 171, 0.4);
+            box-shadow: 0 0 0 3px rgba(25, 104, 171, 0.08);
         }
 
         .history-head {
@@ -137,6 +140,9 @@
             display: grid;
             grid-template-rows: auto minmax(0, 1fr);
             gap: 8px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            background: var(--surface);
         }
 
         .history-list {

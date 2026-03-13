@@ -50,6 +50,43 @@
 }
 ```
 
+## 官方风格参考
+
+核心要求:
+
+- 使用扁平化 iframe 内布局,优先 `topbar + workspace + status/footer`
+- 外层不要再做“大卡片套小卡片”的窗口感容器
+- 页面背景优先浅色中性底,工作区用白色或接近白色的面
+- 控件边界依赖 `1px` 细线和轻微聚焦态,不要依赖厚阴影和大圆角
+- 按钮优先分为 `primary`、`ghost`、默认边框按钮三层级
+- 正文字体优先 `"IBM Plex Sans", "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif`
+- 代码/输入字体优先 `"JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace`
+- 状态提示尽量短,放在底部状态栏或 toast,不要堆大段说明文案
+- 浮层/侧栏只在功能必须时出现,默认优先 inline 或贴边抽屉
+- 同类插件尽量共享以下 token 命名: `--bg`、`--surface`、`--surface-soft`、`--line`、`--text`、`--muted`、`--accent`
+
+推荐基线 token:
+
+```css
+:root {
+    --bg: #f3f6fa;
+    --surface: #ffffff;
+    --surface-soft: #f8fbff;
+    --line: rgba(28, 47, 67, 0.12);
+    --text: #162433;
+    --muted: #627487;
+    --accent: #1968ab;
+    --accent-soft: rgba(25, 104, 171, 0.12);
+}
+```
+
+避免:
+
+- 在插件内部再做“窗口中窗口”的大圆角壳
+- 大面积渐变、拟物阴影、厚描边
+- 为了说明功能而长期占据主要阅读区域的大段文案
+- 同一产品里每个官方插件都使用完全不同的字体和控件语言
+
 ## 跨平台快捷键
 
 核心要求:
