@@ -1,0 +1,9 @@
+{
+  "packageId": "watools.plugin.json",
+  "name": "JSON 编辑器",
+  "description": "官方 JSON 快速编辑器，支持自动格式化、结构预览与压缩复制",
+  "version": "0.1.0",
+  "author": "WaTools",
+  "uiEnabled": true,
+  "entry": "app.js"
+}

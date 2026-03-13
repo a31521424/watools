@@ -85,6 +85,7 @@ Current official plugins:
 
 -   `watools.plugin.common`: open URLs and file paths, copy pasted file paths, save clipboard images
 -   `watools.plugin.calculator`: command-palette calculator plus calculator panel with persisted history
+-   `watools.plugin.json`: explicit-trigger JSON editor with auto-format on seed/paste, live structure preview, and minified copy
 -   `watools.plugin.qr`: two-pane QR workspace for text-to-image generation and image-to-text decoding
 -   `watools.plugin.translate`: translation panel with persisted language preferences
 -   `watools.plugin.textstats`: explicit-trigger text statistics panel with command-context prefilling support

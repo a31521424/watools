@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaTools JSON 编辑器</title>
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="./vendor/monaco/vs/editor/editor.main.css">
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f3f6fa;
+            --surface: #ffffff;
+            --surface-soft: #f8fbff;
+            --line: rgba(28, 47, 67, 0.12);
+            --line-strong: rgba(28, 47, 67, 0.2);
+            --text: #162433;
+            --muted: #627487;
+            --accent: #1968ab;
+            --accent-soft: rgba(25, 104, 171, 0.12);
+            --success: #22724c;
+            --danger: #ac4c45;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.5 "IBM Plex Sans", "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
+            overflow: hidden;
+        }
+
+        button,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        code {
+            font: 12px/1.5 "JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace;
+        }
+
+        .app {
+            height: 100%;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            background: var(--surface-soft);
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--line);
+            background: var(--surface);
+        }
+
+        .title {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .title strong {
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .toolbar button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 34px;
+            padding: 0 12px;
+            border: 1px solid var(--line);
+            color: var(--text);
+        }
+
+        .toolbar button.primary {
+            border-color: rgba(25, 104, 171, 0.16);
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .toolbar button.ghost {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: transparent;
+        }
+
+        .workspace {
+            position: relative;
+            min-height: 0;
+            overflow: hidden;
+            background: var(--surface-soft);
+        }
+
+        #editor-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .preview-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: min(390px, calc(100vw - 56px));
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr) auto;
+            gap: 10px;
+            padding: 14px;
+            background: var(--surface);
+            border-left: 1px solid var(--line);
+            transition: transform 160ms ease, opacity 160ms ease;
+        }
+
+        .preview-panel.collapsed {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .panel-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .panel-title strong {
+            font-size: 15px;
+        }
+
+        .panel-head button {
+            min-width: 34px;
+            min-height: 34px;
+            border: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        .parse-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .parse-chip {
+            padding: 5px 9px;
+            border: 1px solid transparent;
+            background: rgba(21, 43, 61, 0.06);
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .parse-chip.success {
+            background: rgba(34, 114, 76, 0.1);
+            color: var(--success);
+        }
+
+        .parse-chip.error {
+            background: rgba(172, 76, 69, 0.1);
+            color: var(--danger);
+        }
+
+        .tree-wrap {
+            min-height: 0;
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .empty-state {
+            height: 100%;
+            min-height: 220px;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            border: 1px dashed var(--line-strong);
+            background: var(--surface-soft);
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .empty-state strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text);
+            font-size: 15px;
+        }
+
+        .tree {
+            display: grid;
+            gap: 8px;
+        }
+
+        details.node-group {
+            border: 1px solid var(--line);
+            overflow: hidden;
+            background: var(--surface);
+        }
+
+        details.node-group > summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 10px;
+            cursor: pointer;
+        }
+
+        details.node-group > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .summary-main {
+            min-width: 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .node-key {
+            color: var(--accent);
+            font: 12px/1.5 "JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace;
+            word-break: break-word;
+        }
+
+        .node-type,
+        .node-meta {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .children {
+            display: grid;
+            gap: 8px;
+            padding: 0 10px 10px 18px;
+            border-top: 1px solid rgba(28, 47, 67, 0.08);
+        }
+
+        .node-row {
+            display: grid;
+            gap: 6px;
+            padding-top: 8px;
+            padding-left: 12px;
+            border-left: 1px dashed rgba(28, 47, 67, 0.14);
+            cursor: pointer;
+        }
+
+        .node-row.selected,
+        details.node-group.selected {
+            border-color: rgba(25, 104, 171, 0.24);
+            box-shadow: inset 0 0 0 1px rgba(25, 104, 171, 0.18);
+            background: rgba(25, 104, 171, 0.05);
+        }
+
+        .node-value {
+            margin: 0;
+            padding: 8px 10px;
+            background: rgba(21, 43, 61, 0.05);
+            color: var(--text);
+            font: 12px/1.6 "JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .value-string {
+            color: #9a431c;
+        }
+
+        .value-number {
+            color: #245ca8;
+        }
+
+        .value-boolean {
+            color: #28744f;
+        }
+
+        .value-null {
+            color: #7f5ca6;
+        }
+
+        .inspector {
+            display: grid;
+            gap: 10px;
+            padding-top: 12px;
+            border-top: 1px solid var(--line);
+        }
+
+        .inspector-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .inspector-head strong {
+            font-size: 14px;
+        }
+
+        .inspector-head span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .inspector-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .inspector-actions button {
+            min-height: 32px;
+            padding: 0 10px;
+            border: 1px solid var(--line);
+            color: var(--text);
+        }
+
+        .inspector-actions button.ghost {
+            background: var(--accent-soft);
+            border-color: transparent;
+            color: var(--accent);
+        }
+
+        .inspector-output {
+            width: 100%;
+            min-height: 92px;
+            max-height: 140px;
+            border: 1px solid var(--line);
+            padding: 10px 12px;
+            resize: vertical;
+            outline: none;
+            background: var(--surface-soft);
+            color: var(--text);
+            font: 12px/1.6 "JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            padding: 8px 14px;
+            border-top: 1px solid var(--line);
+            background: var(--surface);
+        }
+
+        .status-pill {
+            min-height: 22px;
+            color: var(--muted);
+        }
+
+        .status-pill.success {
+            color: var(--success);
+        }
+
+        .status-pill.error {
+            color: var(--danger);
+        }
+
+        .toast {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            padding: 10px 14px;
+            background: rgba(22, 36, 51, 0.94);
+            color: #fff;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 120ms ease, transform 120ms ease;
+            pointer-events: none;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 980px) {
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .toolbar {
+                justify-content: flex-start;
+            }
+
+            .preview-panel {
+                top: auto;
+                left: 0;
+                right: 0;
+                width: auto;
+                max-height: 48vh;
+                border-left: 0;
+                border-top: 1px solid var(--line);
+            }
+
+            .preview-panel.collapsed {
+                transform: translateY(100%);
+            }
+
+        }
+    </style>
+</head>
+<body>
+<main class="app">
+    <header class="topbar">
+        <div class="title">
+            <strong>JSON</strong>
+        </div>
+
+        <div class="toolbar">
+            <button id="toggle-preview-button" type="button">显示节点面板</button>
+            <button id="format-button" class="primary" type="button">格式化</button>
+            <button id="compress-button" type="button">压缩</button>
+            <button id="copy-button" class="ghost" type="button">复制 JSON</button>
+            <button id="clear-button" type="button">清空</button>
+        </div>
+    </header>
+
+    <section class="workspace">
+        <div id="editor-container"></div>
+
+        <aside id="preview-panel" class="preview-panel collapsed">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <strong>节点</strong>
+                </div>
+                <button id="panel-toggle-button" type="button" aria-label="隐藏节点面板">→</button>
+            </div>
+
+            <div id="parse-strip" class="parse-strip"></div>
+            <div id="tree-wrap" class="tree-wrap"></div>
+
+            <div class="inspector">
+                <div class="inspector-head">
+                    <div>
+                        <strong>提取</strong>
+                        <span id="selected-meta">未选择节点</span>
+                    </div>
+                    <div class="inspector-actions">
+                        <button id="copy-path-button" class="ghost" type="button">复制路径</button>
+                        <button id="copy-node-button" class="ghost" type="button">复制节点</button>
+                    </div>
+                </div>
+                <textarea id="inspector-output" class="inspector-output" spellcheck="false" readonly></textarea>
+            </div>
+        </aside>
+    </section>
+
+    <footer class="status-bar">
+        <div id="status-pill" class="status-pill">加载中</div>
+    </footer>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script src="./vendor/monaco/vs/loader.js"></script>
+<script type="module">
+    const triggers = ["json"];
+    const previewNodeLimit = 1000;
+
+    const editorContainer = document.getElementById("editor-container");
+    const previewPanel = document.getElementById("preview-panel");
+    const parseStrip = document.getElementById("parse-strip");
+    const treeWrap = document.getElementById("tree-wrap");
+    const statusPill = document.getElementById("status-pill");
+    const toastNode = document.getElementById("toast");
+    const selectedMeta = document.getElementById("selected-meta");
+    const inspectorOutput = document.getElementById("inspector-output");
+
+    const togglePreviewButton = document.getElementById("toggle-preview-button");
+    const panelToggleButton = document.getElementById("panel-toggle-button");
+    const formatButton = document.getElementById("format-button");
+    const compressButton = document.getElementById("compress-button");
+    const copyButton = document.getElementById("copy-button");
+    const clearButton = document.getElementById("clear-button");
+    const copyPathButton = document.getElementById("copy-path-button");
+    const copyNodeButton = document.getElementById("copy-node-button");
+
+    const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const orderedTriggers = [...triggers].sort((a, b) => b.length - a.length);
+    const triggerPrefixPattern = new RegExp(`^(?:${orderedTriggers.map(escapeRegExp).join("|")})(?:\\s+|$)`, "i");
+
+    const state = {
+        editor: null,
+        monaco: null,
+        parsedValue: null,
+        isValid: false,
+        selectedPath: "",
+        selectedValue: undefined,
+        validateTimer: 0,
+        toastTimer: 0,
+        selectedNodeElement: null,
+        previewCollapsed: true,
+    };
+
+    const typeLabels = {
+        object: "object",
+        array: "array",
+        string: "string",
+        number: "number",
+        boolean: "boolean",
+        null: "null",
+    };
+
+    const keyboard = {
+        primaryPressed: (event) => event.ctrlKey || event.metaKey,
+        match: (event, key, modifiers = {}) => {
+            if (event.key.toLowerCase() !== key.toLowerCase()) {
+                return false;
+            }
+            const primaryPressed = keyboard.primaryPressed(event);
+            if (modifiers.primary === true && !primaryPressed) {
+                return false;
+            }
+            if (modifiers.primary === false && primaryPressed) {
+                return false;
+            }
+            if (modifiers.shift !== undefined && modifiers.shift !== event.shiftKey) {
+                return false;
+            }
+            if (modifiers.alt !== undefined && modifiers.alt !== event.altKey) {
+                return false;
+            }
+            return true;
+        }
+    };
+
+    const normalizeLineEndings = (value) => String(value || "").replace(/\r\n?/g, "\n");
+
+    const monacoBaseUrl = new URL("./vendor/monaco/vs", window.location.href).toString();
+    const workerMainUrl = new URL("./vendor/monaco/vs/base/worker/workerMain.js", window.location.href).toString();
+
+    window.MonacoEnvironment = {
+        getWorkerUrl: () => {
+            const source = `
+                self.MonacoEnvironment = { baseUrl: ${JSON.stringify(`${monacoBaseUrl}/`)} };
+                importScripts(${JSON.stringify(workerMainUrl)});
+            `;
+            return `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
+        }
+    };
+
+    const showToast = (message) => {
+        toastNode.textContent = message;
+        toastNode.classList.add("visible");
+        window.clearTimeout(state.toastTimer);
+        state.toastTimer = window.setTimeout(() => {
+            toastNode.classList.remove("visible");
+        }, 1800);
+    };
+
+    const setStatus = (message, type = "info") => {
+        statusPill.textContent = message || "";
+        statusPill.className = type === "error"
+            ? "status-pill error"
+            : type === "success"
+                ? "status-pill success"
+                : "status-pill";
+    };
+
+    const writeClipboardText = async (value) => {
+        if (window.runtime?.ClipboardSetText) {
+            await window.runtime.ClipboardSetText(value);
+            return;
+        }
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(value);
+            return;
+        }
+        throw new Error("当前环境不支持文本复制");
+    };
+
+    const stripTriggerPrefix = (value) => {
+        const trimmed = normalizeLineEndings(value).trim();
+        if (!trimmed) {
+            return "";
+        }
+        if (!triggerPrefixPattern.test(trimmed)) {
+            return trimmed;
+        }
+        return trimmed.replace(triggerPrefixPattern, "").trim();
+    };
+
+    const readHostContext = () => window.pluginContext || {
+        input: {
+            value: typeof window.inputValue === "string" ? window.inputValue : "",
+            valueType: "text",
+            clipboardContentType: undefined,
+        },
+        clipboard: null,
+    };
+
+    const extractSeedText = (context) => {
+        const searchSeed = new URLSearchParams(window.location.search).get("seed");
+        if (typeof searchSeed === "string" && searchSeed.trim()) {
+            return stripTriggerPrefix(searchSeed);
+        }
+
+        const inputValue = context?.input?.value;
+        if (typeof inputValue === "string" && inputValue.trim()) {
+            return stripTriggerPrefix(inputValue);
+        }
+
+        if (typeof window.inputValue === "string" && window.inputValue.trim()) {
+            return stripTriggerPrefix(window.inputValue);
+        }
+
+        return "";
+    };
+
+    const getJsonType = (value) => {
+        if (value === null) {
+            return "null";
+        }
+        if (Array.isArray(value)) {
+            return "array";
+        }
+        return typeof value === "object" ? "object" : typeof value;
+    };
+
+    const isExpandable = (value) => value !== null && typeof value === "object";
+
+    const shouldAutoFormatJsonText = (value) => {
+        const trimmed = normalizeLineEndings(value).trim();
+        if (!trimmed) {
+            return false;
+        }
+
+        return (trimmed.startsWith("{") && trimmed.endsWith("}"))
+            || (trimmed.startsWith("[") && trimmed.endsWith("]"));
+    };
+
+    const parseJsonText = (value) => {
+        const source = normalizeLineEndings(value);
+        const trimmed = source.trim();
+        if (!trimmed) {
+            return {ok: false, error: "请输入 JSON。"};
+        }
+
+        try {
+            return {
+                ok: true,
+                value: JSON.parse(trimmed),
+            };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "JSON 解析失败";
+            const positionMatch = message.match(/position\s+(\d+)/i);
+            if (!positionMatch) {
+                return {ok: false, error: message};
+            }
+
+            const position = Number(positionMatch[1]);
+            if (!Number.isFinite(position)) {
+                return {ok: false, error: message};
+            }
+
+            const prefix = trimmed.slice(0, position);
+            const lines = prefix.split("\n");
+            const line = lines.length;
+            const column = lines[lines.length - 1].length + 1;
+            return {
+                ok: false,
+                error: `${message}（第 ${line} 行，第 ${column} 列）`,
+            };
+        }
+    };
+
+    const describeValueForInspector = (value) => {
+        if (typeof value === "string") {
+            return value;
+        }
+        return JSON.stringify(value, null, 2);
+    };
+
+    const describeValueInline = (value) => {
+        if (typeof value === "string") {
+            return JSON.stringify(value);
+        }
+        if (typeof value === "number") {
+            return String(value);
+        }
+        if (typeof value === "boolean") {
+            return value ? "true" : "false";
+        }
+        if (value === null) {
+            return "null";
+        }
+        return JSON.stringify(value);
+    };
+
+    const formatPathSegment = (parentPath, key, isArrayItem) => {
+        if (isArrayItem) {
+            return `${parentPath}[${key}]`;
+        }
+        if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key)) {
+            return `${parentPath}.${key}`;
+        }
+        return `${parentPath}[${JSON.stringify(key)}]`;
+    };
+
+    const getValueClassName = (value) => {
+        if (typeof value === "string") {
+            return "node-value value-string";
+        }
+        if (typeof value === "number") {
+            return "node-value value-number";
+        }
+        if (typeof value === "boolean") {
+            return "node-value value-boolean";
+        }
+        if (value === null) {
+            return "node-value value-null";
+        }
+        return "node-value";
+    };
+
+    const createParseChip = (label, type = "") => {
+        const chip = document.createElement("span");
+        chip.className = type ? `parse-chip ${type}` : "parse-chip";
+        chip.textContent = label;
+        return chip;
+    };
+
+    const getEditorValue = () => state.editor ? state.editor.getValue() : "";
+
+    const getModel = () => state.editor ? state.editor.getModel() : null;
+
+    const focusEditor = () => {
+        state.editor?.focus();
+    };
+
+    const replaceEditorValue = (value) => {
+        const model = getModel();
+        if (!model || !state.editor) {
+            return;
+        }
+        state.editor.pushUndoStop();
+        state.editor.executeEdits("watools-json-editor", [{
+            range: model.getFullModelRange(),
+            text: normalizeLineEndings(value),
+            forceMoveMarkers: true,
+        }]);
+        state.editor.pushUndoStop();
+    };
+
+    const updateActionState = () => {
+        const hasText = getEditorValue().trim().length > 0;
+        formatButton.disabled = !hasText || !state.editor;
+        clearButton.disabled = !hasText || !state.editor;
+        compressButton.disabled = !state.isValid || !state.editor;
+        copyButton.disabled = !hasText;
+        copyPathButton.disabled = !state.selectedPath;
+        copyNodeButton.disabled = !state.selectedPath;
+    };
+
+    const clearSelectedNode = () => {
+        if (state.selectedNodeElement) {
+            state.selectedNodeElement.classList.remove("selected");
+        }
+        state.selectedNodeElement = null;
+        state.selectedPath = "";
+        state.selectedValue = undefined;
+        selectedMeta.textContent = "未选择节点";
+        inspectorOutput.value = "";
+        updateActionState();
+    };
+
+    const selectNode = (path, value, element) => {
+        if (state.selectedNodeElement) {
+            state.selectedNodeElement.classList.remove("selected");
+        }
+        state.selectedNodeElement = element;
+        if (state.selectedNodeElement) {
+            state.selectedNodeElement.classList.add("selected");
+        }
+        state.selectedPath = path;
+        state.selectedValue = value;
+        selectedMeta.textContent = `${path} · ${typeLabels[getJsonType(value)] || typeof value}`;
+        inspectorOutput.value = describeValueForInspector(value);
+        updateActionState();
+    };
+
+    const renderEmptyState = (title, message) => {
+        treeWrap.innerHTML = "";
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        const content = document.createElement("div");
+        const strong = document.createElement("strong");
+        const span = document.createElement("span");
+        strong.textContent = title;
+        span.textContent = message;
+        content.appendChild(strong);
+        content.appendChild(span);
+        empty.appendChild(content);
+        treeWrap.appendChild(empty);
+    };
+
+    const renderTree = (value) => {
+        treeWrap.innerHTML = "";
+        const root = document.createElement("div");
+        root.className = "tree";
+        const budget = {count: 0, truncated: false};
+
+        const buildNode = (label, currentValue, path) => {
+            if (budget.count >= previewNodeLimit) {
+                budget.truncated = true;
+                return null;
+            }
+            budget.count += 1;
+
+            if (isExpandable(currentValue)) {
+                const group = document.createElement("details");
+                group.className = "node-group";
+                group.open = true;
+                group.dataset.path = path;
+
+                const summary = document.createElement("summary");
+                const summaryMain = document.createElement("div");
+                summaryMain.className = "summary-main";
+
+                const key = document.createElement("span");
+                key.className = "node-key";
+                key.textContent = label;
+
+                const type = document.createElement("span");
+                type.className = "node-type";
+                type.textContent = typeLabels[getJsonType(currentValue)] || typeof currentValue;
+
+                const meta = document.createElement("span");
+                meta.className = "node-meta";
+                meta.textContent = Array.isArray(currentValue)
+                    ? `${currentValue.length} 项`
+                    : `${Object.keys(currentValue).length} 键`;
+
+                summaryMain.appendChild(key);
+                summaryMain.appendChild(type);
+                summary.appendChild(summaryMain);
+                summary.appendChild(meta);
+                group.appendChild(summary);
+
+                summary.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    group.open = !group.open;
+                    selectNode(path, currentValue, group);
+                });
+
+                const children = document.createElement("div");
+                children.className = "children";
+
+                const entries = Array.isArray(currentValue)
+                    ? currentValue.map((item, index) => [String(index), item])
+                    : Object.entries(currentValue);
+
+                if (!entries.length) {
+                    const emptyNode = document.createElement("pre");
+                    emptyNode.className = "node-value";
+                    emptyNode.textContent = Array.isArray(currentValue) ? "[]" : "{}";
+                    children.appendChild(emptyNode);
+                } else {
+                    entries.forEach(([childKey, childValue]) => {
+                        const childPath = Array.isArray(currentValue)
+                            ? formatPathSegment(path, childKey, true)
+                            : formatPathSegment(path, childKey, false);
+                        const child = buildNode(childKey, childValue, childPath);
+                        if (child) {
+                            children.appendChild(child);
+                        }
+                    });
+                }
+
+                group.appendChild(children);
+                return group;
+            }
+
+            const row = document.createElement("div");
+            row.className = "node-row";
+            row.dataset.path = path;
+
+            const summaryMain = document.createElement("div");
+            summaryMain.className = "summary-main";
+
+            const key = document.createElement("span");
+            key.className = "node-key";
+            key.textContent = label;
+
+            const type = document.createElement("span");
+            type.className = "node-type";
+            type.textContent = typeLabels[getJsonType(currentValue)] || typeof currentValue;
+
+            const valueNode = document.createElement("pre");
+            valueNode.className = getValueClassName(currentValue);
+            valueNode.textContent = describeValueInline(currentValue);
+
+            summaryMain.appendChild(key);
+            summaryMain.appendChild(type);
+            row.appendChild(summaryMain);
+            row.appendChild(valueNode);
+            row.addEventListener("click", () => {
+                selectNode(path, currentValue, row);
+            });
+            return row;
+        };
+
+        const rootNode = buildNode("$", value, "$");
+        if (rootNode) {
+            root.appendChild(rootNode);
+        }
+
+        if (budget.truncated) {
+            const truncated = document.createElement("div");
+            truncated.className = "empty-state";
+            const content = document.createElement("div");
+            const strong = document.createElement("strong");
+            const span = document.createElement("span");
+            strong.textContent = "已截断";
+            span.textContent = "节点过多";
+            content.appendChild(strong);
+            content.appendChild(span);
+            truncated.appendChild(content);
+            root.appendChild(truncated);
+        }
+
+        treeWrap.appendChild(root);
+    };
+
+    const renderFromText = () => {
+        const rawText = normalizeLineEndings(getEditorValue());
+        parseStrip.innerHTML = "";
+        clearSelectedNode();
+
+        if (!rawText.trim()) {
+            state.isValid = false;
+            state.parsedValue = null;
+            parseStrip.appendChild(createParseChip("空"));
+            renderEmptyState("空", "无内容");
+            setStatus("");
+            updateActionState();
+            return;
+        }
+
+        const parsed = parseJsonText(rawText);
+        if (!parsed.ok) {
+            state.isValid = false;
+            state.parsedValue = null;
+            parseStrip.appendChild(createParseChip("无效", "error"));
+            renderEmptyState("无效", parsed.error);
+            setStatus("JSON 无效", "error");
+            updateActionState();
+            return;
+        }
+
+        state.isValid = true;
+        state.parsedValue = parsed.value;
+        const rootType = getJsonType(parsed.value);
+        const minifiedLength = JSON.stringify(parsed.value).length;
+
+        parseStrip.appendChild(createParseChip("有效", "success"));
+        parseStrip.appendChild(createParseChip(rootType));
+        parseStrip.appendChild(createParseChip(`${minifiedLength}`));
+        renderTree(parsed.value);
+        selectNode("$", parsed.value, treeWrap.querySelector("[data-path='$']"));
+        setStatus("");
+        updateActionState();
+    };
+
+    const validateNow = () => {
+        window.clearTimeout(state.validateTimer);
+        renderFromText();
+    };
+
+    const scheduleValidate = () => {
+        window.clearTimeout(state.validateTimer);
+        state.validateTimer = window.setTimeout(() => {
+            renderFromText();
+        }, 120);
+    };
+
+    const formatCurrentJson = async () => {
+        if (!state.editor) {
+            throw new Error("编辑器尚未完成初始化。");
+        }
+        if (!state.isValid) {
+            throw new Error("当前内容不是有效 JSON。");
+        }
+        await state.editor.getAction("editor.action.formatDocument").run();
+        validateNow();
+        setStatus("已格式化", "success");
+    };
+
+    const compressCurrentJson = () => {
+        if (!state.isValid) {
+            throw new Error("当前内容不是有效 JSON。");
+        }
+        replaceEditorValue(JSON.stringify(state.parsedValue));
+        validateNow();
+        setStatus("已压缩", "success");
+    };
+
+    const copyEditorJson = async () => {
+        if (state.isValid) {
+            await writeClipboardText(JSON.stringify(state.parsedValue, null, 2));
+            setStatus("已复制", "success");
+            showToast("已复制 JSON");
+            return;
+        }
+
+        const text = getEditorValue();
+        if (!text.trim()) {
+            throw new Error("没有可复制内容。");
+        }
+
+        await writeClipboardText(text);
+        setStatus("已复制", "success");
+        showToast("已复制原始文本");
+    };
+
+    const copySelectedPath = async () => {
+        if (!state.selectedPath) {
+            throw new Error("请先选择一个节点。");
+        }
+        await writeClipboardText(state.selectedPath);
+        setStatus("路径已复制", "success");
+        showToast("已复制节点路径");
+    };
+
+    const copySelectedNode = async () => {
+        if (!state.selectedPath) {
+            throw new Error("请先选择一个节点。");
+        }
+        const payload = typeof state.selectedValue === "string"
+            ? state.selectedValue
+            : JSON.stringify(state.selectedValue, null, 2);
+        await writeClipboardText(payload);
+        setStatus("节点已复制", "success");
+        showToast("已复制节点内容");
+    };
+
+    const clearEditor = () => {
+        replaceEditorValue("");
+        validateNow();
+        focusEditor();
+    };
+
+    const togglePreview = () => {
+        state.previewCollapsed = !state.previewCollapsed;
+        previewPanel.classList.toggle("collapsed", state.previewCollapsed);
+        togglePreviewButton.textContent = state.previewCollapsed ? "显示节点面板" : "隐藏节点面板";
+    };
+
+    const tryApplyAutoFormat = (value, sourceLabel) => {
+        if (!shouldAutoFormatJsonText(value)) {
+            return false;
+        }
+
+        const parsed = parseJsonText(value);
+        if (!parsed.ok) {
+            return false;
+        }
+
+        replaceEditorValue(JSON.stringify(parsed.value, null, 2));
+        validateNow();
+        setStatus("已格式化", "success");
+        return true;
+    };
+
+    const bindEditorEvents = () => {
+        const inputArea = editorContainer.querySelector("textarea.inputarea");
+        if (inputArea) {
+            inputArea.addEventListener("paste", (event) => {
+                const pastedText = event.clipboardData?.getData("text");
+                if (typeof pastedText !== "string" || !shouldAutoFormatJsonText(pastedText)) {
+                    return;
+                }
+
+                const parsed = parseJsonText(pastedText);
+                if (!parsed.ok || !state.editor) {
+                    return;
+                }
+
+                event.preventDefault();
+                const selections = state.editor.getSelections() || [];
+                if (!selections.length) {
+                    return;
+                }
+
+                state.editor.executeEdits("watools-json-paste-format", selections.map((selection) => ({
+                    range: selection,
+                    text: JSON.stringify(parsed.value, null, 2),
+                    forceMoveMarkers: true,
+                })));
+                state.editor.pushUndoStop();
+                validateNow();
+                setStatus("已格式化", "success");
+                showToast("粘贴内容已格式化");
+            });
+        }
+
+        state.editor.onDidChangeModelContent(() => {
+            scheduleValidate();
+        });
+    };
+
+    const configureMonaco = (monaco) => {
+        monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+            validate: true,
+            allowComments: false,
+            trailingCommas: "error",
+            schemaValidation: "error",
+            schemas: [],
+            enableSchemaRequest: false,
+        });
+
+        state.monaco = monaco;
+        state.editor = monaco.editor.create(editorContainer, {
+            value: "",
+            language: "json",
+            theme: "vs",
+            automaticLayout: true,
+            minimap: {enabled: false},
+            tabSize: 2,
+            insertSpaces: true,
+            detectIndentation: false,
+            renderWhitespace: "selection",
+            renderControlCharacters: true,
+            bracketPairColorization: {enabled: true},
+            guides: {
+                bracketPairs: true,
+                indentation: true,
+            },
+            multiCursorModifier: "alt",
+            smoothScrolling: true,
+            cursorSmoothCaretAnimation: "on",
+            cursorBlinking: "smooth",
+            scrollBeyondLastLine: false,
+            wordWrap: "off",
+            formatOnPaste: false,
+            formatOnType: true,
+            autoClosingBrackets: "always",
+            autoClosingQuotes: "always",
+            autoIndent: "full",
+            fontSize: 15,
+            lineHeight: 26,
+            fontFamily: '"JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace',
+            padding: {
+                top: 16,
+                bottom: 16,
+            },
+        });
+
+        bindEditorEvents();
+        updateActionState();
+        validateNow();
+        focusEditor();
+        setStatus("");
+    };
+
+    const loadMonaco = () => new Promise((resolve, reject) => {
+        if (!window.require) {
+            reject(new Error("Monaco loader 未加载。"));
+            return;
+        }
+
+        window.require.config({
+            paths: {
+                vs: monacoBaseUrl,
+            },
+        });
+
+        window.require([
+            "vs/editor/editor.main",
+            "vs/language/json/monaco.contribution",
+        ], (...modules) => {
+            resolve(modules[0] || window.monaco);
+        }, reject);
+    });
+
+    togglePreviewButton.addEventListener("click", () => {
+        togglePreview();
+    });
+
+    panelToggleButton.addEventListener("click", () => {
+        togglePreview();
+    });
+
+    formatButton.addEventListener("click", () => {
+        formatCurrentJson().catch((error) => {
+            setStatus(error instanceof Error ? error.message : "格式化失败。", "error");
+        });
+    });
+
+    compressButton.addEventListener("click", () => {
+        try {
+            compressCurrentJson();
+        } catch (error) {
+            setStatus(error instanceof Error ? error.message : "压缩失败。", "error");
+        }
+    });
+
+    copyButton.addEventListener("click", () => {
+        copyEditorJson().catch((error) => {
+            setStatus(error instanceof Error ? error.message : "复制失败。", "error");
+        });
+    });
+
+    clearButton.addEventListener("click", () => {
+        clearEditor();
+    });
+
+    copyPathButton.addEventListener("click", () => {
+        copySelectedPath().catch((error) => {
+            setStatus(error instanceof Error ? error.message : "复制失败。", "error");
+        });
+    });
+
+    copyNodeButton.addEventListener("click", () => {
+        copySelectedNode().catch((error) => {
+            setStatus(error instanceof Error ? error.message : "复制失败。", "error");
+        });
+    });
+
+    window.addEventListener("keydown", (event) => {
+        if (keyboard.match(event, "Enter", {primary: true})) {
+            event.preventDefault();
+            formatCurrentJson().catch((error) => {
+                setStatus(error instanceof Error ? error.message : "格式化失败。", "error");
+            });
+            return;
+        }
+
+        if (keyboard.match(event, "c", {primary: true, shift: true})) {
+            event.preventDefault();
+            const action = state.selectedPath ? copySelectedNode : copyEditorJson;
+            action().catch((error) => {
+                setStatus(error instanceof Error ? error.message : "复制失败。", "error");
+            });
+            return;
+        }
+
+        if (keyboard.match(event, "l", {primary: true})) {
+            event.preventDefault();
+            clearEditor();
+        }
+    });
+
+    const applyHostContext = (context) => {
+        const seedText = extractSeedText(context);
+        if (!state.editor) {
+            return;
+        }
+        if (!seedText) {
+            validateNow();
+            return;
+        }
+        if (!tryApplyAutoFormat(seedText, "带入文本")) {
+            replaceEditorValue(seedText);
+            validateNow();
+            setStatus("已带入命令文本。", "success");
+        }
+        focusEditor();
+    };
+
+    loadMonaco()
+        .then((monaco) => {
+            configureMonaco(monaco);
+            applyHostContext(readHostContext());
+            window.addEventListener("watools:context-ready", (event) => {
+                applyHostContext(event.detail || readHostContext());
+            });
+        })
+        .catch((error) => {
+            setStatus("加载失败", "error");
+            renderEmptyState("失败", "加载失败");
+        });
+</script>
+</body>
+</html>
