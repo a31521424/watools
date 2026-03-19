@@ -31,6 +31,11 @@ export type Plugin = {
     description: string
     version: string
     author: string
+    usage: string
+    triggerKeywords: string[]
+    usageExamples: string[]
+    shortcuts: string[]
+    notes: string[]
     uiEnabled: boolean
 
     enabled: boolean

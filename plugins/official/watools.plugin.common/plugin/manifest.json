@@ -1,9 +1,30 @@
 {
   "packageId": "watools.plugin.common",
   "name": "常用工具",
-  "description": "官方常用工具插件，处理 URL、文件路径和剪贴板资源",
+  "description": "官方常用工具插件，处理 URL、文件路径和剪贴板文件 / 图片等高频系统操作。",
   "version": "0.1.0",
   "author": "WaTools",
+  "usage": "启用后无需额外命令。直接输入 URL 或本地路径，或者让剪贴板里带有文件 / 图片内容，即可触发对应能力。",
+  "triggerKeywords": [
+    "http://...",
+    "https://...",
+    "www...",
+    "~/...",
+    "/..."
+  ],
+  "usageExamples": [
+    "https://example.com",
+    "www.google.com",
+    "~/Downloads",
+    "/Users/name/Desktop",
+    "复制一组文件后呼出面板",
+    "复制图片后呼出面板"
+  ],
+  "notes": [
+    "输入 URL 时会直接调用系统浏览器打开。",
+    "输入本地路径时会在系统文件管理器中打开对应位置。",
+    "剪贴板为文件时显示“复制文件路径”，剪贴板为图片时显示“保存剪贴板图片”。"
+  ],
   "uiEnabled": false,
   "entry": "app.js"
 }

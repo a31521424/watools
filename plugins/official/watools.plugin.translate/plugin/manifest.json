@@ -1,9 +1,31 @@
 {
   "packageId": "watools.plugin.translate",
   "name": "翻译",
-  "description": "官方翻译面板，支持持久化配置",
+  "description": "官方翻译面板，基于 DeepL Free，支持带入文本、快速互译和持久化配置。",
   "version": "0.1.0",
   "author": "WaTools",
+  "usage": "输入 fy、translate 或 翻译 打开翻译面板；也可以直接输入普通中英文文本触发。首次使用需要先配置 DeepL Free API Key。",
+  "triggerKeywords": [
+    "fy",
+    "translate",
+    "翻译"
+  ],
+  "usageExamples": [
+    "fy hello world",
+    "translate 你好",
+    "翻译 明天上午十点开会",
+    "直接输入一段英文或中文"
+  ],
+  "shortcuts": [
+    "Cmd/Ctrl + Enter: 立即翻译",
+    "Cmd/Ctrl + Shift + C: 复制翻译结果",
+    "Cmd/Ctrl + Shift + X: 交换原文和译文",
+    "Cmd/Ctrl + ,: 打开 API Key 设置"
+  ],
+  "notes": [
+    "输入前缀命令时，只会把前缀后面的文本带入编辑区。",
+    "插件会根据输入语言方向自动决定中译英或英译中。"
+  ],
   "uiEnabled": true,
   "entry": "app.js"
 }

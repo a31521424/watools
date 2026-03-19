@@ -14,13 +14,18 @@ import (
 )
 
 type PluginMetadata struct {
-	PackageID   string `json:"packageId"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Version     string `json:"version"`
-	Author      string `json:"author"`
-	UIEnabled   bool   `json:"uiEnabled"`
-	Entry       string `json:"entry"`
+	PackageID       string   `json:"packageId"`
+	Name            string   `json:"name"`
+	Description     string   `json:"description"`
+	Version         string   `json:"version"`
+	Author          string   `json:"author"`
+	Usage           string   `json:"usage"`
+	TriggerKeywords []string `json:"triggerKeywords"`
+	UsageExamples   []string `json:"usageExamples"`
+	Shortcuts       []string `json:"shortcuts"`
+	Notes           []string `json:"notes"`
+	UIEnabled       bool     `json:"uiEnabled"`
+	Entry           string   `json:"entry"`
 }
 
 type PluginState struct {

@@ -1,9 +1,31 @@
 {
   "packageId": "watools.plugin.textstats",
   "name": "文本统计",
-  "description": "官方文本统计面板，支持多维度字符分析",
+  "description": "官方文本统计面板，支持字符、词类、标点、Emoji 等多维度统计。",
   "version": "0.1.0",
   "author": "WaTools",
+  "usage": "输入 textcount、count、chars、字符统计、字数统计 或 文本统计 打开面板；后面可直接跟待分析文本。",
+  "triggerKeywords": [
+    "textcount",
+    "count",
+    "chars",
+    "字符统计",
+    "字数统计",
+    "文本统计"
+  ],
+  "usageExamples": [
+    "count hello world",
+    "chars 你好，WaTools",
+    "文本统计 今天的日报内容"
+  ],
+  "shortcuts": [
+    "Cmd/Ctrl + Shift + C: 复制统计摘要",
+    "Cmd/Ctrl + L: 清空输入"
+  ],
+  "notes": [
+    "显式触发后才会打开，不会对普通文本做泛匹配干扰。",
+    "适合快速统计中英文、标点、空白、Emoji 等内容。"
+  ],
   "uiEnabled": true,
   "entry": "app.js"
 }

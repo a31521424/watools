@@ -9,6 +9,17 @@ import {
 } from "../../wailsjs/go/coordinator/WaAppCoordinator"
 import {sanitizePluginEntries} from "@/lib/plugin";
 
+const normalizeStringList = (value: unknown): string[] => {
+    if (!Array.isArray(value)) {
+        return []
+    }
+
+    return value
+        .filter((item): item is string => typeof item === 'string')
+        .map(item => item.trim())
+        .filter(Boolean)
+}
+
 const dedupePluginsByPackageId = (plugins: Plugin[]): Plugin[] => {
     const uniquePlugins = new Map<string, Plugin>()
     for (const plugin of plugins) {
@@ -30,6 +41,11 @@ export const getPlugins = async (): Promise<Plugin[]> => {
             description: plugin.description || '',
             version: plugin.version || '',
             author: plugin.author || '',
+            usage: plugin.usage || '',
+            triggerKeywords: normalizeStringList(plugin.triggerKeywords),
+            usageExamples: normalizeStringList(plugin.usageExamples),
+            shortcuts: normalizeStringList(plugin.shortcuts),
+            notes: normalizeStringList(plugin.notes),
             uiEnabled: plugin.uiEnabled || false,
 
             enabled: plugin.enabled || false,

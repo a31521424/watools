@@ -46,7 +46,43 @@ type PluginDetailsProps = {
     onClose?: () => void
 }
 
+type PluginHelpSectionProps = {
+    title: string
+    items: string[]
+    mono?: boolean
+}
+
+function PluginHelpSection({title, items, mono = false}: PluginHelpSectionProps) {
+    if (items.length === 0) {
+        return null
+    }
+
+    return (
+        <div className="border border-[color:var(--line)] bg-[var(--surface)]">
+            <div className="border-b border-[color:var(--line)] px-4 py-3">
+                <h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
+            </div>
+            <div className="divide-y divide-[color:var(--line)]">
+                {items.map(item => (
+                    <div
+                        key={item}
+                        className={cn(
+                            "px-4 py-3 text-sm text-[var(--text)]",
+                            mono && "break-all"
+                        )}
+                        style={mono ? {fontFamily: MONO_FONT} : undefined}
+                    >
+                        {item}
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
 function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose}: PluginDetailsProps) {
+    const hasQuickStart = Boolean(plugin.usage) || plugin.triggerKeywords.length > 0
+
     return (
         <div className="flex h-full min-h-0 flex-col">
             <div className="border-b border-[color:var(--line)] px-5 py-5">
@@ -147,6 +183,49 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose}:
                             </dd>
                         </div>
                     </dl>
+                </div>
+
+                <div className="mt-5 space-y-5">
+                    {hasQuickStart && (
+                        <div className="border border-[color:var(--line)] bg-[var(--surface)]">
+                            <div className="border-b border-[color:var(--line)] px-4 py-3">
+                                <h3 className="text-sm font-semibold text-[var(--text)]">快速上手</h3>
+                            </div>
+                            <div className="space-y-4 px-4 py-4">
+                                {plugin.usage && (
+                                    <p className="text-sm leading-6 text-[var(--text)]">
+                                        {plugin.usage}
+                                    </p>
+                                )}
+                                {plugin.triggerKeywords.length > 0 && (
+                                    <div className="space-y-2">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
+                                            触发词
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {plugin.triggerKeywords.map(keyword => (
+                                                <span
+                                                    key={keyword}
+                                                    className="inline-flex items-center rounded-sm border border-[color:var(--line)] bg-[var(--surface-soft)] px-2 py-1 text-xs text-[var(--text)]"
+                                                    style={{fontFamily: MONO_FONT}}
+                                                >
+                                                    {keyword}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <PluginHelpSection
+                        title="输入示例"
+                        items={plugin.usageExamples}
+                        mono
+                    />
+                    <PluginHelpSection title="快捷键" items={plugin.shortcuts}/>
+                    <PluginHelpSection title="备注" items={plugin.notes}/>
                 </div>
             </div>
 
