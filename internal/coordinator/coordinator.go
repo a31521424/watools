@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -188,6 +189,33 @@ func (w *WaAppCoordinator) CopyBase64ImageToClipboard(base64Data string) error {
 }
 
 // end region api
+
+// region logs
+
+func (w *WaAppCoordinator) GetLogDirectoryApi() string {
+	return logger.GetLogDirectory()
+}
+
+func (w *WaAppCoordinator) ListLogFilesApi() ([]logger.LogFileInfo, error) {
+	return logger.ListLogFiles()
+}
+
+func (w *WaAppCoordinator) QueryLogsApi(requestMap map[string]interface{}) (logger.LogQueryResult, error) {
+	var query logger.LogQuery
+	if len(requestMap) > 0 {
+		payload, err := json.Marshal(requestMap)
+		if err != nil {
+			return logger.LogQueryResult{}, fmt.Errorf("failed to marshal log query: %w", err)
+		}
+		if err := json.Unmarshal(payload, &query); err != nil {
+			return logger.LogQueryResult{}, fmt.Errorf("failed to parse log query: %w", err)
+		}
+	}
+
+	return logger.QueryLogs(query)
+}
+
+// end region logs
 
 // region proxy
 

@@ -3,6 +3,7 @@ import {resizeWindowHeight, useElementResize} from "@/hooks/useElementResize";
 import {Route} from "wouter";
 import {WaPlugin} from "@/components/watools/wa-plugin";
 import {WaPluginManagement} from "@/components/watools/wa-plugin-management";
+import {WaLogManagement} from "@/components/watools/wa-log-management";
 import {useEffect} from "react";
 import {WaApi} from "@/api/api";
 import {usePluginStore} from "@/stores/pluginStore";
@@ -45,7 +46,7 @@ const Watools = () => {
         }
     }, [flushApplicationUsage, flushPluginUsage]);
 
-    const isFixedHeightRoute = location === '/plugin' || location === '/plugin-management'
+    const isFixedHeightRoute = location === '/plugin' || location === '/plugin-management' || location === '/log-management'
 
     return <div
         ref={windowRef}
@@ -62,6 +63,9 @@ const Watools = () => {
         </Route>
         <Route path='/plugin-management'>
             <WaPluginManagement/>
+        </Route>
+        <Route path='/log-management'>
+            <WaLogManagement/>
         </Route>
     </div>
 }

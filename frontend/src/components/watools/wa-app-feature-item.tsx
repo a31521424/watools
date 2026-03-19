@@ -22,6 +22,14 @@ const LOCAL_APP_FEATURES = [
         navigatePath: "/plugin-management",
         keywords: ["plugin", "extension", "manage", "installation"]
     },
+    {
+        id: "app-feature-log-management",
+        name: "Log Management",
+        description: "Search and inspect application logs",
+        icon: "logs",
+        navigatePath: "/log-management",
+        keywords: ["log", "logger", "debug", "trace", "日志", "错误"]
+    },
 ];
 
 export const useAppFeatureItems = ({

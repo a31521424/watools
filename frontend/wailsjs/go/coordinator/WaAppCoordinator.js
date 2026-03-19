@@ -26,6 +26,10 @@ export function GetHotkeyEnvironmentStatusApi() {
   return window['go']['coordinator']['WaAppCoordinator']['GetHotkeyEnvironmentStatusApi']();
 }
 
+export function GetLogDirectoryApi() {
+  return window['go']['coordinator']['WaAppCoordinator']['GetLogDirectoryApi']();
+}
+
 export function GetOperatorCommandsApi() {
   return window['go']['coordinator']['WaAppCoordinator']['GetOperatorCommandsApi']();
 }
@@ -62,12 +66,20 @@ export function InstallPluginByFileDialogApi() {
   return window['go']['coordinator']['WaAppCoordinator']['InstallPluginByFileDialogApi']();
 }
 
+export function ListLogFilesApi() {
+  return window['go']['coordinator']['WaAppCoordinator']['ListLogFilesApi']();
+}
+
 export function ListPluginStorageKeysApi(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['ListPluginStorageKeysApi'](arg1);
 }
 
 export function OpenFolder(arg1) {
   return window['go']['coordinator']['WaAppCoordinator']['OpenFolder'](arg1);
+}
+
+export function QueryLogsApi(arg1) {
+  return window['go']['coordinator']['WaAppCoordinator']['QueryLogsApi'](arg1);
 }
 
 export function SaveBase64Image(arg1) {
