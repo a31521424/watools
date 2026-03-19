@@ -10,5 +10,12 @@
     "name": "banbxio",
     "email": "a31521424@gmail.com"
   },
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "info": {
+    "companyName": "banbxio",
+    "productName": "WaTools",
+    "productVersion": "0.1.0",
+    "copyright": "Copyright (c) 2026 banbxio",
+    "comments": "Built with Wails"
+  }
 }

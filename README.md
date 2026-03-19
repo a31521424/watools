@@ -77,6 +77,15 @@ To get a local copy up and running for development, follow these simple steps.
 
 ---
 
+## 🚢 Release CD
+
+The repository includes a GitHub Actions release workflow for packaging and publishing Windows/macOS installers, plus a GitHub Releases based self-update manifest.
+
+-   Workflow definition: [`/.github/workflows/release.yml`](./.github/workflows/release.yml)
+-   Release/CD notes: [`docs/release-cd.md`](./docs/release-cd.md)
+
+---
+
 ## 🔌 Official Plugins
 
 Official plugin sources now live in [`plugins/official`](./plugins/official).

@@ -140,3 +140,74 @@ export namespace logger {
 
 }
 
+export namespace update {
+	
+	export class InstallResult {
+	    status: string;
+	    message: string;
+	    openPath: string;
+	    shouldQuit: boolean;
+	    requiresManualInstall: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new InstallResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.status = source["status"];
+	        this.message = source["message"];
+	        this.openPath = source["openPath"];
+	        this.shouldQuit = source["shouldQuit"];
+	        this.requiresManualInstall = source["requiresManualInstall"];
+	    }
+	}
+	export class UpdateInfo {
+	    currentVersion: string;
+	    latestVersion: string;
+	    releaseTag: string;
+	    releaseName: string;
+	    releaseUrl: string;
+	    publishedAt: string;
+	    notes: string;
+	    platformKey: string;
+	    platformLabel: string;
+	    assetName: string;
+	    assetUrl: string;
+	    assetSha256: string;
+	    assetSize: number;
+	    installerType: string;
+	    hasUpdate: boolean;
+	    downloadedPath: string;
+	    requiresManualInstall: boolean;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpdateInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.currentVersion = source["currentVersion"];
+	        this.latestVersion = source["latestVersion"];
+	        this.releaseTag = source["releaseTag"];
+	        this.releaseName = source["releaseName"];
+	        this.releaseUrl = source["releaseUrl"];
+	        this.publishedAt = source["publishedAt"];
+	        this.notes = source["notes"];
+	        this.platformKey = source["platformKey"];
+	        this.platformLabel = source["platformLabel"];
+	        this.assetName = source["assetName"];
+	        this.assetUrl = source["assetUrl"];
+	        this.assetSha256 = source["assetSha256"];
+	        this.assetSize = source["assetSize"];
+	        this.installerType = source["installerType"];
+	        this.hasUpdate = source["hasUpdate"];
+	        this.downloadedPath = source["downloadedPath"];
+	        this.requiresManualInstall = source["requiresManualInstall"];
+	        this.message = source["message"];
+	    }
+	}
+
+}
+

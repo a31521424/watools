@@ -30,6 +30,14 @@ const LOCAL_APP_FEATURES = [
         navigatePath: "/log-management",
         keywords: ["log", "logger", "debug", "trace", "日志", "错误"]
     },
+    {
+        id: "app-feature-update-management",
+        name: "Update Management",
+        description: "Check releases and install app updates",
+        icon: "download",
+        navigatePath: "/update-management",
+        keywords: ["update", "upgrade", "release", "installer", "self update", "更新", "升级", "发布"]
+    },
 ];
 
 export const useAppFeatureItems = ({

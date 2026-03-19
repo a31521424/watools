@@ -11,8 +11,11 @@ import (
 	"watools/internal/app"
 	"watools/internal/command"
 	"watools/internal/plugin"
+	"watools/internal/update"
 	"watools/pkg/logger"
 	"watools/pkg/models"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type WaAppCoordinator struct {
@@ -216,6 +219,32 @@ func (w *WaAppCoordinator) QueryLogsApi(requestMap map[string]interface{}) (logg
 }
 
 // end region logs
+
+// region updates
+
+func (w *WaAppCoordinator) CheckForUpdatesApi() (update.UpdateInfo, error) {
+	return update.GetService().Check(w.ctx)
+}
+
+func (w *WaAppCoordinator) DownloadUpdateApi() (update.UpdateInfo, error) {
+	return update.GetService().Download(w.ctx)
+}
+
+func (w *WaAppCoordinator) InstallUpdateApi(downloadedPath string) (update.InstallResult, error) {
+	result, err := update.GetService().Install(downloadedPath)
+	if err != nil {
+		return update.InstallResult{}, err
+	}
+	if result.ShouldQuit {
+		go func() {
+			time.Sleep(400 * time.Millisecond)
+			runtime.Quit(w.ctx)
+		}()
+	}
+	return result, nil
+}
+
+// end region updates
 
 // region proxy
 
