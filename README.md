@@ -45,7 +45,7 @@ To get a local copy up and running for development, follow these simple steps.
 
 ### Prerequisites
 
--   Go (v1.21+)
+-   Go (v1.26.1+)
 -   Node.js (v18+)
 -   Wails CLI: Follow the [official Wails installation guide](https://wails.io/docs/gettingstarted/installation).
 

@@ -1,8 +1,8 @@
 module watools
 
-go 1.24.0
+go 1.26.0
 
-toolchain go1.24.3
+toolchain go1.26.1
 
 require (
 	github.com/biessek/golang-ico v0.0.0-20250805151044-6d8ea19fb761
