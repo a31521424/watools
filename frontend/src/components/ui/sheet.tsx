@@ -2,6 +2,8 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+const SHEET_ANIMATION_MS = 240
+
 const Sheet = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
@@ -9,20 +11,52 @@ const Sheet = React.forwardRef<
     onOpenChange?: (open: boolean) => void
   }
 >(({ className, open, onOpenChange, children, ...props }, ref) => {
-  if (!open) return null
+  const [mounted, setMounted] = React.useState(Boolean(open))
+  const [visible, setVisible] = React.useState(Boolean(open))
+
+  React.useEffect(() => {
+    let animationFrame = 0
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+    if (open) {
+      setMounted(true)
+      animationFrame = window.requestAnimationFrame(() => {
+        setVisible(true)
+      })
+    } else if (mounted) {
+      setVisible(false)
+      timeoutId = setTimeout(() => {
+        setMounted(false)
+      }, SHEET_ANIMATION_MS)
+    }
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [mounted, open])
+
+  if (!mounted) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="absolute inset-0 z-50 flex overflow-hidden">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50"
+        className={cn(
+          "absolute inset-0 bg-black/20 backdrop-blur-[1px] transition-opacity duration-200 ease-out",
+          visible ? "opacity-100" : "opacity-0"
+        )}
         onClick={() => onOpenChange?.(false)}
       />
       {/* Sheet */}
       <div
         ref={ref}
         className={cn(
-          "fixed right-0 top-0 h-full w-[400px] bg-white shadow-lg transform transition-transform",
+          "absolute right-0 top-0 flex h-full w-[400px] max-w-full flex-col overflow-hidden bg-white shadow-2xl transition-transform duration-200",
+          "ease-[cubic-bezier(0.22,1,0.36,1)]",
+          visible ? "translate-x-0" : "translate-x-[104%]",
           className
         )}
         {...props}
@@ -40,7 +74,7 @@ const SheetHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-2 p-6 border-b", className)}
+    className={cn("flex flex-col space-y-2 border-b p-6", className)}
     {...props}
   />
 ))
@@ -88,7 +122,7 @@ const SheetFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center justify-end gap-2 p-6 border-t", className)}
+    className={cn("flex items-center justify-end gap-2 border-t p-6", className)}
     {...props}
   />
 ))

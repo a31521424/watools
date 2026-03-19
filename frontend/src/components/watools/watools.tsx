@@ -51,7 +51,7 @@ const Watools = () => {
     return <div
         ref={windowRef}
         className={cn(
-            "scrollbar-hide flex min-h-0 w-full flex-col overflow-hidden rounded-xl border-0 bg-white",
+            "scrollbar-hide relative flex min-h-0 w-full flex-col overflow-hidden rounded-xl border-0 bg-white",
             isFixedHeightRoute && FIXED_PANEL_HEIGHT_CLASS
         )}
     >

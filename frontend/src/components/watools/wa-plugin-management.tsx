@@ -38,14 +38,6 @@ const formatLastUsedAt = (value: Date | null) => {
     }).format(value)
 }
 
-const isCompactViewport = () => {
-    if (typeof window === 'undefined') {
-        return false
-    }
-
-    return window.matchMedia('(max-width: 1023px)').matches
-}
-
 type PluginDetailsProps = {
     plugin: Plugin
     onToggle: (plugin: Plugin) => Promise<void>
@@ -306,7 +298,7 @@ export function WaPluginManagement() {
 
     const handleOpenPluginDetails = (plugin: Plugin) => {
         setSelectedPlugin(plugin)
-        setIsDrawerOpen(isCompactViewport())
+        setIsDrawerOpen(true)
     }
 
     const handleOpenHomepage = (plugin: Plugin) => {
@@ -365,109 +357,92 @@ export function WaPluginManagement() {
                 </div>
             </div>
 
-            <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_380px]">
-                <div className="flex min-h-0 flex-col border-r-0 lg:border-r lg:border-[color:var(--line)]">
-                    <div className="border-b border-[color:var(--line)] px-6 py-4">
-                        <div className="relative">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"/>
-                            <Input
-                                value={searchValue}
-                                onChange={event => setSearchValue(event.target.value)}
-                                placeholder="按名称、作者、描述或 Package ID 搜索"
-                                className="h-10 border-[color:var(--line)] bg-[var(--surface)] pl-10 shadow-none"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--surface)]">
-                        {isLoading ? (
-                            <div className="flex h-full min-h-[220px] items-center justify-center px-6 text-sm text-[var(--muted)]">
-                                正在加载插件列表...
-                            </div>
-                        ) : filteredPlugins.length === 0 ? (
-                            <div className="flex h-full min-h-[220px] flex-col items-center justify-center gap-3 px-6 text-center">
-                                <div className="flex h-12 w-12 items-center justify-center border border-[color:var(--line)] bg-[var(--surface-soft)]">
-                                    <Puzzle className="h-5 w-5 text-[var(--muted)]"/>
-                                </div>
-                                <div className="space-y-1">
-                                    <h2 className="text-base font-semibold text-[var(--text)]">
-                                        {plugins.length === 0 ? '还没有已安装插件' : '没有匹配的插件'}
-                                    </h2>
-                                    <p className="text-sm text-[var(--muted)]">
-                                        {plugins.length === 0
-                                            ? '从顶部操作区安装 .wt 插件包后，这里会显示插件列表。'
-                                            : '调整搜索关键词后再试。'}
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-[color:var(--line)]">
-                                {filteredPlugins.map(plugin => {
-                                    const isSelected = selectedPlugin?.packageId === plugin.packageId
-
-                                    return (
-                                        <div
-                                            key={plugin.packageId}
-                                            className={cn(
-                                                'flex items-center gap-4 px-6 py-4 transition-colors',
-                                                isSelected && 'bg-[var(--accent-soft)]'
-                                            )}
-                                        >
-                                            <button
-                                                type="button"
-                                                className="min-w-0 flex-1 text-left"
-                                                onClick={() => handleOpenPluginDetails(plugin)}
-                                            >
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <h2 className="truncate text-sm font-semibold text-[var(--text)]">
-                                                        {plugin.name || '未命名插件'}
-                                                    </h2>
-                                                    <span className="text-xs text-[var(--muted)]">v{plugin.version || '未标注'}</span>
-                                                    {plugin.uiEnabled && (
-                                                        <span className="inline-flex h-5 items-center rounded-sm border border-[color:var(--line)] bg-[var(--surface)] px-1.5 text-[10px] font-medium text-[var(--muted)]">
-                                                            UI
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">
-                                                    {plugin.description || '这个插件还没有提供描述。'}
-                                                </p>
-                                                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
-                                                    <span>{plugin.author || '未知作者'}</span>
-                                                    <span>{plugin.usedCount} 次使用</span>
-                                                    <span>{formatLastUsedAt(plugin.lastUsedAt)}</span>
-                                                </div>
-                                            </button>
-
-                                            <div className="flex shrink-0 items-center gap-3">
-                                                <span className="hidden text-xs text-[var(--muted)] sm:inline">
-                                                    {plugin.enabled ? '已启用' : '已停用'}
-                                                </span>
-                                                <Switch
-                                                    checked={plugin.enabled}
-                                                    onCheckedChange={() => void handleTogglePlugin(plugin)}
-                                                    aria-label={`${plugin.name} 开关`}
-                                                />
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        )}
+            <div className="flex min-h-0 flex-1 flex-col">
+                <div className="border-b border-[color:var(--line)] px-6 py-4">
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"/>
+                        <Input
+                            value={searchValue}
+                            onChange={event => setSearchValue(event.target.value)}
+                            placeholder="按名称、作者、描述或 Package ID 搜索"
+                            className="h-10 border-[color:var(--line)] bg-[var(--surface)] pl-10 shadow-none"
+                        />
                     </div>
                 </div>
 
-                <div className="hidden min-h-0 bg-[var(--surface)] lg:flex">
-                    {selectedPlugin ? (
-                        <PluginDetails
-                            plugin={selectedPlugin}
-                            onToggle={handleTogglePlugin}
-                            onUninstall={handleUninstallPlugin}
-                            onOpenHomepage={handleOpenHomepage}
-                        />
+                <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--surface)]">
+                    {isLoading ? (
+                        <div className="flex h-full min-h-[220px] items-center justify-center px-6 text-sm text-[var(--muted)]">
+                            正在加载插件列表...
+                        </div>
+                    ) : filteredPlugins.length === 0 ? (
+                        <div className="flex h-full min-h-[220px] flex-col items-center justify-center gap-3 px-6 text-center">
+                            <div className="flex h-12 w-12 items-center justify-center border border-[color:var(--line)] bg-[var(--surface-soft)]">
+                                <Puzzle className="h-5 w-5 text-[var(--muted)]"/>
+                            </div>
+                            <div className="space-y-1">
+                                <h2 className="text-base font-semibold text-[var(--text)]">
+                                    {plugins.length === 0 ? '还没有已安装插件' : '没有匹配的插件'}
+                                </h2>
+                                <p className="text-sm text-[var(--muted)]">
+                                    {plugins.length === 0
+                                        ? '从顶部操作区安装 .wt 插件包后，这里会显示插件列表。'
+                                        : '调整搜索关键词后再试。'}
+                                </p>
+                            </div>
+                        </div>
                     ) : (
-                        <div className="flex h-full w-full items-center justify-center px-8 text-sm text-[var(--muted)]">
-                            选择一个插件后查看详细信息。
+                        <div className="divide-y divide-[color:var(--line)]">
+                            {filteredPlugins.map(plugin => {
+                                const isSelected = selectedPlugin?.packageId === plugin.packageId
+
+                                return (
+                                    <div
+                                        key={plugin.packageId}
+                                        className={cn(
+                                            'flex items-center gap-4 px-6 py-4 transition-colors',
+                                            isSelected && 'bg-[var(--accent-soft)]'
+                                        )}
+                                    >
+                                        <button
+                                            type="button"
+                                            className="min-w-0 flex-1 text-left"
+                                            onClick={() => handleOpenPluginDetails(plugin)}
+                                        >
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h2 className="truncate text-sm font-semibold text-[var(--text)]">
+                                                    {plugin.name || '未命名插件'}
+                                                </h2>
+                                                <span className="text-xs text-[var(--muted)]">v{plugin.version || '未标注'}</span>
+                                                {plugin.uiEnabled && (
+                                                    <span className="inline-flex h-5 items-center rounded-sm border border-[color:var(--line)] bg-[var(--surface)] px-1.5 text-[10px] font-medium text-[var(--muted)]">
+                                                        UI
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">
+                                                {plugin.description || '这个插件还没有提供描述。'}
+                                            </p>
+                                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+                                                <span>{plugin.author || '未知作者'}</span>
+                                                <span>{plugin.usedCount} 次使用</span>
+                                                <span>{formatLastUsedAt(plugin.lastUsedAt)}</span>
+                                            </div>
+                                        </button>
+
+                                        <div className="flex shrink-0 items-center gap-3">
+                                            <span className="hidden text-xs text-[var(--muted)] sm:inline">
+                                                {plugin.enabled ? '已启用' : '已停用'}
+                                            </span>
+                                            <Switch
+                                                checked={plugin.enabled}
+                                                onCheckedChange={() => void handleTogglePlugin(plugin)}
+                                                aria-label={`${plugin.name} 开关`}
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            })}
                         </div>
                     )}
                 </div>
@@ -479,35 +454,33 @@ export function WaPluginManagement() {
                         当前显示 {filteredPlugins.length} / {plugins.length} 个插件
                     </span>
                     <span>
-                        {error ? `加载异常: ${error}` : selectedPlugin ? `已选中: ${selectedPlugin.packageId}` : '按 Esc 返回命令面板'}
+                        {error ? `加载异常: ${error}` : selectedPlugin ? `已选中: ${selectedPlugin.packageId}` : '点击插件查看详情，按 Esc 返回命令面板'}
                     </span>
                 </div>
             </div>
 
-            <div className="lg:hidden">
-                <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-                    {selectedPlugin && (
-                        <>
-                            <SheetHeader>
-                                <SheetTitle>{selectedPlugin.name || '插件详情'}</SheetTitle>
-                                <SheetDescription>
-                                    查看插件元信息、状态与管理操作。
-                                </SheetDescription>
-                            </SheetHeader>
-                            <SheetContent className="p-0">
-                                <PluginDetails
-                                    plugin={selectedPlugin}
-                                    onToggle={handleTogglePlugin}
-                                    onUninstall={handleUninstallPlugin}
-                                    onOpenHomepage={handleOpenHomepage}
-                                    onClose={() => setIsDrawerOpen(false)}
-                                />
-                            </SheetContent>
-                            <SheetFooter className="hidden"/>
-                        </>
-                    )}
-                </Sheet>
-            </div>
+            <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen} className="w-full max-w-[720px] border-l border-[color:var(--line)]">
+                {selectedPlugin && (
+                    <>
+                        <SheetHeader>
+                            <SheetTitle>{selectedPlugin.name || '插件详情'}</SheetTitle>
+                            <SheetDescription>
+                                查看插件元信息、状态与管理操作。
+                            </SheetDescription>
+                        </SheetHeader>
+                        <SheetContent className="p-0">
+                            <PluginDetails
+                                plugin={selectedPlugin}
+                                onToggle={handleTogglePlugin}
+                                onUninstall={handleUninstallPlugin}
+                                onOpenHomepage={handleOpenHomepage}
+                                onClose={() => setIsDrawerOpen(false)}
+                            />
+                        </SheetContent>
+                        <SheetFooter className="hidden"/>
+                    </>
+                )}
+            </Sheet>
         </div>
     )
 }
