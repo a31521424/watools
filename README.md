@@ -4,158 +4,189 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/a31521424/watools)](https://goreportcard.com/report/github.com/a31521424/watools)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](https://wails.io)
 
-An open-source, lightweight, and extensible productivity toolbox inspired by uTools and Alfred.
+[中文说明](./README.zh-CN.md)
 
-WaTools aims to provide a fast, modern, and cross-platform alternative for common development and daily tasks, accessible via a simple global hotkey.
+WaTools is an open-source desktop productivity toolbox inspired by uTools and Alfred. It combines a Wails desktop shell, a Go backend, and a React command-palette UI to make local tools, system actions, and plugins available from a single hotkey-driven surface.
 
----
+## Overview
 
-## 📸 Screenshot
+WaTools is currently organized around four core capabilities:
 
-*A picture is worth a thousand words. Please add a screenshot of the application here.*
+- A transparent, frameless command-palette style desktop UI
+- Local application search and launch
+- Built-in system operation commands
+- A trusted local plugin system with `executable` and `ui` entries
 
-![WaTools Screenshot](https://raw.githubusercontent.com/a31521424/watools/main/screenshot.png)
+The repository is cross-platform in structure, but the current implementation is still most complete on macOS.
 
----
+## Project Story
 
-## ✨ Features
+WaTools started as a manually built desktop tool project. The early implementation, architecture, and core workflows were designed and written in a traditional hand-coded way.
 
--   **Global Access**: Instantly open the app from anywhere with a global hotkey.
--   **App Launcher**: Quickly find and launch applications on your system.
--   **Plugin System**: Install trusted `.wt` plugins with executable and UI entry types, with a unified launch context for iframe plugins.
--   **Official Plugins**: Ships with an official plugin source tree for common utilities, calculator, translation, and text statistics workflows.
--   **Modern UI**: Clean and intuitive user interface built with React and Tailwind CSS.
--   **Cross-Platform Structure**: Built with Wails, with macOS currently being the most complete target.
+As the project evolved, the workflow expanded into AI-assisted development. Recent iterations increasingly use Codex, Claude Code, and related vibe coding practices for repo mapping, documentation restructuring, implementation acceleration, and plugin-oriented iteration.
 
----
+That means this project is best understood as:
 
-## 🛠️ Technology Stack
+- Initially human-designed and human-implemented
+- Later accelerated with AI pair-programming and vibe coding style workflows
+- Still grounded in concrete repo structure, explicit modules, and reviewable code paths
 
--   **Backend**: [Go](https://golang.org/)
--   **Framework**: [Wails](https://wails.io/) (v2)
--   **Frontend**: [React](https://reactjs.org/), [TypeScript](https://www.typescriptlang.org/)
--   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
--   **UI Components**: [shadcn/ui](https://ui.shadcn.com/)
+## Current Architecture
 
----
+At a high level, the app is split into:
 
-## 🚀 Getting Started (For Developers)
+- `main.go`
+  Wails entrypoint, asset embedding, lifecycle wiring, native window setup
+- `internal/`
+  Backend modules for app behavior, command scanning, plugins, APIs, handlers, updates, and menus
+- `frontend/`
+  React 19 + TypeScript + Tailwind 4 frontend for the command palette, plugin host, and management pages
+- `pkg/`
+  Shared models, SQLite access, and logging
+- `plugins/`
+  Official plugin source tree and packaging output
+- `docs/`
+  Architecture, UI, implementation mechanism, feature module, release, and plugin development docs
 
-To get a local copy up and running for development, follow these simple steps.
+The only Wails-bound API surface is the coordinator in `internal/coordinator/`, which acts as the stable bridge between frontend and backend modules.
+
+## Key Features
+
+- Global hotkey access to the main panel
+- Application discovery and launch
+- System operation commands
+- Plugin installation from trusted `.wt` packages
+- UI plugins hosted through iframe pages with a shared `PluginContext`
+- Executable plugins that run directly from the command palette
+- Local logging and update management screens
+- Official plugin set for common utilities, calculator, JSON, QR, translation, and text statistics workflows
+
+## Technology Stack
+
+- Backend: Go `1.26`
+- Desktop framework: Wails `v2`
+- Frontend: React `19`, TypeScript, Vite `7`
+- Styling: Tailwind CSS `4`
+- State management: Zustand
+- Search and command UI: Fuse.js, cmdk
+- Package manager: `pnpm`
+- Persistence: SQLite
+
+## Docs Map
+
+Start with the entry that matches the task instead of reading everything end-to-end.
+
+- [`AGENT.md`](./AGENT.md)
+  Repository map, runtime summary, and fast orientation for developers and agents
+- [`docs/README.md`](./docs/README.md)
+  Documentation index
+- [`docs/architecture.md`](./docs/architecture.md)
+  System layers, runtime boundaries, and data flow
+- [`docs/ui-style.md`](./docs/ui-style.md)
+  Command palette structure, routes, and UI direction
+- [`docs/implementation-mechanism.md`](./docs/implementation-mechanism.md)
+  Wails binding, command, plugin, update, and resource-serving mechanisms
+- [`docs/feature-modules.md`](./docs/feature-modules.md)
+  User-facing functional modules
+- [`docs/PLUGIN_DEVELOPMENT_INDEX.md`](./docs/PLUGIN_DEVELOPMENT_INDEX.md)
+  Plugin development reading path
+
+## Repository Layout
+
+```text
+.
+|-- main.go
+|-- config/
+|-- internal/
+|-- frontend/
+|-- pkg/
+|-- plugins/
+|-- docs/
+|-- cmd/pluginctl/
+`-- build/
+```
+
+## Getting Started
 
 ### Prerequisites
 
--   Go (v1.26.1+)
--   Node.js (v18+)
--   Wails CLI: Follow the [official Wails installation guide](https://wails.io/docs/gettingstarted/installation).
+- Go `1.26.1+`
+- Node.js `18+`
+- `pnpm`
+- Wails CLI
 
-### Installation & Running
+### Install and Run
 
-1.  **Clone the repository:**
-    ```sh
-    git clone https://github.com/a31521424/watools.git
-    ```
-2.  **Navigate to the project directory:**
-    ```sh
-    cd watools
-    ```
-3.  **Install frontend dependencies:**
-    ```sh
-    cd frontend && pnpm install && cd ..
-    ```
-4.  **Run in development mode:**
-    This command starts the application with live-reloading for both the Go backend and the React frontend.
-    ```sh
-    wails dev
-    ```
-5.  **Build the application:**
-    To build a production-ready binary for your platform, run:
-    ```sh
-    wails build
-    ```
-    The executable will be available in the `build/bin/` directory.
+1. Clone the repository.
 
----
+```sh
+git clone https://github.com/a31521424/watools.git
+cd watools
+```
 
-## 🚢 Release CD
+2. Install frontend dependencies.
 
-The repository includes a GitHub Actions release workflow for packaging and publishing Windows/macOS installers, plus a GitHub Releases based self-update manifest.
+```sh
+cd frontend
+pnpm install
+cd ..
+```
 
--   Workflow definition: [`/.github/workflows/release.yml`](./.github/workflows/release.yml)
--   Release/CD notes: [`docs/release-cd.md`](./docs/release-cd.md)
+3. Start the development app.
 
----
+```sh
+wails dev
+```
 
-## 🔌 Official Plugins
+4. Build a production binary.
 
-Official plugin sources now live in [`plugins/official`](./plugins/official).
+```sh
+wails build
+```
 
-Current official plugins:
+The output binary is written to `build/bin/`.
 
--   `watools.plugin.common`: open URLs and file paths, copy pasted file paths, save clipboard images
--   `watools.plugin.calculator`: command-palette calculator plus calculator panel with persisted history
--   `watools.plugin.json`: explicit-trigger JSON editor with auto-format on seed/paste, live structure preview, and minified copy
--   `watools.plugin.qr`: two-pane QR workspace for text-to-image generation and image-to-text decoding
--   `watools.plugin.translate`: translation panel with persisted language preferences
--   `watools.plugin.textstats`: explicit-trigger text statistics panel with command-context prefilling support
+## Official Plugins
 
-`fronted-plugin/` is now legacy reference material only.
+Official plugin source code lives in [`plugins/official`](./plugins/official).
 
-### Plugin Commands
+Current official plugins include:
 
-List official plugins:
+- `watools.plugin.common`
+- `watools.plugin.calculator`
+- `watools.plugin.json`
+- `watools.plugin.qr`
+- `watools.plugin.translate`
+- `watools.plugin.textstats`
+
+Useful plugin commands:
 
 ```sh
 go run ./cmd/pluginctl list
-```
-
-Package all official plugins into `plugins/dist`:
-
-```sh
 go run ./cmd/pluginctl package
-```
-
-Install all official plugins into the local WaTools cache:
-
-```sh
 go run ./cmd/pluginctl install
 ```
 
-Package or install one plugin by package ID:
+More plugin details:
 
-```sh
-go run ./cmd/pluginctl package watools.plugin.calculator
-go run ./cmd/pluginctl install watools.plugin.translate
-```
+- [`plugins/README.md`](./plugins/README.md)
+- [`docs/PLUGIN_DEVELOPMENT_INDEX.md`](./docs/PLUGIN_DEVELOPMENT_INDEX.md)
 
-For more details, see:
+## Release and Updates
 
--   [`docs/README.md`](docs/README.md)
--   [`plugins/README.md`](./plugins/README.md)
--   [`docs/PLUGIN_DEVELOPMENT_INDEX.md`](docs/PLUGIN_DEVELOPMENT_INDEX.md)
+The repository includes a GitHub Actions release workflow and app update support.
 
-UI plugin context model:
+- Workflow: [`/.github/workflows/release.yml`](./.github/workflows/release.yml)
+- Notes: [`docs/release-cd.md`](./docs/release-cd.md)
 
--   `match(context)` and `execute(context)` receive `PluginContext`
--   iframe UI plugins should read the same `PluginContext` from `window.pluginContext`
--   iframe UI plugins should also listen for `watools:context-ready`
--   `seed` query params and `window.inputValue` are compatibility fallbacks, not the recommended interface
+## Trust Model
 
-### Plugin Trust Model
+Installed plugins are currently treated as trusted local code chosen by the user. WaTools is not positioned as a hardened sandbox for an untrusted public marketplace.
 
-WaTools currently treats installed plugins as trusted code chosen by the user.
+## Contributing
 
--   Plugins are not positioned as a hardened sandbox for arbitrary third-party marketplace code.
--   Official plugin install and packaging flows are intended for trusted local development and distribution.
+Issues and pull requests are welcome. If you are changing architecture, plugin behavior, or developer-facing workflows, update the matching docs under [`docs/`](./docs/) together with the code.
 
----
+## License
 
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/a31521424/watools/issues).
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+This project is licensed under the MIT License.
