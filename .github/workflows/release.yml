@@ -136,6 +136,40 @@ jobs:
         shell: pwsh
         run: choco install nsis -y
 
+      - name: Configure NSIS PATH
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $candidates = @(
+            "${env:ProgramFiles(x86)}\NSIS",
+            "${env:ProgramFiles}\NSIS",
+            "${env:ChocolateyInstall}\bin"
+          ) | Where-Object { $_ -and (Test-Path $_) }
+
+          foreach ($dir in $candidates) {
+            Add-Content -Path $env:GITHUB_PATH -Value $dir
+          }
+
+          $makensisCommand = Get-Command makensis -ErrorAction SilentlyContinue
+          $makensisPath = if ($makensisCommand) { $makensisCommand.Source } else { $null }
+          if (-not $makensisPath) {
+            foreach ($dir in $candidates) {
+              $candidateExe = Join-Path $dir "makensis.exe"
+              if (Test-Path $candidateExe) {
+                $makensisPath = $candidateExe
+                break
+              }
+            }
+          }
+
+          if (-not $makensisPath) {
+            Write-Host "NSIS directories checked:"
+            $candidates | ForEach-Object { Write-Host " - $_" }
+            throw "makensis.exe not found after NSIS installation"
+          }
+
+          & $makensisPath /VERSION
+
       - name: Build Windows installer
         if: runner.os == 'Windows'
         shell: bash
