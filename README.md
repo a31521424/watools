@@ -61,7 +61,7 @@ To get a local copy up and running for development, follow these simple steps.
     ```
 3.  **Install frontend dependencies:**
     ```sh
-    cd frontend && npm install && cd ..
+    cd frontend && pnpm install && cd ..
     ```
 4.  **Run in development mode:**
     This command starts the application with live-reloading for both the Go backend and the React frontend.

@@ -98,9 +98,9 @@ export default defineConfig({
 **构建和打包**:
 
 ```bash
-npm install
-npm run build
-npm run package
+pnpm install
+pnpm run build
+pnpm run package
 ```
 
 ## 核心配置参考

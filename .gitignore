@@ -1,19 +1,18 @@
-build/bin
-node_modules
-frontend/dist
-plugins/dist/*
-!plugins/dist/.gitkeep
+build/bin/
+node_modules/
 
-.vscode
-.idea
+.cache/
+.claude/
+
+.idea/
+.vscode/
 
 .DS_Store
-.cache/
-plugins/**/.DS_Store
-
-.claude/
+*.log
+coverage/
+frontend/coverage/
+tmp/
 
 # Plugin packaging / local verification artifacts
 *.wt
 *.zip
-tmp/
