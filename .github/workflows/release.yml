@@ -67,6 +67,8 @@ jobs:
   build:
     needs: prepare
     runs-on: ${{ matrix.os }}
+    env:
+      npm_config_store_dir: ${{ github.workspace }}/frontend/.pnpm-store
     strategy:
       fail-fast: false
       matrix:
@@ -94,6 +96,12 @@ jobs:
           node-version: 20
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Show pnpm environment
+        shell: bash
+        run: |
+          pnpm --version
+          pnpm store path
 
       - name: Install frontend dependencies
         shell: bash
