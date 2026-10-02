@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
+	"sync"
 	"watools/config"
 	"watools/pkg/db"
 	"watools/pkg/logger"
@@ -18,31 +19,51 @@ import (
 	"watools/pkg/utils"
 )
 
+var installationMu sync.Mutex
+
+type pluginRepository interface {
+	GetPlugins(context.Context) ([]*models.PluginState, error)
+	InsertPlugin(context.Context, db.InsertPluginParams) error
+	DeletePlugin(context.Context, string) error
+}
+
 type PluginInstaller struct {
 	ctx        context.Context
 	pluginsDir string
+	repository pluginRepository
 }
 
 func NewPluginInstaller(ctx context.Context) *PluginInstaller {
-	pluginsDir := filepath.Join(config.ProjectCacheDir(), "plugins")
+	pluginsDir := filepath.Join(config.ProjectDataDir(), "plugins")
 	return &PluginInstaller{
 		ctx:        ctx,
 		pluginsDir: pluginsDir,
 	}
 }
 
+func (pi *PluginInstaller) database() pluginRepository {
+	if pi.repository != nil {
+		return pi.repository
+	}
+	return db.GetWaDB()
+}
+
 // InstallFromWtFile installs a plugin from a .wt file (zip format)
 func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
+	installationMu.Lock()
+	defer installationMu.Unlock()
 	logger.Info(fmt.Sprintf("Installing plugin from: %s", wtFilePath))
 
 	// 1. 验证文件存在
-	if _, err := os.Stat(wtFilePath); os.IsNotExist(err) {
-		return fmt.Errorf("plugin file not found: %s", wtFilePath)
+	if info, err := os.Stat(wtFilePath); err != nil {
+		return fmt.Errorf("plugin file unavailable: %w", err)
+	} else if !info.Mode().IsRegular() {
+		return fmt.Errorf("plugin package must be a regular file")
 	}
 
 	// 2. 创建临时解压目录
-	tempDir := filepath.Join(os.TempDir(), fmt.Sprintf("watools_plugin_%d", time.Now().Unix()))
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
+	tempDir, err := os.MkdirTemp("", "watools-plugin-*")
+	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
 	defer os.RemoveAll(tempDir)
@@ -73,27 +94,25 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 	}
 
 	// 6. 同包插件安装时，只有版本不低于已安装版本才允许覆盖安装
-	if installedPlugin, found := pi.findInstalledPlugin(manifest.PackageID); found {
-		installedManifest, err := installedPlugin.GetMetadata()
-		if err != nil {
-			return fmt.Errorf("failed to read installed plugin manifest: %w", err)
-		}
+	_, installed, err := pi.findInstalledPlugin(manifest.PackageID)
+	if err != nil {
+		return err
+	}
+	if installed {
+		installedRoot, _, rootErr := models.ResolveInstalledPlugin(pi.pluginsDir, manifest.PackageID)
+		installedManifest, metadataErr := pi.readManifest(filepath.Join(installedRoot, "manifest.json"))
+		// A damaged old manifest must not prevent a validated repair installation.
+		if rootErr == nil && metadataErr == nil {
+			versionComparison, err := comparePluginVersions(manifest.Version, installedManifest.Version)
+			if err == nil && versionComparison < 0 {
+				return fmt.Errorf(
+					"plugin %s version %s is older than installed version %s",
+					manifest.PackageID,
+					manifest.Version,
+					installedManifest.Version,
+				)
+			}
 
-		versionComparison, err := comparePluginVersions(manifest.Version, installedManifest.Version)
-		if err != nil {
-			return fmt.Errorf("failed to compare plugin versions: %w", err)
-		}
-		if versionComparison < 0 {
-			return fmt.Errorf(
-				"plugin %s version %s is older than installed version %s",
-				manifest.PackageID,
-				manifest.Version,
-				installedManifest.Version,
-			)
-		}
-
-		if err := pi.UninstallPlugin(manifest.PackageID); err != nil {
-			return fmt.Errorf("failed to replace installed plugin %s: %w", manifest.PackageID, err)
 		}
 	}
 
@@ -102,20 +121,45 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 	if err != nil {
 		return fmt.Errorf("invalid package installation path: %w", err)
 	}
-	if err := os.MkdirAll(pluginDir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(pluginDir, "versions"), 0700); err != nil {
 		return fmt.Errorf("failed to create plugin directory: %w", err)
 	}
 
 	// 8. 复制文件到插件目录
-	if err := pi.copyDir(pluginRoot, pluginDir); err != nil {
-		os.RemoveAll(pluginDir) // 清理失败的安装
+	revision := uuid.NewString()
+	versionDir := filepath.Join(pluginDir, "versions", revision)
+	if err := pi.copyDir(pluginRoot, versionDir); err != nil {
+		os.RemoveAll(versionDir)
 		return fmt.Errorf("failed to copy plugin files: %w", err)
 	}
 
 	// 9. 插入数据库记录
-	if err := pi.registerPlugin(manifest, pluginDir); err != nil {
-		os.RemoveAll(pluginDir) // 清理失败的安装
-		return fmt.Errorf("failed to register plugin: %w", err)
+	if !installed {
+		if err := pi.registerPlugin(manifest, versionDir); err != nil {
+			os.RemoveAll(versionDir)
+			return fmt.Errorf("failed to register plugin: %w", err)
+		}
+	}
+	// The only commit for an upgrade is this pointer switch. User state is untouched.
+	pointer, err := os.CreateTemp(pluginDir, ".current-*")
+	if err == nil {
+		_, err = fmt.Fprintf(pointer, `{"revision":%q}`, revision)
+		if closeErr := pointer.Close(); err == nil {
+			err = closeErr
+		}
+		if err == nil {
+			err = os.Rename(pointer.Name(), filepath.Join(pluginDir, "current.json"))
+		}
+		os.Remove(pointer.Name())
+	}
+	if err != nil {
+		os.RemoveAll(versionDir)
+		if !installed {
+			if rollbackErr := pi.database().DeletePlugin(pi.ctx, manifest.PackageID); rollbackErr != nil {
+				return fmt.Errorf("commit failed: %v; rollback failed: %w", err, rollbackErr)
+			}
+		}
+		return fmt.Errorf("failed to commit plugin revision: %w", err)
 	}
 
 	logger.Info(fmt.Sprintf("Plugin installed successfully: %s", manifest.PackageID))
@@ -124,15 +168,20 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 
 // UninstallPlugin uninstalls a plugin
 func (pi *PluginInstaller) UninstallPlugin(packageID string) error {
+	installationMu.Lock()
+	defer installationMu.Unlock()
 	logger.Info(fmt.Sprintf("Uninstalling plugin: %s", packageID))
 	if err := utils.ValidatePluginPackageID(packageID); err != nil {
 		return fmt.Errorf("invalid packageId: %w", err)
 	}
 
-	dbInstance := db.GetWaDB()
+	dbInstance := pi.database()
 
 	// 1. 检查插件是否存在
-	plugins := dbInstance.GetPlugins(pi.ctx)
+	plugins, err := dbInstance.GetPlugins(pi.ctx)
+	if err != nil {
+		return err
+	}
 	var found bool
 	for _, p := range plugins {
 		if p.PackageID == packageID {
@@ -152,13 +201,27 @@ func (pi *PluginInstaller) UninstallPlugin(packageID string) error {
 	if err != nil {
 		return fmt.Errorf("invalid package uninstall path: %w", err)
 	}
-	if err := os.RemoveAll(pluginDir); err != nil {
-		logger.Error(err, fmt.Sprintf("Failed to remove plugin directory: %s", pluginDir))
+	trash := filepath.Join(pi.pluginsDir, ".removed-"+uuid.NewString())
+	moved := false
+	if err := os.Rename(pluginDir, trash); err == nil {
+		moved = true
+	} else if !os.IsNotExist(err) {
+		return err
 	}
 
 	// 4. 从数据库删除
 	if err := dbInstance.DeletePlugin(pi.ctx, packageID); err != nil {
+		if moved {
+			if restoreErr := os.Rename(trash, pluginDir); restoreErr != nil {
+				return fmt.Errorf("delete failed: %v; restore failed: %w", err, restoreErr)
+			}
+		}
 		return fmt.Errorf("failed to delete plugin from database: %w", err)
+	}
+	if moved {
+		if err := os.RemoveAll(trash); err != nil {
+			logger.Error(err, "Failed to clean removed plugin")
+		}
 	}
 
 	logger.Info(fmt.Sprintf("Plugin uninstalled successfully: %s", packageID))
@@ -173,22 +236,38 @@ func (pi *PluginInstaller) unzipFile(src, dest string) error {
 	}
 	defer r.Close()
 
+	const maxFiles = 10000
+	const maxFileSize = 64 << 20
+	const maxTotalSize = 256 << 20
+	if len(r.File) > maxFiles {
+		return fmt.Errorf("plugin archive contains too many files")
+	}
+	var total uint64
 	for _, f := range r.File {
+		if f.Mode()&os.ModeType != 0 && !f.FileInfo().IsDir() {
+			return fmt.Errorf("archive contains a special file: %s", f.Name)
+		}
+		if f.UncompressedSize64 > maxFileSize || total+f.UncompressedSize64 > maxTotalSize {
+			return fmt.Errorf("plugin archive exceeds extraction limits")
+		}
+		total += f.UncompressedSize64
 		fpath, err := utils.ResolvePathWithinBase(dest, f.Name)
 		if err != nil {
 			return fmt.Errorf("invalid file path %q: %w", f.Name, err)
 		}
 
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(fpath, os.ModePerm)
+			if err := os.MkdirAll(fpath, 0700); err != nil {
+				return err
+			}
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(fpath), 0700); err != nil {
 			return err
 		}
 
-		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 		if err != nil {
 			return err
 		}
@@ -199,9 +278,17 @@ func (pi *PluginInstaller) unzipFile(src, dest string) error {
 			return err
 		}
 
-		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
+		var written int64
+		written, err = io.Copy(outFile, io.LimitReader(rc, maxFileSize+1))
+		if closeErr := outFile.Close(); err == nil {
+			err = closeErr
+		}
+		if closeErr := rc.Close(); err == nil {
+			err = closeErr
+		}
+		if written > maxFileSize || uint64(written) != f.UncompressedSize64 {
+			return fmt.Errorf("invalid expanded file size")
+		}
 
 		if err != nil {
 			return err
@@ -274,14 +361,17 @@ func (pi *PluginInstaller) validateManifest(manifest *models.PluginMetadata) err
 	return nil
 }
 
-func (pi *PluginInstaller) findInstalledPlugin(packageID string) (*models.PluginState, bool) {
-	plugins := db.GetWaDB().GetPlugins(pi.ctx)
+func (pi *PluginInstaller) findInstalledPlugin(packageID string) (*models.PluginState, bool, error) {
+	plugins, err := pi.database().GetPlugins(pi.ctx)
+	if err != nil {
+		return nil, false, err
+	}
 	for _, plugin := range plugins {
 		if plugin.PackageID == packageID {
-			return plugin, true
+			return plugin, true, nil
 		}
 	}
-	return nil, false
+	return nil, false, nil
 }
 
 type pluginVersion struct {
@@ -458,6 +548,9 @@ func (pi *PluginInstaller) copyDir(src, dst string) error {
 		if info.IsDir() {
 			return os.MkdirAll(targetPath, info.Mode())
 		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("plugin contains a special file")
+		}
 
 		return pi.copyFile(path, targetPath)
 	})
@@ -475,9 +568,12 @@ func (pi *PluginInstaller) copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer dstFile.Close()
 
 	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		dstFile.Close()
+		return err
+	}
+	if err := dstFile.Close(); err != nil {
 		return err
 	}
 
@@ -491,7 +587,7 @@ func (pi *PluginInstaller) copyFile(src, dst string) error {
 
 // registerPlugin creates database record for the plugin
 func (pi *PluginInstaller) registerPlugin(manifest *models.PluginMetadata, installPath string) error {
-	dbInstance := db.GetWaDB()
+	dbInstance := pi.database()
 
 	// 简化: 只存储必需的字段,安装路径可以通过 packageId 动态计算
 	return dbInstance.InsertPlugin(pi.ctx, db.InsertPluginParams{

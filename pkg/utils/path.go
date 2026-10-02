@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -59,4 +60,14 @@ func ResolvePathWithinBase(baseDir string, relativePath string) (string, error) 
 	}
 
 	return absTarget, nil
+}
+
+// FileURI encodes local filesystem paths without interpreting a Windows drive
+// letter as a URL authority. Query characters in filenames stay part of the path.
+func FileURI(filePath string) string {
+	normalized := strings.ReplaceAll(filePath, "\\", "/")
+	if len(normalized) >= 2 && normalized[1] == ':' {
+		normalized = "/" + normalized
+	}
+	return (&url.URL{Scheme: "file", Path: normalized}).String()
 }

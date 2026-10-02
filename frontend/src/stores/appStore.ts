@@ -2,6 +2,7 @@ import {create} from "zustand";
 import {AppClipboardContent, AppClipboardContentType, AppInputValueType} from "@/schemas/app";
 
 type AppState = {
+    inputRevision: number
     displayValue: string
     compressedDisplay: boolean
     value: string
@@ -22,6 +23,7 @@ const resetState = {
 }
 const initialState: AppState = {
     ...resetState,
+    inputRevision: 0,
     lastCopiedValue: null,
 }
 
@@ -29,37 +31,20 @@ type AppStore = AppState & {
     setTextValue: (value: string) => void
     setClipboardValue: (value: string, isAuto?: boolean) => void
     setValue: (value: string, type: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => void
-    setValueAuto: (value: string, type: AppInputValueType, onSuccess?: () => void) => void
+    setValueAuto: (value: string, type: AppInputValueType, onSuccess?: () => void, expectedRevision?: number) => void
     getValue: () => string
     clearValue: () => void
-    setClipboardContent: (content: AppClipboardContent | null) => void
+    setClipboardContent: (content: AppClipboardContent | null, expectedRevision?: number) => void
     isPanelOpen: () => boolean
     canClearAssets: () => boolean
     getClipboardContent: () => AppClipboardContent | null
 }
 
-const createDebounce = (fn: (...args: any[]) => void, delay: number) => {
-    let timer: ReturnType<typeof setTimeout> | null = null
-    return (...args: any[]) => {
-        if (timer) {
-            clearTimeout(timer)
-        }
-        timer = setTimeout(() => {
-            fn(...args)
-        }, delay)
-    }
-}
-
 export const useAppStore = create<AppStore>((set, get) => {
-    const debouncedSetValue = createDebounce((value: string) => {
-        set({value})
-    }, 50)
-
     return {
         ...initialState,
         setTextValue: (value: string) => {
-            set({displayValue: value, valueType: "text"})
-            debouncedSetValue(value)
+            set(state => ({...resetState, inputRevision: state.inputRevision + 1, displayValue: value, value, valueType: "text"}))
         },
         setClipboardValue: (value: string, isAuto?: boolean) => {
             if (!value.length) {
@@ -72,13 +57,16 @@ export const useAppStore = create<AppStore>((set, get) => {
                 compressedDisplay = true
             }
             if (value) {
-                set({
+                set(state => ({
+                    ...resetState,
+                    inputRevision: state.inputRevision + 1,
                     displayValue: displayValue,
                     value,
                     valueType: "clipboard",
+                    clipboardContentType: 'text',
                     lastCopiedValue: value,
                     compressedDisplay
-                })
+                }))
             }
         },
         setValue: (value: string, valueType: AppInputValueType, onSuccess?: () => void, isAuto?: boolean) => {
@@ -93,7 +81,8 @@ export const useAppStore = create<AppStore>((set, get) => {
 
         },
         // Set value by clipboard auto only when there is no similar value
-        setValueAuto: (value: string, valueType: AppInputValueType, onSuccess?: () => void) => {
+        setValueAuto: (value: string, valueType: AppInputValueType, onSuccess?: () => void, expectedRevision?: number) => {
+            if (expectedRevision !== undefined && expectedRevision !== get().inputRevision) return
             if (get().value) {
                 return
             }
@@ -102,33 +91,41 @@ export const useAppStore = create<AppStore>((set, get) => {
             }
             get().setValue(value, valueType, onSuccess, true)
         },
-        setClipboardContent: (content: AppClipboardContent | null) => {
+        setClipboardContent: (content: AppClipboardContent | null, expectedRevision?: number) => {
+            if (expectedRevision !== undefined && expectedRevision !== get().inputRevision) return
             if (!content) {
                 return
             }
-            if (content.contentType === "image" && content.imageBase64) {
-                set({
+            if (content.contentType === "text") {
+                if (content.text) get().setClipboardValue(content.text)
+                else get().clearValue()
+            } else if (content.contentType === "image" && content.imageBase64) {
+                set(state => ({
+                    ...resetState,
+                    inputRevision: state.inputRevision + 1,
                     imageBase64: content.imageBase64,
                     files: null,
                     clipboardContentType: content.contentType,
                     value: '',
                     displayValue: '',
                     valueType: 'clipboard',
-                })
+                }))
             } else if (content.contentType === "files" && content.files) {
-                set({
+                set(state => ({
+                    ...resetState,
+                    inputRevision: state.inputRevision + 1,
                     files: content.files,
-                    imageBase64: content.imageBase64,
+                    imageBase64: null,
                     clipboardContentType: content.contentType,
                     value: '',
                     displayValue: '',
                     valueType: 'clipboard',
-                })
+                }))
             }
         },
         getValue: () => get().value,
         clearValue: () => {
-            set(resetState)
+            set(state => ({...resetState, inputRevision: state.inputRevision + 1}))
         },
         isPanelOpen: () => {
             const state = get()

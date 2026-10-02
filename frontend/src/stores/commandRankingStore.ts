@@ -33,9 +33,11 @@ export const useCommandRankingStore = create<CommandRankingState>()(
         }),
         {
             name: "watools-command-ranking",
+            version: 2,
+            migrate: persisted => ({history: ((persisted as {history?: RankingSelectionRecord[]})?.history || []).map(record => ({...record, inputKey: '', normalizedValue: ''}))}),
             storage: createJSONStorage(() => localStorage),
             partialize: state => ({
-                history: state.history
+                history: state.history.map(record => ({...record, inputKey: '', normalizedValue: ''}))
             }),
         }
     )

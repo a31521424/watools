@@ -54,6 +54,12 @@ func ProjectVersion() string {
 }
 
 func ProjectCacheDir() string {
+	if override := os.Getenv("WATOOLS_CACHE_DIR"); override != "" {
+		if err := os.MkdirAll(override, 0700); err != nil {
+			panic(err)
+		}
+		return override
+	}
 	userCacheDir, err := os.UserCacheDir()
 	if err != nil {
 		log.Printf("Failed to get user cache dir: %v", err)

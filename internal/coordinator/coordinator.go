@@ -11,6 +11,7 @@ import (
 	"watools/internal/app"
 	"watools/internal/command"
 	"watools/internal/plugin"
+	"watools/internal/secrets"
 	"watools/internal/update"
 	"watools/pkg/logger"
 	"watools/pkg/models"
@@ -48,12 +49,14 @@ func (w *WaAppCoordinator) Startup(ctx context.Context) {
 
 	config.InitWithWailsContext(ctx)
 
+	w.waApi.OnStartup(ctx)
 	w.waApp.OnStartup(ctx)
 	w.waLaunchApp.OnStartup(ctx)
 	w.waPluginApp.OnStartup(ctx)
 }
 
 func (w *WaAppCoordinator) Shutdown(ctx context.Context) {
+	w.waApi.Shutdown()
 	w.waApp.Shutdown(ctx)
 	w.waLaunchApp.Shutdown(ctx)
 	w.waPluginApp.OnShutdown(ctx)
@@ -89,12 +92,12 @@ func (w *WaAppCoordinator) GetOperatorCommandsApi() []interface{} {
 	return w.waLaunchApp.GetOperationCommands()
 }
 
-func (w *WaAppCoordinator) TriggerCommandApi(uniqueTriggerID string, triggerCategory string) {
+func (w *WaAppCoordinator) TriggerCommandApi(uniqueTriggerID string, triggerCategory string) error {
 	category, err := models.ParseCommandCategory(triggerCategory)
 	if err != nil {
-		logger.Error(err)
+		return err
 	}
-	w.waLaunchApp.TriggerCommand(uniqueTriggerID, category)
+	return w.waLaunchApp.TriggerCommand(uniqueTriggerID, category)
 }
 
 func (w *WaAppCoordinator) UpdateApplicationUsageApi(usageUpdates []map[string]interface{}) error {
@@ -106,8 +109,10 @@ func (w *WaAppCoordinator) UpdateApplicationUsageApi(usageUpdates []map[string]i
 
 		lastUsedAt, err := time.Parse(time.RFC3339, lastUsedAtStr)
 		if err != nil {
-			logger.Error(err, "Failed to parse lastUsedAt")
-			continue
+			return fmt.Errorf("invalid lastUsedAt at update %d: %w", i, err)
+		}
+		if usedCount < 0 || usedCount > 1e12 {
+			return fmt.Errorf("invalid usedCount at update %d", i)
 		}
 
 		updates[i] = models.ApplicationUsageUpdate{
@@ -124,7 +129,7 @@ func (w *WaAppCoordinator) UpdateApplicationUsageApi(usageUpdates []map[string]i
 
 // region plugin
 
-func (w *WaAppCoordinator) GetPluginsApi() []map[string]interface{} {
+func (w *WaAppCoordinator) GetPluginsApi() ([]map[string]interface{}, error) {
 	return w.waPluginApp.GetPlugins()
 }
 
@@ -141,8 +146,10 @@ func (w *WaAppCoordinator) UpdatePluginUsageApi(usageUpdates []map[string]interf
 
 		lastUsedAt, err := time.Parse(time.RFC3339, lastUsedAtStr)
 		if err != nil {
-			logger.Error(err, "Failed to parse lastUsedAt")
-			continue
+			return fmt.Errorf("invalid lastUsedAt at update %d: %w", i, err)
+		}
+		if usedCount < 0 || usedCount > 1e12 {
+			return fmt.Errorf("invalid usedCount at update %d", i)
 		}
 
 		updates[i] = models.PluginUsageUpdate{
@@ -179,11 +186,11 @@ func (w *WaAppCoordinator) TogglePluginApi(packageID string, enabled bool) error
 
 // region api
 
-func (w *WaAppCoordinator) OpenFolder(path string) {
-	w.waApi.OpenFolderWithPath(path)
+func (w *WaAppCoordinator) OpenFolder(path string) error {
+	return w.waApi.OpenFolderWithPath(path)
 }
 
-func (w *WaAppCoordinator) SaveBase64Image(base64Data string) string {
+func (w *WaAppCoordinator) SaveBase64Image(base64Data string) (string, error) {
 	return w.waApi.SaveBase64Image(base64Data)
 }
 
@@ -268,17 +275,17 @@ func (w *WaAppCoordinator) HttpProxyApi(requestMap map[string]interface{}) (map[
 	}
 
 	req := api.HttpProxyRequest{
-		URL:     url,
-		Method:  method,
-		Headers: headers,
-		Body:    body,
-		Timeout: int(timeout),
+		URL:       url,
+		RequestID: func() string { value, _ := requestMap["requestId"].(string); return value }(),
+		Method:    method,
+		Headers:   headers,
+		Body:      body,
+		Timeout:   int(timeout),
 	}
 
 	// Call API service
 	result, err := w.waApi.HttpProxy(req)
 	if err != nil {
-		logger.Error(err, "HTTP proxy request failed")
 		return map[string]interface{}{
 			"error":       err.Error(),
 			"status_code": 0,
@@ -367,3 +374,24 @@ func (w *WaAppCoordinator) ListPluginStorageKeysApi(requestMap map[string]interf
 }
 
 // end region plugin storage
+
+func (w *WaAppCoordinator) CancelHttpProxyApi(requestID string) { w.waApi.CancelHttpProxy(requestID) }
+
+func (w *WaAppCoordinator) GetPluginSecretApi(packageID, key string) (string, error) {
+	if !w.waPluginApp.IsEnabled(packageID) {
+		return "", fmt.Errorf("plugin is not enabled")
+	}
+	return secrets.Get(packageID, key)
+}
+func (w *WaAppCoordinator) SetPluginSecretApi(packageID, key, value string) error {
+	if !w.waPluginApp.IsEnabled(packageID) {
+		return fmt.Errorf("plugin is not enabled")
+	}
+	return secrets.Set(packageID, key, value)
+}
+func (w *WaAppCoordinator) DeletePluginSecretApi(packageID, key string) error {
+	if !w.waPluginApp.IsEnabled(packageID) {
+		return fmt.Errorf("plugin is not enabled")
+	}
+	return secrets.Remove(packageID, key)
+}

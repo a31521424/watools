@@ -48,13 +48,13 @@ func (a *WaApp) showAppAsPanel() {
 	a.checkAndRepositionIfNeeded()
 	runtime.WindowShow(a.ctx)
 	a.positionWindow()
-	a.isHidden = false
+	a.isHidden.Store(false)
 }
 
 func (a *WaApp) hideAppWithFocusReturn() {
-	if !a.isHidden {
+	if !a.isHidden.Load() {
 		runtime.WindowHide(a.ctx)
-		a.isHidden = true
+		a.isHidden.Store(true)
 	}
 }
 
@@ -67,7 +67,7 @@ func (a *WaApp) ShowApp() {
 }
 
 func (a *WaApp) HideOrShowApp() {
-	if a.isHidden {
+	if a.isHidden.Load() {
 		a.ShowApp()
 	} else {
 		a.HideApp()

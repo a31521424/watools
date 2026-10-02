@@ -1,0 +1,12 @@
+package watcher
+import("context";"testing";"github.com/fsnotify/fsnotify")
+func TestReviewProbeSendAfterStop(t *testing.T){
+ native,err:=fsnotify.NewWatcher();if err!=nil{t.Fatal(err)}
+ ctx,cancel:=context.WithCancel(context.Background())
+ fw:=&FSWatcher{watcher:native,ctx:ctx,cancel:cancel,eventCh:make(chan AppChangeEvent,1),running:true}
+ if err:=fw.Stop();err!=nil{t.Fatal(err)}
+ var caught any
+ for i:=0;i<100 && caught==nil;i++ {func(){defer func(){caught=recover()}();fw.processEvent(fsnotify.Event{Name:"/private/tmp/probe.app",Op:fsnotify.Create})}()}
+ if caught==nil {t.Fatal("send-after-close did not reproduce")}
+ t.Logf("Observed callback-after-Stop panic: %v",caught)
+}

@@ -14,7 +14,7 @@ This directory is the source of truth for WaTools official plugins.
 - `watools.plugin.calculator`: executable calculator + calculator panel with history
 - `watools.plugin.json`: explicit-trigger JSON editor with seed/paste auto-formatting, expanded preview, and minified copy
 - `watools.plugin.qr`: two-pane QR workspace for seeded text generation and clipboard image decoding
-- `watools.plugin.translate`: translation panel with persisted language preferences
+- `watools.plugin.translate`: translation panel with OS-backed API key storage
 - `watools.plugin.textstats`: explicit-trigger text statistics panel with multidimensional counts
 
 ## Commands
@@ -37,7 +37,7 @@ Package a specific plugin:
 go run ./cmd/pluginctl package watools.plugin.calculator
 ```
 
-Install all official plugins into the local WaTools cache:
+Install all official plugins into the local WaTools data directory:
 
 ```bash
 go run ./cmd/pluginctl install
@@ -56,4 +56,6 @@ go run ./cmd/pluginctl install watools.plugin.translate
 - `go run ./cmd/pluginctl install ...` uses the same backend installer logic as the app.
 - `fronted-plugin/` is now legacy reference material. New official plugins belong here.
 - UI plugins should read launch data from `window.pluginContext` and `watools:context-ready`.
-- `seed` query params and `window.inputValue` are compatibility fallbacks only.
+- `seed` query params and `window.inputValue` are compatibility fallbacks only. The host does not put input text in URLs.
+- Repackage and reinstall changed official plugins; updating the host alone does not replace installed plugin files.
+- Translation requires the new Secret API. Secure storage failures are reported without writing a plaintext fallback.

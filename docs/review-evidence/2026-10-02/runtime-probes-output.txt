@@ -1,0 +1,10 @@
+debounce-after-clear {"value":"old pending query","displayValue":""}
+typed-after-image {"value":"json","contentType":"image","image":"fake-image"}
+enabled-without-load {"packageId":"watools.plugin.probe","enabled":true,"entry":[],"usedCount":0}
+usage-update-during-flush {"usedCount":2,"bufferSize":0}
+json-parser {"input":"{\"a\":1,","result":{"a":1}}
+json-parser {"input":"[1,","result":[1]}
+json-parser {"input":"{\"x\":\"raw\nnewline\"}","result":{"x":"raw\nnewline"}}
+json-parser {"input":"{\"__proto__\":{\"hidden\":true},\"a\":1}","result":{"a":1}}
+query-prototype-key {"constructor":[null,"abc"],"toString":[null,"def"]}
+translation-stale-response {"calls":1,"currentInput":"new","output":"translation of old"}

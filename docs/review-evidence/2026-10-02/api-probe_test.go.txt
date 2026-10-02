@@ -1,0 +1,8 @@
+package api
+import("strings";"testing";"path/filepath")
+func TestReviewProbeOpenFolderStatError(t *testing.T) {
+ var caught any
+ func(){defer func(){caught=recover()}(); GetWaApi().OpenFolderWithPath(filepath.Join(t.TempDir(),strings.Repeat("a",300)))}()
+ if caught==nil {t.Fatal("expected observed nil-stat panic was not reproduced")}
+ t.Logf("Observed panic for ENAMETOOLONG: %v",caught)
+}

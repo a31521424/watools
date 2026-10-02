@@ -60,9 +60,9 @@
 ### 安装与状态
 
 - 插件安装来源是 `.wt` 包
-- 安装后复制到本地缓存目录
+- 安装后写入持久数据目录中的独立 revision，再切换 current.json；升级保留配置和统计
 - 启用状态、使用次数和存储内容会写入 SQLite
-- 前端通过 `GetPluginsApi` 获得完整插件元数据
+- 前端通过 `GetPluginsApi` 获得插件元数据和加载错误，列表不返回 storage 内容
 
 ### 两类插件入口
 
@@ -86,12 +86,9 @@ UI 插件页由 [`frontend/src/components/watools/wa-plugin.tsx`](../frontend/sr
 
 ### executable 插件执行
 
-可执行插件在触发时会临时把 `window.watools` 替换为带 package scope 的 API 实例，执行后再恢复。
+可执行插件串行执行，执行期间将 `window.watools` 设为该包的 API，完成后恢复。新插件也可以从 `execute(context, api)` 的第二个参数接收 API。
 
-这保证：
-
-- 插件可以访问宿主能力
-- 插件存储可以按 `packageId` 做隔离
+Storage 使用 packageId 区分数据归属。当前采用可信插件模型，插件仍可访问宿主页面和完整桥接；这个约定不构成对恶意插件的安全隔离。
 
 ## 统计与排序机制
 
@@ -100,7 +97,7 @@ UI 插件页由 [`frontend/src/components/watools/wa-plugin.tsx`](../frontend/sr
 ### 使用统计
 
 - 前端分别缓冲应用命令与插件的使用更新
-- 页面隐藏、卸载或触发动作后批量提交
+- 正常触发后立即提交，多个并发更新由快照缓冲串行处理；失败保留并重试
 - 后端负责持久化到 SQLite
 
 ### 排序

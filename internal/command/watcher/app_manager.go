@@ -1,8 +1,11 @@
+//go:build darwin || windows
+
 package watcher
 
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 	"watools/internal/command/application"
@@ -15,16 +18,16 @@ import (
 
 // appWatchManager app watch manager darwin implementation
 type appWatchManager struct {
-	fsWatcher     *FSWatcher
-	eventHandler  AppEventHandler
-	errorHandler  ErrorHandler
-	config        *WatcherConfig
-	metrics       *WatcherMetrics
-	ctx           context.Context
-	cancel        context.CancelFunc
-	mu            sync.RWMutex
-	running       bool
-	processedApps map[string]time.Time // prevent duplicate processing
+	fsWatcher    *FSWatcher
+	eventHandler AppEventHandler
+	errorHandler ErrorHandler
+	config       *WatcherConfig
+	metrics      *WatcherMetrics
+	ctx          context.Context
+	cancel       context.CancelFunc
+	mu           sync.RWMutex
+	running      bool
+	workers      sync.WaitGroup
 }
 
 // NewAppWatchManager create app watch manager
@@ -48,21 +51,20 @@ func NewAppWatchManagerWithConfig(handler AppEventHandler, ctx context.Context, 
 		return nil, fmt.Errorf("failed to create fs watcher: %w", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 
 	errorHandler := NewDefaultErrorHandler(&config.RetryConfig)
 	metrics := NewWatcherMetrics()
 
 	awm := &appWatchManager{
-		fsWatcher:     fsWatcher,
-		eventHandler:  handler,
-		errorHandler:  errorHandler,
-		config:        config,
-		metrics:       metrics,
-		ctx:           ctx,
-		cancel:        cancel,
-		running:       false,
-		processedApps: make(map[string]time.Time),
+		fsWatcher:    fsWatcher,
+		eventHandler: handler,
+		errorHandler: errorHandler,
+		config:       config,
+		metrics:      metrics,
+		ctx:          ctx,
+		cancel:       cancel,
+		running:      false,
 	}
 
 	// add custom watch directories
@@ -92,10 +94,8 @@ func (awm *appWatchManager) Start() error {
 	awm.running = true
 
 	// start event handling goroutine
-	go awm.handleAppEvents()
-
-	// start cleanup goroutine
-	go awm.cleanupProcessedApps()
+	awm.workers.Add(1)
+	go func() { defer awm.workers.Done(); awm.handleAppEvents() }()
 
 	logger.Info("AppWatchManager started")
 	return nil
@@ -104,21 +104,12 @@ func (awm *appWatchManager) Start() error {
 // Stop stop watch manager
 func (awm *appWatchManager) Stop() error {
 	awm.mu.Lock()
-	defer awm.mu.Unlock()
-
-	if !awm.running {
-		return nil
-	}
-
-	awm.cancel()
 	awm.running = false
-
-	if err := awm.fsWatcher.Stop(); err != nil {
-		logger.Error(err, "Failed to stop fs watcher")
-	}
-
-	logger.Info("AppWatchManager stopped")
-	return nil
+	awm.cancel()
+	awm.mu.Unlock()
+	err := awm.fsWatcher.Stop()
+	awm.workers.Wait()
+	return err
 }
 
 // handleAppEvents handle app events
@@ -135,46 +126,23 @@ func (awm *appWatchManager) handleAppEvents() {
 				return
 			}
 
-			// check if recently processed
-			if awm.isRecentlyProcessed(event.Path) {
-				continue
-			}
-
 			awm.processAppEvent(event)
 		}
 	}
-}
-
-// isRecentlyProcessed check if recently processed
-func (awm *appWatchManager) isRecentlyProcessed(path string) bool {
-	awm.mu.RLock()
-	lastProcessed, exists := awm.processedApps[path]
-	awm.mu.RUnlock()
-
-	if !exists {
-		return false
-	}
-
-	// skip if processed within 5 seconds
-	return time.Since(lastProcessed) < 5*time.Second
-}
-
-// markAsProcessed mark as processed
-func (awm *appWatchManager) markAsProcessed(path string) {
-	awm.mu.Lock()
-	awm.processedApps[path] = time.Now()
-	awm.mu.Unlock()
 }
 
 // processAppEvent process single app event
 func (awm *appWatchManager) processAppEvent(event AppChangeEvent) {
 	startTime := time.Now()
 	defer func() {
+		awm.mu.Lock()
+		defer awm.mu.Unlock()
 		awm.metrics.AddProcessingTime(time.Since(startTime))
 	}()
 
-	awm.markAsProcessed(event.Path)
+	awm.mu.Lock()
 	awm.metrics.IncrementEventByType(event.Type)
+	awm.mu.Unlock()
 
 	// use retryable operation to process event
 	operation := func() error {
@@ -192,18 +160,24 @@ func (awm *appWatchManager) processAppEvent(event AppChangeEvent) {
 
 	retryableOp := NewRetryableOperation(operation, awm.errorHandler, &awm.config.RetryConfig)
 
-	if err := retryableOp.Execute(); err != nil {
+	if err := retryableOp.ExecuteContext(awm.ctx); err != nil {
 		awm.errorHandler.HandleEventError(err, event)
+		awm.mu.Lock()
 		awm.metrics.IncrementErrorsCount()
+		awm.mu.Unlock()
 	} else {
+		awm.mu.Lock()
 		awm.metrics.IncrementEventsProcessed()
+		awm.mu.Unlock()
 	}
 }
 
 // handleAppAddedWithRetry handle app added event with retry
 func (awm *appWatchManager) handleAppAddedWithRetry(path string) error {
 	// delay to ensure app is fully installed
-	time.Sleep(awm.config.GetAppAddedDelay())
+	if err := awm.wait(awm.config.GetAppAddedDelay()); err != nil {
+		return err
+	}
 
 	command, err := application.ParseApplication(path)
 	if err != nil {
@@ -231,12 +205,16 @@ func (awm *appWatchManager) handleAppRemovedWithRetry(path string) error {
 // handleAppModifiedWithRetry handle app modified event with retry
 func (awm *appWatchManager) handleAppModifiedWithRetry(path string) error {
 	// delay to ensure modification is complete
-	time.Sleep(awm.config.GetAppModifiedDelay())
+	if err := awm.wait(awm.config.GetAppModifiedDelay()); err != nil {
+		return err
+	}
 
 	command, err := application.ParseApplication(path)
 	if err != nil {
-		// if parsing fails, app might be removed
-		return awm.handleAppRemovedWithRetry(path)
+		if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
+			return awm.handleAppRemovedWithRetry(path)
+		}
+		return err
 	}
 
 	if err := awm.eventHandler.OnAppModified(command); err != nil {
@@ -245,30 +223,6 @@ func (awm *appWatchManager) handleAppModifiedWithRetry(path string) error {
 
 	logger.Info(fmt.Sprintf("Successfully handled modified application: %s", command.Name))
 	return nil
-}
-
-// cleanupProcessedApps cleanup processed apps records
-func (awm *appWatchManager) cleanupProcessedApps() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-awm.ctx.Done():
-			return
-
-		case <-ticker.C:
-			awm.mu.Lock()
-			now := time.Now()
-			for path, processedTime := range awm.processedApps {
-				// cleanup records older than 5 minutes
-				if now.Sub(processedTime) > 5*time.Minute {
-					delete(awm.processedApps, path)
-				}
-			}
-			awm.mu.Unlock()
-		}
-	}
 }
 
 // IsRunning check if running
@@ -290,10 +244,17 @@ func (awm *appWatchManager) AddWatchDir(dir string) error {
 
 // GetMetrics get watcher metrics
 func (awm *appWatchManager) GetMetrics() *WatcherMetrics {
+	awm.mu.RLock()
+	defer awm.mu.RUnlock()
 	if awm.metrics == nil {
 		return NewWatcherMetrics()
 	}
-	return awm.metrics
+	snapshot := *awm.metrics
+	snapshot.EventsByType = make(map[string]int64, len(awm.metrics.EventsByType))
+	for key, value := range awm.metrics.EventsByType {
+		snapshot.EventsByType[key] = value
+	}
+	return &snapshot
 }
 
 // GetConfig get config
@@ -366,6 +327,8 @@ func (h *defaultAppEventHandler) onAppModifiedInternal(command *models.Applicati
 	for _, existing := range commands {
 		if existing.Path == command.Path {
 			command.ID = existing.ID
+			command.UsedCount = existing.UsedCount
+			command.LastUsedAt = existing.LastUsedAt
 			return h.db.BatchUpdateCommands(h.ctx, []*models.ApplicationCommand{command})
 		}
 	}
@@ -377,4 +340,15 @@ func (h *defaultAppEventHandler) onAppModifiedInternal(command *models.Applicati
 // emitApplicationChanged emit application changed event to frontend
 func (h *defaultAppEventHandler) emitApplicationChanged() {
 	runtime.EventsEmit(h.ctx, "watools.applicationChanged")
+}
+
+func (awm *appWatchManager) wait(delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-awm.ctx.Done():
+		return awm.ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }

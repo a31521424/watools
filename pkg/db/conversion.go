@@ -2,7 +2,6 @@ package db
 
 import (
 	"encoding/json"
-	"fmt"
 	"watools/pkg/logger"
 	"watools/pkg/models"
 
@@ -10,7 +9,10 @@ import (
 )
 
 func ConvertApplicationCommand(command Application) *models.ApplicationCommand {
-	return models.NewApplicationCommand(command.Name, command.Description, command.Path, command.IconPath, mo.Some(command.ID), command.DirUpdatedAt)
+	result := models.NewApplicationCommand(command.Name, command.Description, command.Path, command.IconPath, mo.Some(command.ID), command.DirUpdatedAt)
+	result.UsedCount = command.UsedCount
+	result.LastUsedAt = command.LastUsedAt
+	return result
 }
 
 func ConvertPluginState(plugin PluginState) *models.PluginState {
@@ -18,7 +20,7 @@ func ConvertPluginState(plugin PluginState) *models.PluginState {
 	if plugin.Storage != "" {
 		err := json.Unmarshal([]byte(plugin.Storage), &storage)
 		if err != nil {
-			logger.Error(err, fmt.Sprintf("Failed to unmarshal storage: %s", plugin.Storage))
+			logger.Error(err, "Failed to unmarshal plugin storage", "packageId", plugin.PackageID)
 		}
 	}
 	return &models.PluginState{

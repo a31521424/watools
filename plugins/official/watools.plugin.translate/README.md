@@ -36,7 +36,8 @@ Official translation panel plugin, now built around DeepL Free.
 ## Notes
 
 - The plugin keeps the outer UI frameless; WaTools already provides the surrounding border and window chrome.
-- The DeepL key is stored through WaTools plugin storage, not `localStorage`.
+- The DeepL key uses the host Secret API: macOS Keychain or Windows DPAPI. This requires a host version with Secret API support.
+- Existing keys in plugin storage or `localStorage` are removed only after they have been successfully migrated to the system credential store. Repackage and reinstall this plugin to receive the updated behavior.
 
 ## Packaging
 

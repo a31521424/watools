@@ -13,6 +13,7 @@ import (
 	"watools/config"
 	"watools/pkg/logger"
 	"watools/pkg/models"
+	"watools/pkg/utils"
 
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -58,13 +59,14 @@ func runMigrations(db *sql.DB) error {
 }
 
 func NewWaDB() (*WaDB, error) {
-	sqliteFolderPath := filepath.Join(config.ProjectCacheDir(), "data")
+	sqliteFolderPath := filepath.Join(config.ProjectDataDir(), "data")
 	sqliteFilePath := filepath.Join(sqliteFolderPath, fmt.Sprintf("%s.db", config.ProjectName()))
 	err := os.MkdirAll(sqliteFolderPath, 0755)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sqlite folder: %w", err)
 	}
-	db, err := sql.Open("sqlite", sqliteFilePath)
+	dsn := utils.FileURI(sqliteFilePath) + "?_pragma=busy_timeout%285000%29"
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open sqlite file: %w", err)
 	}
@@ -217,15 +219,14 @@ func (d *WaDB) GetCommandIsUpdatedDir(ctx context.Context, path string, dirUpdat
 	return ConvertApplicationCommand(command)
 }
 
-func (d *WaDB) GetPlugins(ctx context.Context) []*models.PluginState {
+func (d *WaDB) GetPlugins(ctx context.Context) ([]*models.PluginState, error) {
 	dbPlugins, err := d.query.GetPlugins(ctx)
 	if err != nil {
-		logger.Error(err, "Failed to get plugins")
-		return nil
+		return nil, fmt.Errorf("failed to get plugins: %w", err)
 	}
 	return lo.Map(dbPlugins, func(item PluginState, _ int) *models.PluginState {
 		return ConvertPluginState(item)
-	})
+	}), nil
 }
 
 func (d *WaDB) InsertPlugin(ctx context.Context, params InsertPluginParams) error {

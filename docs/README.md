@@ -40,6 +40,13 @@
 
 ## 现有专题文档
 
+- [remediation-2026-10-03.md](./remediation-2026-10-03.md)
+  已知问题修复、验证边界、兼容性变化与 Wails v3 Beta 后续推进顺序
+
+- [technology-direction-2026-10-02.md](./technology-direction-2026-10-02.md)
+  Wails、Electron 与 Tauri 调研，包含插件独立窗口、语言选型和下一轮验证路线
+- [review-2026-10-02.md](./review-2026-10-02.md)
+  全仓功能、安全与优化审查，包含优先级、验证材料和下一轮工作规划
 - [PLUGIN_DEVELOPMENT_INDEX.md](./PLUGIN_DEVELOPMENT_INDEX.md)
   插件开发入口索引，包含阅读路径和专题拆分
 - [release-cd.md](./release-cd.md)

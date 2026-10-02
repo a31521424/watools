@@ -1,16 +1,18 @@
 package api
 
 import (
+	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
+	"image/png"
 	"io"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
-	"watools/pkg/logger"
 )
 
 var (
@@ -20,6 +22,11 @@ var (
 
 type WaApi struct {
 	httpClient *http.Client
+	requestMu  sync.Mutex
+	ctx        context.Context
+	cancel     context.CancelFunc
+	slots      chan struct{}
+	requests   map[string]context.CancelFunc
 }
 
 func GetWaApi() *WaApi {
@@ -33,29 +40,45 @@ func GetWaApi() *WaApi {
 	return waApiInstance
 }
 
-func (a *WaApi) SaveBase64Image(base64Data string) string {
-	imgBytes, err := base64.StdEncoding.DecodeString(base64Data)
-	if err != nil {
-		return ""
+func (a *WaApi) SaveBase64Image(base64Data string) (string, error) {
+	if len(base64Data) > 32<<20 {
+		return "", fmt.Errorf("image exceeds size limit")
 	}
-	downloadFolder := []string{"Downloads", "downloads", "Download", "download"}
-	userHomeDir, err := os.UserHomeDir()
+	data, err := base64.StdEncoding.DecodeString(base64Data)
 	if err != nil {
-		return ""
+		return "", err
 	}
-
-	for _, ddn := range downloadFolder {
-		downloadPath := path.Join(userHomeDir, ddn)
-		if _, err := os.Stat(downloadPath); err == nil {
-			filePath := path.Join(downloadPath, fmt.Sprint("wa-image-", time.Now().Unix(), ".png"))
-			err = os.WriteFile(filePath, imgBytes, 0644)
-			if err != nil {
-				continue
-			}
-			return filePath
+	if _, err := png.DecodeConfig(bytes.NewReader(data)); err != nil {
+		return "", fmt.Errorf("invalid PNG: %w", err)
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	for _, name := range []string{"Downloads", "downloads", "Download", "download"} {
+		dir := filepath.Join(home, name)
+		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+			continue
 		}
+		return saveImageFile(dir, data)
 	}
-	return ""
+	return "", fmt.Errorf("downloads directory is unavailable")
+}
+func saveImageFile(dir string, data []byte) (string, error) {
+	file, err := os.CreateTemp(dir, "wa-image-*.png")
+	if err != nil {
+		return "", err
+	}
+	_, err = file.Write(data)
+	closeErr := file.Close()
+	if err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		os.Remove(file.Name())
+		return "", err
+	}
+	return file.Name(), nil
 }
 
 func (a *WaApi) CopyBase64ImageToClipboard(base64Data string) error {
@@ -69,11 +92,12 @@ func (a *WaApi) CopyBase64ImageToClipboard(base64Data string) error {
 
 // HttpProxyRequest represents a generic HTTP request
 type HttpProxyRequest struct {
-	URL     string            `json:"url"`
-	Method  string            `json:"method"`
-	Headers map[string]string `json:"headers,omitempty"`
-	Body    string            `json:"body,omitempty"`
-	Timeout int               `json:"timeout,omitempty"` // Timeout in milliseconds
+	RequestID string            `json:"requestId,omitempty"`
+	URL       string            `json:"url"`
+	Method    string            `json:"method"`
+	Headers   map[string]string `json:"headers,omitempty"`
+	Body      string            `json:"body,omitempty"`
+	Timeout   int               `json:"timeout,omitempty"` // Timeout in milliseconds
 }
 
 // HttpProxyResponse represents the HTTP response
@@ -86,77 +110,103 @@ type HttpProxyResponse struct {
 
 // HttpProxy performs a generic HTTP request and returns the response
 // This allows plugins to make HTTP requests without CORS restrictions
+const maxProxyBody = 8 << 20
+
+func (a *WaApi) OnStartup(parent context.Context) {
+	a.requestMu.Lock()
+	defer a.requestMu.Unlock()
+	a.ctx, a.cancel = context.WithCancel(parent)
+	a.slots = make(chan struct{}, 8)
+	a.requests = make(map[string]context.CancelFunc)
+}
+func (a *WaApi) Shutdown() {
+	a.requestMu.Lock()
+	defer a.requestMu.Unlock()
+	if a.cancel != nil {
+		a.cancel()
+	}
+}
+func (a *WaApi) CancelHttpProxy(id string) {
+	a.requestMu.Lock()
+	defer a.requestMu.Unlock()
+	if cancel := a.requests[id]; cancel != nil {
+		cancel()
+	}
+}
 func (a *WaApi) HttpProxy(req HttpProxyRequest) (*HttpProxyResponse, error) {
-	// Validate request
 	if req.URL == "" {
 		return nil, fmt.Errorf("url cannot be empty")
 	}
-	if req.Method == "" {
-		req.Method = "GET" // Default to GET
+	if len(req.Body) > 4<<20 {
+		return nil, fmt.Errorf("request body exceeds 4 MiB")
 	}
-
-	// Create HTTP request
-	var bodyReader io.Reader
-	if req.Body != "" {
-		bodyReader = strings.NewReader(req.Body)
+	if req.Timeout < 0 || req.Timeout > 60000 {
+		return nil, fmt.Errorf("timeout must be between 0 and 60000 ms")
 	}
-
-	httpReq, err := http.NewRequest(req.Method, req.URL, bodyReader)
-	if err != nil {
-		logger.Error(err, fmt.Sprintf("Failed to create HTTP request: %s %s", req.Method, req.URL))
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Set headers
-	for key, value := range req.Headers {
-		httpReq.Header.Set(key, value)
-	}
-
-	// Set custom timeout if provided
-	client := a.httpClient
+	timeout := 30 * time.Second
 	if req.Timeout > 0 {
-		client = &http.Client{
-			Timeout: time.Duration(req.Timeout) * time.Millisecond,
+		timeout = time.Duration(req.Timeout) * time.Millisecond
+	}
+	a.requestMu.Lock()
+	if a.ctx == nil {
+		a.ctx, a.cancel = context.WithCancel(context.Background())
+		a.slots = make(chan struct{}, 8)
+		a.requests = make(map[string]context.CancelFunc)
+	}
+	ctx, cancel := context.WithTimeout(a.ctx, timeout)
+	slots := a.slots
+	if req.RequestID != "" {
+		if _, exists := a.requests[req.RequestID]; exists {
+			a.requestMu.Unlock()
+			cancel()
+			return nil, fmt.Errorf("requestId is already in use")
 		}
+		a.requests[req.RequestID] = cancel
 	}
-
-	resp, err := client.Do(httpReq)
+	a.requestMu.Unlock()
+	defer func() { cancel(); a.requestMu.Lock(); delete(a.requests, req.RequestID); a.requestMu.Unlock() }()
+	select {
+	case slots <- struct{}{}:
+		defer func() { <-slots }()
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	if req.Method == "" {
+		req.Method = http.MethodGet
+	}
+	request, err := http.NewRequestWithContext(ctx, req.Method, req.URL, strings.NewReader(req.Body))
 	if err != nil {
-		logger.Error(err, fmt.Sprintf("HTTP request failed: %s", req.URL))
-		return &HttpProxyResponse{
-			Error: fmt.Sprintf("request failed: %v", err),
-		}, err
+		return nil, err
 	}
-	defer resp.Body.Close()
-
-	// Read response body
-	bodyBytes, err := io.ReadAll(resp.Body)
+	if request.URL.Scheme != "http" && request.URL.Scheme != "https" {
+		return nil, fmt.Errorf("only HTTP(S) requests are supported")
+	}
+	for key, value := range req.Headers {
+		request.Header.Set(key, value)
+	}
+	client := a.httpClient
+	if client == nil {
+		client = http.DefaultClient
+	}
+	response, err := client.Do(request)
 	if err != nil {
-		logger.Error(err, "Failed to read response body")
-		return &HttpProxyResponse{
-			StatusCode: resp.StatusCode,
-			Error:      fmt.Sprintf("failed to read response: %v", err),
-		}, err
+		return nil, err
 	}
-
-	// Extract response headers
-	responseHeaders := make(map[string]string)
-	for key, values := range resp.Header {
+	defer response.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxProxyBody+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(body) > maxProxyBody {
+		return nil, fmt.Errorf("response body exceeds 8 MiB")
+	}
+	headers := make(map[string]string)
+	for key, values := range response.Header {
 		if len(values) > 0 {
-			responseHeaders[key] = values[0]
+			headers[key] = values[0]
 		}
 	}
-
-	// Build response
-	response := &HttpProxyResponse{
-		StatusCode: resp.StatusCode,
-		Headers:    responseHeaders,
-		Body:       string(bodyBytes),
-	}
-
-	logger.Info(fmt.Sprintf("HTTP proxy response received: status=%d, size=%d bytes", resp.StatusCode, len(bodyBytes)))
-
-	return response, nil
+	return &HttpProxyResponse{StatusCode: response.StatusCode, Headers: headers, Body: string(body)}, nil
 }
 
 // Plugin Storage API

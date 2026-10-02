@@ -23,13 +23,15 @@ export const normalizePluginAssetPath = (value: unknown): string | null => {
 }
 
 const doesPluginAssetExist = async (assetUrl: string): Promise<boolean> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
     try {
-        const response = await fetch(assetUrl, {method: "HEAD"});
+        const response = await fetch(assetUrl, {method: "HEAD", signal: controller.signal});
         return response.ok;
     } catch (error) {
         console.error(`Failed to validate plugin asset ${assetUrl}:`, error);
         return false;
-    }
+    } finally { clearTimeout(timer); }
 }
 
 export const sanitizePluginEntries = async (plugin: Plugin, entries: unknown[]): Promise<PluginEntry[]> => {

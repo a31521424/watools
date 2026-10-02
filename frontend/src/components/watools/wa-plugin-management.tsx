@@ -167,7 +167,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose}:
                         <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
                             <dt className="text-[var(--muted)]">状态</dt>
                             <dd className="font-medium text-[var(--text)]">
-                                {plugin.enabled ? '已加载，可参与命令匹配' : '已禁用，不参与命令匹配'}
+                                {plugin.loadError || (plugin.enabled ? '已启用' : '已停用')}
                             </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">

@@ -1,10 +1,32 @@
 package logger
 
+import (
+	"fmt"
+	"strings"
+)
+
 func Error(err error, args ...interface{}) {
-	if len(args) == 0 {
-		WaLogger.Error().Err(err).Send()
-	} else if msg, ok := args[0].(string); ok {
-		WaLogger.Error().Err(err).Msg(msg)
+	event := WaLogger.Error().Err(err)
+	message := ""
+	if len(args) > 0 {
+		message = fmt.Sprint(args[0])
+	}
+	for i := 1; i+1 < len(args); i += 2 {
+		key, ok := args[i].(string)
+		if !ok {
+			continue
+		}
+		lowered := strings.ToLower(key)
+		if strings.Contains(lowered, "secret") || strings.Contains(lowered, "token") || strings.Contains(lowered, "password") || strings.Contains(lowered, "authorization") || lowered == "storage" || lowered == "body" || lowered == "input" || lowered == "apikey" {
+			event.Str(key, "[redacted]")
+		} else {
+			event.Interface(key, args[i+1])
+		}
+	}
+	if message == "" {
+		event.Send()
+	} else {
+		event.Msg(message)
 	}
 }
 

@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"context"
 	"fmt"
 	"time"
 	"watools/pkg/logger"
@@ -76,16 +77,27 @@ func NewRetryableOperation(operation func() error, handler ErrorHandler, config 
 }
 
 // Execute execute retryable operation
-func (ro *RetryableOperation) Execute() error {
+func (ro *RetryableOperation) Execute() error { return ro.ExecuteContext(context.Background()) }
+
+func (ro *RetryableOperation) ExecuteContext(ctx context.Context) error {
 	var lastErr error
 
 	for attempt := 0; attempt <= ro.config.MaxRetries; attempt++ {
 		if attempt > 0 {
 			// wait retry interval
 			delay := ro.calculateRetryDelay(attempt)
-			time.Sleep(delay)
+			timer := time.NewTimer(delay)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+			}
 		}
 
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if err := ro.operation(); err != nil {
 			lastErr = err
 

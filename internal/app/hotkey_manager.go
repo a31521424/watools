@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,10 +12,11 @@ import (
 )
 
 type HotkeyManager struct {
-	listeners map[string]*HotkeyListener
-	configs   map[string]HotkeyConfig
-	configDir string
-	mu        sync.RWMutex
+	listeners      map[string]*HotkeyListener
+	configs        map[string]HotkeyConfig
+	configDir      string
+	mu             sync.RWMutex
+	registrationMu sync.Mutex
 }
 
 var (
@@ -27,7 +29,7 @@ func GetHotkeyManager() *HotkeyManager {
 		hotkeyManagerInstance = &HotkeyManager{
 			listeners: make(map[string]*HotkeyListener),
 			configs:   make(map[string]HotkeyConfig),
-			configDir: filepath.Join(config.ProjectCacheDir(), "hotkeys"),
+			configDir: filepath.Join(config.ProjectDataDir(), "hotkeys"),
 		}
 	})
 	return hotkeyManagerInstance
@@ -108,8 +110,21 @@ func (hm *HotkeyManager) saveConfigsUnsafe(configs ...[]HotkeyConfig) error {
 
 	// Save to file
 	configFile := filepath.Join(hm.configDir, "config.json")
-	if err := os.WriteFile(configFile, data, 0644); err != nil {
-		return fmt.Errorf("failed to write hotkey config file: %w", err)
+	file, err := os.CreateTemp(hm.configDir, ".config-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+	_, err = file.Write(data)
+	closeErr := file.Close()
+	if err != nil {
+		return err
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if err := os.Rename(file.Name(), configFile); err != nil {
+		return err
 	}
 
 	return nil
@@ -130,6 +145,9 @@ func (hm *HotkeyManager) SetConfig(cfg HotkeyConfig) error {
 
 	hm.mu.Lock()
 	defer hm.mu.Unlock()
+	if _, exists := hm.configs[cfg.ID]; !exists {
+		return fmt.Errorf("unknown hotkey ID: %s", cfg.ID)
+	}
 	hm.configs[cfg.ID] = cfg
 	return nil
 }
@@ -145,11 +163,15 @@ func (hm *HotkeyManager) GetAllConfigs() []HotkeyConfig {
 }
 
 func (hm *HotkeyManager) RegisterAll() error {
+	hm.registrationMu.Lock()
+	defer hm.registrationMu.Unlock()
 	// Get WaApp instance first
 	// Note: We don't directly call GetHotkeyManager in GetWaApp to avoid circular dependencies
 
 	// Clear existing listeners
-	hm.unregisterAll()
+	if err := hm.unregisterAll(); err != nil {
+		return err
+	}
 
 	// Create listener for each config
 	hm.mu.RLock()
@@ -161,10 +183,11 @@ func (hm *HotkeyManager) RegisterAll() error {
 	// Release read lock before performing registration
 	hm.mu.RUnlock()
 
+	var failures []error
 	for _, cfg := range configs {
 		modifiers, key, err := cfg.ParseHotkey()
 		if err != nil {
-			logger.Info(fmt.Sprintf("Failed to parse hotkey, id: %s, error: %v", cfg.ID, err))
+			failures = append(failures, fmt.Errorf("%s: %w", cfg.ID, err))
 			continue
 		}
 
@@ -180,7 +203,7 @@ func (hm *HotkeyManager) RegisterAll() error {
 				// Delay getting WaApp instance to avoid init order issues
 				app := GetWaApp()
 				if app != nil {
-					if app.isHidden {
+					if app.isHidden.Load() {
 						app.ShowApp()
 					} else {
 						app.HideApp()
@@ -189,13 +212,13 @@ func (hm *HotkeyManager) RegisterAll() error {
 			}
 		default:
 			// Skip registration for unknown hotkey IDs
-			logger.Info(fmt.Sprintf("Unknown hotkey ID, skipping registration, id: %s", cfg.ID))
+			failures = append(failures, fmt.Errorf("unknown hotkey ID: %s", cfg.ID))
 			continue
 		}
 
 		// Register hotkey
 		if err := listener.Register(); err != nil {
-			logger.Info(fmt.Sprintf("Failed to register hotkey, id: %s, error: %v", cfg.ID, err))
+			failures = append(failures, fmt.Errorf("%s: %w", cfg.ID, err))
 			continue
 		}
 
@@ -207,23 +230,30 @@ func (hm *HotkeyManager) RegisterAll() error {
 		logger.Info(fmt.Sprintf("Hotkey registered, id: %s, hotkey: %s", cfg.ID, cfg.Hotkey))
 	}
 
-	return nil
+	return errors.Join(failures...)
 }
 
 func (hm *HotkeyManager) UnregisterAll() {
-	hm.unregisterAll()
+	hm.registrationMu.Lock()
+	defer hm.registrationMu.Unlock()
+	if err := hm.unregisterAll(); err != nil {
+		logger.Error(err, "Failed to unregister hotkeys")
+	}
 }
 
-func (hm *HotkeyManager) unregisterAll() {
+func (hm *HotkeyManager) unregisterAll() error {
 	hm.mu.Lock()
 	defer hm.mu.Unlock()
 
+	var failures []error
 	for id, listener := range hm.listeners {
 		if err := listener.Unregister(); err != nil {
-			logger.Error(err, "Failed to unregister hotkey", "id", id)
+			failures = append(failures, fmt.Errorf("%s: %w", id, err))
+			continue
 		}
 		delete(hm.listeners, id)
 	}
+	return errors.Join(failures...)
 }
 
 func (hm *HotkeyManager) IsRegistered(id string) bool {

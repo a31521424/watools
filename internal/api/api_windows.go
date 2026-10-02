@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,24 +8,24 @@ import (
 	"strings"
 )
 
-func (a *WaApi) OpenFolderWithPath(path string) {
+func (a *WaApi) OpenFolderWithPath(path string) error {
 	if strings.HasPrefix(path, "~/") {
 		path = strings.TrimPrefix(path, "~/")
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return
+			return err
 		}
 		path = filepath.Join(homeDir, path)
 	}
 	path = filepath.Clean(path)
 	stat, err := os.Stat(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return
+	if err != nil {
+		return fmt.Errorf("path unavailable: %w", err)
 	}
 	if !stat.IsDir() {
-		_ = exec.Command("explorer", "/select,", path).Start()
+		return exec.Command("explorer", "/select,", path).Start()
 	} else {
-		_ = exec.Command("explorer", path).Start()
+		return exec.Command("explorer", path).Start()
 	}
 }
 

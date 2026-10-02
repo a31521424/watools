@@ -4,10 +4,12 @@ package update
 
 import (
 	"fmt"
+	"howett.net/plist"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -32,18 +34,24 @@ func installUpdateAsset(downloadedPath string) (InstallResult, error) {
 		}, nil
 	}
 
-	stagingDir, err := os.MkdirTemp("", "watools-update-*")
+	stagingDir, err := os.MkdirTemp(targetDir, ".watools-update-*")
 	if err != nil {
 		return InstallResult{}, fmt.Errorf("failed to create update staging directory: %w", err)
 	}
 
+	committed := false
+	defer func() {
+		if !committed {
+			os.RemoveAll(stagingDir)
+		}
+	}()
 	extractDir := filepath.Join(stagingDir, "extract")
 	if err := os.MkdirAll(extractDir, 0o755); err != nil {
 		return InstallResult{}, fmt.Errorf("failed to create extraction directory: %w", err)
 	}
 
-	if output, err := exec.Command("ditto", "-x", "-k", downloadedPath, extractDir).CombinedOutput(); err != nil {
-		return InstallResult{}, fmt.Errorf("failed to extract update archive: %w: %s", err, strings.TrimSpace(string(output)))
+	if err := extractUpdateArchive(downloadedPath, extractDir); err != nil {
+		return InstallResult{}, fmt.Errorf("failed to extract update: %w", err)
 	}
 
 	nextBundlePath, err := findExtractedAppBundle(extractDir)
@@ -52,22 +60,27 @@ func installUpdateAsset(downloadedPath string) (InstallResult, error) {
 	}
 
 	scriptPath := filepath.Join(stagingDir, "apply-update.sh")
-	script := fmt.Sprintf(`#!/bin/sh
-sleep 2
-rm -rf %q
-ditto %q %q
-xattr -dr com.apple.quarantine %q >/dev/null 2>&1 || true
-open %q
-`, currentBundlePath, nextBundlePath, currentBundlePath, currentBundlePath, currentBundlePath)
+	if err := validateNextBundle(currentBundlePath, nextBundlePath); err != nil {
+		return InstallResult{}, err
+	}
+	// Validate signatures when the running bundle is signed. Unsigned development
+	// bundles retain the existing digest-based update policy.
+	if exec.Command("/usr/bin/codesign", "--verify", "--deep", "--strict", currentBundlePath).Run() == nil {
+		if output, err := exec.Command("/usr/bin/codesign", "--verify", "--deep", "--strict", nextBundlePath).CombinedOutput(); err != nil {
+			return InstallResult{}, fmt.Errorf("invalid update signature: %w: %s", err, output)
+		}
+	}
+	script := applyUpdateScript
 
 	if err := os.WriteFile(scriptPath, []byte(script), 0o755); err != nil {
 		return InstallResult{}, fmt.Errorf("failed to write update script: %w", err)
 	}
 
-	if err := exec.Command("sh", scriptPath).Start(); err != nil {
+	if err := exec.Command("/bin/sh", scriptPath, strconv.Itoa(os.Getpid()), currentBundlePath, nextBundlePath, filepath.Join(stagingDir, "previous.app"), stagingDir, "/usr/bin/open").Start(); err != nil {
 		return InstallResult{}, fmt.Errorf("failed to start update script: %w", err)
 	}
 
+	committed = true
 	return InstallResult{
 		Status:     "installing",
 		Message:    "更新已准备完成，应用即将退出并替换自身",
@@ -119,6 +132,9 @@ func findExtractedAppBundle(root string) (string, error) {
 			return nil
 		}
 		if strings.HasSuffix(strings.ToLower(entry.Name()), ".app") {
+			if bundlePath != "" {
+				return fmt.Errorf("update archive contains multiple app bundles")
+			}
 			bundlePath = path
 			return filepath.SkipDir
 		}
@@ -131,4 +147,67 @@ func findExtractedAppBundle(root string) (string, error) {
 		return "", fmt.Errorf("update archive does not contain an .app bundle")
 	}
 	return bundlePath, nil
+}
+
+// Paths are positional parameters, never interpolated shell source. A failed
+// replacement restores the previous bundle; successful updates retain a backup.
+const applyUpdateScript = `#!/bin/sh
+set -u
+pid="$1"; current="$2"; prepared="$3"; backup="$4"; staging="$5"; opener="$6"
+tries=0
+while kill -0 "$pid" 2>/dev/null; do
+ tries=$((tries + 1))
+ if [ "$tries" -gt 60 ]; then exit 1; fi
+ sleep 1
+done
+if ! mv "$current" "$backup"; then exit 1; fi
+if ! mv "$prepared" "$current"; then
+ mv "$backup" "$current" || exit 2
+ exit 1
+fi
+if ! "$opener" "$current"; then
+ mv "$current" "$staging/failed.app" || exit 2
+ mv "$backup" "$current" || exit 2
+ "$opener" "$current" || true
+ exit 1
+fi
+`
+
+func validateNextBundle(current, next string) error {
+	read := func(root string) (string, error) {
+		data, err := os.ReadFile(filepath.Join(root, "Contents", "Info.plist"))
+		if err != nil {
+			return "", err
+		}
+		var metadata struct {
+			Identifier string `plist:"CFBundleIdentifier"`
+			Executable string `plist:"CFBundleExecutable"`
+		}
+		if _, err := plist.Unmarshal(data, &metadata); err != nil {
+			return "", err
+		}
+		if metadata.Identifier == "" || metadata.Executable == "" || filepath.Base(metadata.Executable) != metadata.Executable {
+			return "", fmt.Errorf("invalid bundle metadata")
+		}
+		info, err := os.Stat(filepath.Join(root, "Contents", "MacOS", metadata.Executable))
+		if err != nil {
+			return "", err
+		}
+		if !info.Mode().IsRegular() || info.Mode().Perm()&0111 == 0 {
+			return "", fmt.Errorf("invalid bundle executable")
+		}
+		return metadata.Identifier, nil
+	}
+	oldID, err := read(current)
+	if err != nil {
+		return err
+	}
+	newID, err := read(next)
+	if err != nil {
+		return err
+	}
+	if newID != oldID {
+		return fmt.Errorf("update bundle identifier does not match")
+	}
+	return nil
 }

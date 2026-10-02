@@ -1,0 +1,20 @@
+?   	watools	[no test files]
+?   	watools/cmd/pluginctl	[no test files]
+ok  	watools/config	(cached)
+?   	watools/internal	[no test files]
+ok  	watools/internal/api	(cached)
+ok  	watools/internal/app	1.652s
+?   	watools/internal/app_menu	[no test files]
+?   	watools/internal/command	[no test files]
+?   	watools/internal/command/application	[no test files]
+?   	watools/internal/command/operator	[no test files]
+ok  	watools/internal/command/watcher	1.913s
+?   	watools/internal/coordinator	[no test files]
+ok  	watools/internal/handler	(cached)
+ok  	watools/internal/plugin	(cached)
+ok  	watools/internal/secrets	2.008s
+ok  	watools/internal/update	1.298s
+ok  	watools/pkg/db	(cached)
+ok  	watools/pkg/logger	0.487s
+ok  	watools/pkg/models	(cached)
+ok  	watools/pkg/utils	(cached)

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	runtimepkg "runtime"
@@ -76,7 +77,10 @@ type InstallResult struct {
 }
 
 type Service struct {
-	client *http.Client
+	client     *http.Client
+	mu         sync.Mutex
+	downloadMu sync.Mutex
+	verified   map[string]ManifestAsset
 }
 
 var (
@@ -87,7 +91,8 @@ var (
 func GetService() *Service {
 	serviceOnce.Do(func() {
 		serviceInst = &Service{
-			client: &http.Client{Timeout: httpTimeout},
+			client:   &http.Client{Timeout: httpTimeout, CheckRedirect: checkReleaseRedirect},
+			verified: make(map[string]ManifestAsset),
 		}
 	})
 	return serviceInst
@@ -114,6 +119,8 @@ func (s *Service) Check(ctx context.Context) (UpdateInfo, error) {
 }
 
 func (s *Service) Download(ctx context.Context) (UpdateInfo, error) {
+	s.downloadMu.Lock()
+	defer s.downloadMu.Unlock()
 	info, asset, err := s.resolveUpdate(ctx)
 	if err != nil {
 		return UpdateInfo{}, err
@@ -124,12 +131,13 @@ func (s *Service) Download(ctx context.Context) (UpdateInfo, error) {
 	}
 
 	targetPath := updateAssetPath(info.LatestVersion, asset.AssetName)
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o700); err != nil {
 		return UpdateInfo{}, fmt.Errorf("failed to create update directory: %w", err)
 	}
 
-	if existingPath, err := verifyExistingAsset(targetPath, asset.SHA256); err == nil && existingPath != "" {
+	if existingPath, err := verifyReleaseAsset(targetPath, asset); err == nil && existingPath != "" {
 		info.DownloadedPath = existingPath
+		s.remember(existingPath, asset)
 		info.RequiresManualInstall = requiresManualInstall(asset.InstallerType)
 		info.Message = "更新包已存在，跳过重复下载"
 		return info, nil
@@ -152,15 +160,18 @@ func (s *Service) Download(ctx context.Context) (UpdateInfo, error) {
 		return UpdateInfo{}, fmt.Errorf("download request failed with status %s", resp.Status)
 	}
 
-	tempPath := targetPath + ".tmp"
-	file, err := os.Create(tempPath)
+	file, err := os.CreateTemp(filepath.Dir(targetPath), ".download-*")
 	if err != nil {
 		return UpdateInfo{}, fmt.Errorf("failed to create temp asset file: %w", err)
 	}
 
+	tempPath := file.Name()
+	defer os.Remove(tempPath)
 	hasher := sha256.New()
 	writer := io.MultiWriter(file, hasher)
-	if _, err := io.Copy(writer, resp.Body); err != nil {
+	written, copyErr := io.Copy(writer, io.LimitReader(resp.Body, asset.Size+1))
+	if copyErr != nil {
+		err := copyErr
 		_ = file.Close()
 		_ = os.Remove(tempPath)
 		return UpdateInfo{}, fmt.Errorf("failed to write release asset: %w", err)
@@ -170,6 +181,9 @@ func (s *Service) Download(ctx context.Context) (UpdateInfo, error) {
 		return UpdateInfo{}, fmt.Errorf("failed to close release asset: %w", err)
 	}
 
+	if written != asset.Size {
+		return UpdateInfo{}, fmt.Errorf("release asset size mismatch")
+	}
 	if asset.SHA256 != "" {
 		sum := hex.EncodeToString(hasher.Sum(nil))
 		if !strings.EqualFold(sum, asset.SHA256) {
@@ -184,27 +198,73 @@ func (s *Service) Download(ctx context.Context) (UpdateInfo, error) {
 	}
 
 	info.DownloadedPath = targetPath
+	s.remember(targetPath, asset)
 	info.RequiresManualInstall = requiresManualInstall(asset.InstallerType)
 	info.Message = "更新包下载完成"
 	return info, nil
 }
 
 func (s *Service) Install(downloadedPath string) (InstallResult, error) {
-	if strings.TrimSpace(downloadedPath) == "" {
-		return InstallResult{}, fmt.Errorf("update asset path is empty")
+	s.downloadMu.Lock()
+	defer s.downloadMu.Unlock()
+	s.mu.Lock()
+	asset, ok := s.verified[downloadedPath]
+	s.mu.Unlock()
+	if !ok {
+		return InstallResult{}, fmt.Errorf("update must be verified through Check or Download before installation")
 	}
-	if _, err := os.Stat(downloadedPath); err != nil {
-		return InstallResult{}, fmt.Errorf("update asset is not available: %w", err)
+	if err := validateAsset(asset); err != nil {
+		return InstallResult{}, err
 	}
-
-	result, err := installUpdateAsset(downloadedPath)
+	if _, err := verifyReleaseAsset(downloadedPath, asset); err != nil {
+		return InstallResult{}, err
+	}
+	// Install a private verified snapshot, so changes to the original cached package
+	// after verification cannot become the bytes executed or extracted.
+	dir, err := os.MkdirTemp(filepath.Dir(downloadedPath), ".install-*")
 	if err != nil {
 		return InstallResult{}, err
 	}
+	sealed := filepath.Join(dir, asset.AssetName)
+	src, err := os.Open(downloadedPath)
+	if err != nil {
+		os.RemoveAll(dir)
+		return InstallResult{}, err
+	}
+	dst, err := os.OpenFile(sealed, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		src.Close()
+		os.RemoveAll(dir)
+		return InstallResult{}, err
+	}
+	written, copyErr := io.Copy(dst, io.LimitReader(src, asset.Size+1))
+	src.Close()
+	closeErr := dst.Close()
+	if copyErr != nil || closeErr != nil || written != asset.Size {
+		os.RemoveAll(dir)
+		return InstallResult{}, fmt.Errorf("failed to prepare complete update snapshot")
+	}
+	if _, err := verifyReleaseAsset(sealed, asset); err != nil {
+		os.RemoveAll(dir)
+		return InstallResult{}, err
+	}
+	result, err := installUpdateAsset(sealed)
+	if err != nil {
+		os.RemoveAll(dir)
+		return InstallResult{}, err
+	}
 	if result.OpenPath == "" {
-		result.OpenPath = downloadedPath
+		result.OpenPath = sealed
 	}
 	return result, nil
+}
+func (s *Service) remember(path string, asset ManifestAsset) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.verified == nil {
+		s.verified = make(map[string]ManifestAsset)
+	}
+	s.verified[path] = asset
 }
 
 func (s *Service) resolveUpdate(ctx context.Context) (UpdateInfo, ManifestAsset, error) {
@@ -223,6 +283,9 @@ func (s *Service) resolveUpdate(ctx context.Context) (UpdateInfo, ManifestAsset,
 		return UpdateInfo{}, ManifestAsset{}, fmt.Errorf("release manifest does not contain an asset for %s", platformKey)
 	}
 
+	if err := validateAsset(asset); err != nil {
+		return UpdateInfo{}, ManifestAsset{}, err
+	}
 	currentVersion := config.ProjectVersion()
 	compareResult, err := compareVersions(manifest.Version, currentVersion)
 	if err != nil {
@@ -251,8 +314,9 @@ func (s *Service) resolveUpdate(ctx context.Context) (UpdateInfo, ManifestAsset,
 	}
 
 	downloadedPath := updateAssetPath(info.LatestVersion, asset.AssetName)
-	if existingPath, err := verifyExistingAsset(downloadedPath, asset.SHA256); err == nil && existingPath != "" {
+	if existingPath, err := verifyReleaseAsset(downloadedPath, asset); err == nil && existingPath != "" {
 		info.DownloadedPath = existingPath
+		s.remember(existingPath, asset)
 		info.RequiresManualInstall = requiresManualInstall(asset.InstallerType)
 	}
 
@@ -278,7 +342,7 @@ func (s *Service) fetchManifest(ctx context.Context) (ReleaseManifest, error) {
 	}
 
 	var manifest ReleaseManifest
-	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&manifest); err != nil {
 		return ReleaseManifest{}, fmt.Errorf("failed to decode update manifest: %w", err)
 	}
 	if manifest.Version == "" {
@@ -329,15 +393,18 @@ func sanitizePathPart(value string) string {
 }
 
 func verifyExistingAsset(path string, expectedSHA string) (string, error) {
-	stat, err := os.Stat(path)
+	if len(expectedSHA) != 64 {
+		return "", fmt.Errorf("a SHA256 checksum is required")
+	}
+	if _, err := hex.DecodeString(expectedSHA); err != nil {
+		return "", err
+	}
+	stat, err := os.Lstat(path)
 	if err != nil {
 		return "", err
 	}
-	if stat.IsDir() {
+	if !stat.Mode().IsRegular() || stat.Size() > 512<<20 {
 		return "", fmt.Errorf("update asset path %s is a directory", path)
-	}
-	if expectedSHA == "" {
-		return path, nil
 	}
 	sum, err := checksumFile(path)
 	if err != nil {
@@ -491,4 +558,57 @@ func comparePrereleaseIdentifiers(next []string, current []string) int {
 
 func updateUserAgent() string {
 	return fmt.Sprintf("%s/%s (%s)", config.ProjectName(), config.ProjectVersion(), repositorySlug)
+}
+
+func validateAsset(asset ManifestAsset) error {
+	if asset.AssetName == "" || asset.AssetName == "." || asset.AssetName == ".." || strings.ContainsAny(asset.AssetName, "/\\:") || filepath.Base(asset.AssetName) != asset.AssetName {
+		return fmt.Errorf("invalid release asset name")
+	}
+	if asset.Size <= 0 || asset.Size > 512<<20 {
+		return fmt.Errorf("invalid release asset size")
+	}
+	if len(asset.SHA256) != 64 {
+		return fmt.Errorf("release asset requires SHA256")
+	}
+	if _, err := hex.DecodeString(asset.SHA256); err != nil {
+		return err
+	}
+	address, err := url.Parse(asset.URL)
+	if err != nil || address.Scheme != "https" || address.Host != "github.com" || address.User != nil || !strings.HasPrefix(address.Path, "/"+repositorySlug+"/releases/download/") {
+		return fmt.Errorf("release asset URL must belong to this GitHub repository")
+	}
+	switch runtimepkg.GOOS {
+	case "darwin":
+		if asset.OS != "darwin" || asset.Arch != "universal" || asset.InstallerType != "app-zip" || !strings.HasSuffix(strings.ToLower(asset.AssetName), ".zip") {
+			return fmt.Errorf("release asset does not match macOS")
+		}
+	case "windows":
+		if asset.OS != "windows" || asset.Arch != "amd64" || asset.InstallerType != "nsis" || !strings.HasSuffix(strings.ToLower(asset.AssetName), ".exe") {
+			return fmt.Errorf("release asset does not match Windows")
+		}
+	default:
+		return fmt.Errorf("unsupported update platform")
+	}
+	return nil
+}
+func checkReleaseRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return fmt.Errorf("too many release redirects")
+	}
+	host := req.URL.Hostname()
+	if req.URL.Scheme != "https" || req.URL.User != nil || (host != "github.com" && host != "release-assets.githubusercontent.com" && host != "objects.githubusercontent.com") {
+		return fmt.Errorf("untrusted release redirect")
+	}
+	return nil
+}
+
+func verifyReleaseAsset(path string, asset ManifestAsset) (string, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", err
+	}
+	if info.Size() != asset.Size {
+		return "", fmt.Errorf("cached update size does not match release manifest")
+	}
+	return verifyExistingAsset(path, asset.SHA256)
 }

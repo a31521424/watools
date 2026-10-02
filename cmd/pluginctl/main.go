@@ -67,7 +67,7 @@ Usage:
 Commands:
   list      List official plugins from plugins/official
   package   Build .wt archives into plugins/dist
-  install   Package and install official plugins into the local WaTools cache
+  install   Package and install official plugins into the local WaTools data directory
 `)
 }
 

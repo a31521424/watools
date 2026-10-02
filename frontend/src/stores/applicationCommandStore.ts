@@ -1,3 +1,4 @@
+import {createUsageFlusher} from "@/lib/usage-buffer";
 import {create} from "zustand";
 import {ApplicationCommandType, CommandGroupType} from "@/schemas/command";
 import {getApplicationCommands, updateApplicationUsage} from "@/api/command";
@@ -83,29 +84,21 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
         return new Fuse(sortedCommands, WaApplicationCommandFuseConfig)
     }
 
-    const debouncedFlushUpdates = () => {
-        if (debounceTimer) {
-            clearTimeout(debounceTimer)
-        }
-
-        debounceTimer = setTimeout(async () => {
-            const {updateBuffer} = get()
-
-            if (updateBuffer.size === 0) return
-
-            try {
-                const updates = Array.from(updateBuffer.entries()).map(([id, data]) => ({
-                    id,
-                    lastUsedAt: data.lastUsedAt,
-                    usedCount: data.usedCount
-                }))
-
-                await updateApplicationUsage(updates)
-                set({updateBuffer: new Map()})
-            } catch (error) {
-                console.error('Failed to flush buffer updates:', error)
+    const flushPending = createUsageFlusher(
+        () => get().updateBuffer,
+        snapshot => set(state => {
+            const remaining = new Map(state.updateBuffer)
+            for (const [id, value] of snapshot) {
+                if (remaining.get(id) === value) remaining.delete(id)
             }
-        }, DEBOUNCE_DELAY)
+            return {updateBuffer: remaining}
+        }),
+        snapshot => updateApplicationUsage(Array.from(snapshot, ([id, data]) => ({id, ...data}))),
+    )
+
+    const debouncedFlushUpdates = () => {
+        if (debounceTimer) clearTimeout(debounceTimer)
+        debounceTimer = setTimeout(() => { void flushBufferUpdates() }, DEBOUNCE_DELAY)
     }
 
     const loadCommands = async () => {
@@ -130,6 +123,8 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
     }
 
     const refreshCommands = async () => {
+        await flushBufferUpdates()
+        if (get().updateBuffer.size) throw new Error("使用记录未保存，请重试刷新")
         await loadCommands()
     }
 
@@ -168,31 +163,13 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
             updateBuffer: newBuffer
         })
 
-        debouncedFlushUpdates()
+        await flushBufferUpdates()
     }
 
     const flushBufferUpdates = async () => {
-        if (debounceTimer) {
-            clearTimeout(debounceTimer)
-            debounceTimer = null
-        }
-
-        const {updateBuffer} = get()
-
-        if (updateBuffer.size === 0) return
-
-        try {
-            const updates = Array.from(updateBuffer.entries()).map(([id, data]) => ({
-                id,
-                lastUsedAt: data.lastUsedAt,
-                usedCount: data.usedCount
-            }))
-
-            await updateApplicationUsage(updates)
-            set({updateBuffer: new Map()})
-        } catch (error) {
-            console.error('Failed to flush buffer updates:', error)
-        }
+        if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null }
+        try { await flushPending() }
+        catch (error) { Logger.error(`Failed to flush usage: ${error}`); debouncedFlushUpdates() }
     }
 
     const startListening = () => {

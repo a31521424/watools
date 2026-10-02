@@ -1,0 +1,158 @@
+go: downloading golang.org/x/vuln v1.8.0
+go: downloading golang.org/x/telemetry v0.0.0-20260908163034-4bcc4b2ee518
+go: downloading golang.org/x/mod v0.41.0
+go: downloading golang.org/x/tools v0.50.0
+go: downloading golang.org/x/sync v0.23.0
+=== Symbol Results ===
+
+Vulnerability #1: GO-2026-6218
+    Avoid quadratic complexity in resolvePath in net/url
+  More info: https://pkg.go.dev/vuln/GO-2026-6218
+  Standard library
+    Found in: net/url@go1.26.1
+    Fixed in: net/url@go1.26.6
+    Example traces found:
+      #1: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do, which eventually calls url.URL.Parse
+
+Vulnerability #2: GO-2026-6090
+    Limit handshake messages we are willing to accept post-handshake in
+    crypto/tls
+  More info: https://pkg.go.dev/vuln/GO-2026-6090
+  Standard library
+    Found in: crypto/tls@go1.26.1
+    Fixed in: crypto/tls@go1.26.6
+    Example traces found:
+      #1: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do, which eventually calls tls.Conn.HandshakeContext
+      #2: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls tls.Conn.Read
+      #3: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls tls.Conn.Write
+      #4: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do, which eventually calls tls.Dialer.DialContext
+
+Vulnerability #3: GO-2026-6088
+    Add recursion depth guard during decode in encoding/xml
+  More info: https://pkg.go.dev/vuln/GO-2026-6088
+  Standard library
+    Found in: encoding/xml@go1.26.1
+    Fixed in: encoding/xml@go1.26.6
+    Example traces found:
+      #1: internal/command/application/app_scanner_darwin.go:56:26: application.parseAppBundleInfoPlist calls plist.Decoder.Decode, which eventually calls xml.Decoder.DecodeElement
+      #2: internal/command/application/app_scanner_darwin.go:56:26: application.parseAppBundleInfoPlist calls plist.Decoder.Decode, which eventually calls xml.Decoder.Skip
+      #3: internal/command/application/app_scanner_darwin.go:56:26: application.parseAppBundleInfoPlist calls plist.Decoder.Decode, which eventually calls xml.Decoder.Token
+
+Vulnerability #4: GO-2026-5972
+    Enforce maximum recursion depth in encoding/asn1
+  More info: https://pkg.go.dev/vuln/GO-2026-5972
+  Standard library
+    Found in: encoding/asn1@go1.26.1
+    Fixed in: encoding/asn1@go1.26.6
+    Example traces found:
+      #1: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls asn1.Unmarshal
+
+Vulnerability #5: GO-2026-5856
+    Invoking Encrypted Client Hello privacy leak in crypto/tls
+  More info: https://pkg.go.dev/vuln/GO-2026-5856
+  Standard library
+    Found in: crypto/tls@go1.26.1
+    Fixed in: crypto/tls@go1.26.5
+    Example traces found:
+      #1: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do, which eventually calls tls.Conn.HandshakeContext
+      #2: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls tls.Conn.Read
+      #3: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls tls.Conn.Write
+      #4: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do, which eventually calls tls.Dialer.DialContext
+
+Vulnerability #6: GO-2026-5039
+    Arbitrary inputs are included in errors without any escaping in
+    net/textproto
+  More info: https://pkg.go.dev/vuln/GO-2026-5039
+  Standard library
+    Found in: net/textproto@go1.26.1
+    Fixed in: net/textproto@go1.26.4
+    Example traces found:
+      #1: internal/api/api.go:133:30: api.WaApi.HttpProxy calls io.ReadAll, which eventually calls textproto.Reader.ReadMIMEHeader
+
+Vulnerability #7: GO-2026-5037
+    Inefficient candidate hostname parsing in crypto/x509
+  More info: https://pkg.go.dev/vuln/GO-2026-5037
+  Standard library
+    Found in: crypto/x509@go1.26.1
+    Fixed in: crypto/x509@go1.26.4
+    Example traces found:
+      #1: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls x509.Certificate.Verify
+      #2: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls x509.Certificate.VerifyHostname
+      #3: internal/api/api.go:50:50: api.WaApi.SaveBase64Image calls fmt.Sprint, which eventually calls x509.HostnameError.Error
+
+Vulnerability #8: GO-2026-5026
+    Invoking failure to reject ASCII-only Punycode-encoded labels in
+    golang.org/x/net/idna
+  More info: https://pkg.go.dev/vuln/GO-2026-5026
+  Standard library
+    Found in: net/http@go1.26.1
+    Fixed in: net/http@go1.26.6
+    Example traces found:
+      #1: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do
+
+Vulnerability #9: GO-2026-4971
+    Panic in Dial and LookupPort when handling NUL byte on Windows in net
+  More info: https://pkg.go.dev/vuln/GO-2026-4971
+  Standard library
+    Found in: net@go1.26.1
+    Fixed in: net@go1.26.3
+    Example traces found:
+      #1: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do, which eventually calls net.Dialer.DialContext
+
+Vulnerability #10: GO-2026-4947
+    Unexpected work during chain building in crypto/x509
+  More info: https://pkg.go.dev/vuln/GO-2026-4947
+  Standard library
+    Found in: crypto/x509@go1.26.1
+    Fixed in: crypto/x509@go1.26.2
+    Example traces found:
+      #1: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls x509.Certificate.Verify
+
+Vulnerability #11: GO-2026-4946
+    Inefficient policy validation in crypto/x509
+  More info: https://pkg.go.dev/vuln/GO-2026-4946
+  Standard library
+    Found in: crypto/x509@go1.26.1
+    Fixed in: crypto/x509@go1.26.2
+    Example traces found:
+      #1: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls x509.Certificate.Verify
+
+Vulnerability #12: GO-2026-4918
+    Infinite loop in HTTP/2 transport when given bad SETTINGS_MAX_FRAME_SIZE in
+    net/http/internal/http2 in golang.org/x/net
+  More info: https://pkg.go.dev/vuln/GO-2026-4918
+  Standard library
+    Found in: net/http@go1.26.1
+    Fixed in: net/http@go1.26.3
+    Example traces found:
+      #1: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do
+
+Vulnerability #13: GO-2026-4870
+    Unauthenticated TLS 1.3 KeyUpdate record can cause persistent connection
+    retention and DoS in crypto/tls
+  More info: https://pkg.go.dev/vuln/GO-2026-4870
+  Standard library
+    Found in: crypto/tls@go1.26.1
+    Fixed in: crypto/tls@go1.26.2
+    Example traces found:
+      #1: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do, which eventually calls tls.Conn.HandshakeContext
+      #2: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls tls.Conn.Read
+      #3: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls tls.Conn.Write
+      #4: internal/update/service.go:145:26: update.Service.Download calls http.Client.Do, which eventually calls tls.Dialer.DialContext
+
+Vulnerability #14: GO-2026-4866
+    Case-sensitive excludedSubtrees name constraints cause Auth Bypass in
+    crypto/x509
+  More info: https://pkg.go.dev/vuln/GO-2026-4866
+  Standard library
+    Found in: crypto/x509@go1.26.1
+    Fixed in: crypto/x509@go1.26.2
+    Example traces found:
+      #1: internal/update/service.go:163:22: update.Service.Download calls io.Copy, which eventually calls x509.Certificate.Verify
+
+Your code is affected by 14 vulnerabilities from the Go standard library.
+This scan also found 7 vulnerabilities in packages you import and 9
+vulnerabilities in modules you require, but your code doesn't appear to call
+these vulnerabilities.
+Use '-show verbose' for more details.
+exit status 3

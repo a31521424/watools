@@ -59,3 +59,11 @@ func TestResolvePathWithinBase(t *testing.T) {
 		}
 	}
 }
+
+func TestFileURIKeepsDriveAndQueryCharactersInPath(t *testing.T) {
+	for input, want := range map[string]string{`C:\Users\Me\a b.db`: "file:///C:/Users/Me/a%20b.db", "/tmp/a?b.db": "file:///tmp/a%3Fb.db"} {
+		if got := FileURI(input); got != want {
+			t.Fatalf("FileURI(%q)=%q, want %q", input, got, want)
+		}
+	}
+}

@@ -2,7 +2,7 @@ import {AppClipboardContent, AppClipboardContentType, AppInputValueType} from "@
 import {PluginContext} from "@/schemas/plugin";
 
 const PLUGIN_LAUNCH_STORAGE_PREFIX = "watools.plugin.launch.";
-const PLUGIN_LAUNCH_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const PLUGIN_LAUNCH_MAX_AGE_MS = 5 * 60 * 1000;
 
 type StoredPluginLaunchContext = {
     context: PluginContext
@@ -18,12 +18,7 @@ const createEmptyPluginContext = (): PluginContext => ({
     clipboard: null,
 })
 
-const getPluginLaunchStorage = (): Storage | null => {
-    if (typeof window === "undefined" || typeof window.sessionStorage === "undefined") {
-        return null;
-    }
-    return window.sessionStorage;
-}
+const launchContexts = new Map<string, StoredPluginLaunchContext>();
 
 const createLaunchId = (): string => {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -94,57 +89,38 @@ export const hasPluginContextPayload = (context: PluginContext | null | undefine
             : Boolean(context.clipboard.text?.trim());
 }
 
-export const persistPluginLaunchContext = (context: PluginContext): string | null => {
-    const storage = getPluginLaunchStorage();
-    if (!storage) {
-        return null;
+export const persistPluginLaunchContext = (context: PluginContext): string => {
+    const now = Date.now();
+    for (const [id, stored] of launchContexts) {
+        if (now - stored.createdAt > PLUGIN_LAUNCH_MAX_AGE_MS) launchContexts.delete(id);
     }
-
+    while (launchContexts.size >= 20) launchContexts.delete(launchContexts.keys().next().value!);
+    // Remove plaintext launch records left by older host versions.
     try {
-        prunePluginLaunchContexts(storage);
-
-        const launchId = createLaunchId();
-        const payload: StoredPluginLaunchContext = {
-            context,
-            createdAt: Date.now(),
-        };
-
-        storage.setItem(`${PLUGIN_LAUNCH_STORAGE_PREFIX}${launchId}`, JSON.stringify(payload));
-        return launchId;
-    } catch {
-        return null;
-    }
+        if (typeof window !== 'undefined') {
+            for (let index = window.sessionStorage.length - 1; index >= 0; index--) {
+                const key = window.sessionStorage.key(index);
+                if (key?.startsWith(PLUGIN_LAUNCH_STORAGE_PREFIX)) window.sessionStorage.removeItem(key);
+            }
+        }
+    } catch { /* session storage may be unavailable; in-memory delivery still works */ }
+    const id = createLaunchId();
+    launchContexts.set(id, {context: JSON.parse(JSON.stringify(context)), createdAt: now});
+    return id;
 }
 
 export const readPluginLaunchContext = (launchId: string | null | undefined): PluginContext | null => {
-    if (!launchId) {
+    if (!launchId) return null;
+    const stored = launchContexts.get(launchId);
+    if (!stored || Date.now() - stored.createdAt > PLUGIN_LAUNCH_MAX_AGE_MS) {
+        launchContexts.delete(launchId);
         return null;
     }
+    return stored.context;
+}
 
-    const storage = getPluginLaunchStorage();
-    if (!storage) {
-        return null;
-    }
-
-    const raw = storage.getItem(`${PLUGIN_LAUNCH_STORAGE_PREFIX}${launchId}`);
-    if (!raw) {
-        return null;
-    }
-
-    try {
-        const payload = JSON.parse(raw) as StoredPluginLaunchContext;
-        if (!payload || typeof payload !== "object" || !payload.context) {
-            return null;
-        }
-        if (!Number.isFinite(payload.createdAt) || Date.now() - payload.createdAt > PLUGIN_LAUNCH_MAX_AGE_MS) {
-            storage.removeItem(`${PLUGIN_LAUNCH_STORAGE_PREFIX}${launchId}`);
-            return null;
-        }
-        return payload.context;
-    } catch {
-        storage.removeItem(`${PLUGIN_LAUNCH_STORAGE_PREFIX}${launchId}`);
-        return null;
-    }
+export const releasePluginLaunchContext = (launchId: string | null | undefined) => {
+    if (launchId) launchContexts.delete(launchId);
 }
 
 export const resolvePluginLaunchContext = ({
@@ -173,29 +149,3 @@ export const resolvePluginLaunchContext = ({
 }
 
 export const getLegacySeedValue = (context: PluginContext): string => context.input.value.trim();
-
-function prunePluginLaunchContexts(storage: Storage) {
-    const now = Date.now();
-
-    for (let index = storage.length - 1; index >= 0; index -= 1) {
-        const key = storage.key(index);
-        if (!key || !key.startsWith(PLUGIN_LAUNCH_STORAGE_PREFIX)) {
-            continue;
-        }
-
-        const raw = storage.getItem(key);
-        if (!raw) {
-            storage.removeItem(key);
-            continue;
-        }
-
-        try {
-            const payload = JSON.parse(raw) as StoredPluginLaunchContext;
-            if (!Number.isFinite(payload?.createdAt) || now - payload.createdAt > PLUGIN_LAUNCH_MAX_AGE_MS) {
-                storage.removeItem(key);
-            }
-        } catch {
-            storage.removeItem(key);
-        }
-    }
-}

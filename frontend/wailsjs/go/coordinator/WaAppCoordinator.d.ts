@@ -4,11 +4,15 @@ import {update} from '../models';
 import {app} from '../models';
 import {logger} from '../models';
 
+export function CancelHttpProxyApi(arg1:string):Promise<void>;
+
 export function CheckForUpdatesApi():Promise<update.UpdateInfo>;
 
 export function ClearPluginStorageApi(arg1:Record<string, any>):Promise<void>;
 
 export function CopyBase64ImageToClipboard(arg1:string):Promise<void>;
+
+export function DeletePluginSecretApi(arg1:string,arg2:string):Promise<void>;
 
 export function DeletePluginStorageKeyApi(arg1:Record<string, any>):Promise<void>;
 
@@ -25,6 +29,8 @@ export function GetLogDirectoryApi():Promise<string>;
 export function GetOperatorCommandsApi():Promise<Array<any>>;
 
 export function GetPluginJsEntryUrlApi(arg1:string):Promise<string>;
+
+export function GetPluginSecretApi(arg1:string,arg2:string):Promise<string>;
 
 export function GetPluginStorageKeyApi(arg1:Record<string, any>):Promise<any>;
 
@@ -51,6 +57,8 @@ export function OpenFolder(arg1:string):Promise<void>;
 export function QueryLogsApi(arg1:Record<string, any>):Promise<logger.LogQueryResult>;
 
 export function SaveBase64Image(arg1:string):Promise<string>;
+
+export function SetPluginSecretApi(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function SetPluginStorageKeyApi(arg1:Record<string, any>):Promise<void>;
 

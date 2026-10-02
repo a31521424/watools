@@ -1,0 +1,13 @@
+package update
+import("os";"path/filepath";"testing";"watools/config")
+func TestReviewProbeAssetNameEscapesCache(t *testing.T){
+ base:=config.ProjectCacheDir();p:=updateAssetPath("1.0.0","../../../probe")
+ rel,err:=filepath.Rel(base,p);if err!=nil{t.Fatal(err)}
+ if filepath.IsLocal(rel){t.Fatalf("expected escape, got %s",rel)}
+ t.Logf("Asset name escapes cache: %s",rel)
+}
+func TestReviewProbeInstallUnverifiedFile(t *testing.T){
+ p:=filepath.Join(t.TempDir(),"not-an-update.txt");if err:=os.WriteFile(p,[]byte("not an update"),0600);err!=nil{t.Fatal(err)}
+ r,err:=(&Service{}).Install(p);if err!=nil{t.Fatalf("expected observed acceptance, got %v",err)}
+ t.Logf("Unverified file accepted with status=%s",r.Status)
+}

@@ -26,6 +26,10 @@ var (
 
 type WaLaunchApp struct {
 	ctx               context.Context
+	runnersMu         sync.RWMutex
+	reconcileMu       sync.Mutex
+	background        sync.WaitGroup
+	cancel            context.CancelFunc
 	applicationRunner []models.CommandRunner
 	operationRunner   []models.CommandRunner
 	watchManager      watcher.AppWatchManager
@@ -39,27 +43,56 @@ func GetWaLaunch() *WaLaunchApp {
 }
 
 func (w *WaLaunchApp) OnStartup(ctx context.Context) {
-	w.ctx = ctx
+	w.ctx, w.cancel = context.WithCancel(ctx)
 	w.initAppWatcher()
 	w.asyncUpdateApplications(30 * time.Second)
 }
 
 func (w *WaLaunchApp) Shutdown(ctx context.Context) {
+	if w.cancel != nil {
+		w.cancel()
+	}
 	if w.watchManager != nil {
 		if err := w.watchManager.Stop(); err != nil {
 			logger.Error(err, "Failed to stop app watch manager")
 		}
 	}
+	w.background.Wait()
 }
 
 func (w *WaLaunchApp) asyncUpdateApplications(delay time.Duration) {
+	w.background.Add(1)
 	go func() {
-		time.Sleep(delay)
+		defer w.background.Done()
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-w.ctx.Done():
+			return
+		case <-timer.C:
+		}
 		w.updateApplications()
+		ticker := time.NewTicker(2 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-w.ctx.Done():
+				return
+			case <-ticker.C:
+				w.updateApplications()
+			}
+		}
 	}()
 }
 
 func (w *WaLaunchApp) updateApplications() {
+	ApiMutex.Lock()
+	defer ApiMutex.Unlock()
+	w.reconcileMu.Lock()
+	defer w.reconcileMu.Unlock()
+	if w.ctx.Err() != nil {
+		return
+	}
 	dbInstance := db.GetWaDB()
 	commands := dbInstance.GetCommands(w.ctx)
 	seen := make(map[string]struct{})
@@ -137,7 +170,8 @@ func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
 	dbInstance := db.GetWaDB()
 	commands := dbInstance.GetCommands(w.ctx)
 	if len(commands) == 0 {
-		commands, err := application.GetApplications()
+		scanned, err := application.GetApplications()
+		commands = scanned
 		if err != nil {
 			logger.Error(err, "Failed to get application")
 			return []*models.ApplicationCommand{}
@@ -157,7 +191,7 @@ func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
 
 func (w *WaLaunchApp) GetApplicationCommands() []interface{} {
 	var commands []interface{}
-	w.applicationRunner = nil
+	var runners []models.CommandRunner
 
 	apps := lo.UniqBy(w.getApplicationCommands(), func(app *models.ApplicationCommand) string {
 		if app.ID != "" {
@@ -165,7 +199,7 @@ func (w *WaLaunchApp) GetApplicationCommands() []interface{} {
 		}
 		return app.Path
 	})
-	w.applicationRunner = append(w.applicationRunner, lo.Map(apps, func(app *models.ApplicationCommand, _ int) models.CommandRunner { return app })...)
+	runners = append(runners, lo.Map(apps, func(app *models.ApplicationCommand, _ int) models.CommandRunner { return app })...)
 	commands = append(commands, lo.Map(apps, func(app *models.ApplicationCommand, _ int) interface{} {
 		var m map[string]interface{}
 		data, _ := json.Marshal(app)
@@ -173,18 +207,24 @@ func (w *WaLaunchApp) GetApplicationCommands() []interface{} {
 		return m
 	})...)
 
+	w.runnersMu.Lock()
+	w.applicationRunner = runners
+	w.runnersMu.Unlock()
 	return commands
 }
 
 func (w *WaLaunchApp) GetOperationCommands() []interface{} {
-	w.operationRunner = nil
+	var runners []models.CommandRunner
 
 	operations := operator.GetOperations()
 	uniqueOperations := lo.UniqBy(operations, func(operation *models.OperationCommand) string {
 		return operation.TriggerID
 	})
-	w.operationRunner = append(w.operationRunner, lo.Map(uniqueOperations, func(operation *models.OperationCommand, _ int) models.CommandRunner { return operation })...)
+	runners = append(runners, lo.Map(uniqueOperations, func(operation *models.OperationCommand, _ int) models.CommandRunner { return operation })...)
 
+	w.runnersMu.Lock()
+	w.operationRunner = runners
+	w.runnersMu.Unlock()
 	return lo.Map(uniqueOperations, func(operation *models.OperationCommand, _ int) interface{} {
 		var m map[string]interface{}
 		data, _ := json.Marshal(operation)
@@ -193,16 +233,20 @@ func (w *WaLaunchApp) GetOperationCommands() []interface{} {
 	})
 }
 
-func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string, triggerCategory models.CommandCategory) {
+func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string, triggerCategory models.CommandCategory) error {
+	w.runnersMu.RLock()
 	var runners []models.CommandRunner
 	if triggerCategory == models.CategoryApplication {
 		runners = w.applicationRunner
 	} else if triggerCategory == models.CategoryOperation {
 		runners = w.operationRunner
 	} else {
-		logger.Error(fmt.Errorf("trigger category is not valid: %s", triggerCategory))
+		w.runnersMu.RUnlock()
+		return fmt.Errorf("trigger category is not valid: %s", triggerCategory)
 	}
 
+	runners = append([]models.CommandRunner(nil), runners...)
+	w.runnersMu.RUnlock()
 	for _, runner := range runners {
 		if runner.GetTriggerID() == uniqueTriggerID {
 			err := runner.OnTrigger()
@@ -211,11 +255,11 @@ func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string, triggerCategory mod
 			} else {
 				logger.Info(fmt.Sprintf("trigger runner success: %s", uniqueTriggerID))
 			}
-			return
+			return err
 		}
 	}
 
-	logger.Error(fmt.Errorf("not find runner: %s", uniqueTriggerID))
+	return fmt.Errorf("not find runner: %s", uniqueTriggerID)
 }
 
 func (w *WaLaunchApp) initAppWatcher() {
@@ -227,6 +271,9 @@ func (w *WaLaunchApp) initAppWatcher() {
 		return
 	}
 
+	if watchManager == nil {
+		return
+	}
 	w.watchManager = watchManager
 
 	if err := w.watchManager.Start(); err != nil {

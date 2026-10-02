@@ -13,8 +13,8 @@ func DefaultWatcherConfig() *WatcherConfig {
 		DebounceInterval: 500, // 500ms
 		EventBufferSize:  100,
 		ProcessDelay: ProcessDelayConfig{
-			AppAddedDelay:    50000, // 5s
-			AppModifiedDelay: 50000, // 5s
+			AppAddedDelay:    5000, // 5s
+			AppModifiedDelay: 5000, // 5s
 		},
 		RetryConfig: RetryConfig{
 			MaxRetries:         3,

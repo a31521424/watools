@@ -21,8 +21,7 @@ export const useApplicationItems = ({
     const {
         commandGroup,
         isLoading,
-        searchCommands,
-        updateCommandUsage
+        searchCommands
     } = useApplicationCommandStore();
 
 
@@ -65,9 +64,8 @@ export const useApplicationItems = ({
             rankingMeta,
             subtitle: command.path,
             onSelect: async () => {
-                await updateCommandUsage(command.id);
                 onTriggerCommand(command);
             }
         }));
-    }, [searchKey, commandGroup, searchCommands, isLoading, updateCommandUsage, onTriggerCommand, rankingContext, rankingHistory]);
+    }, [searchKey, commandGroup, searchCommands, isLoading, onTriggerCommand, rankingContext, rankingHistory]);
 };

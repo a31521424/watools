@@ -57,7 +57,7 @@ func (a *ApplicationCommand) GetTriggerID() string {
 
 func (a *ApplicationCommand) OnTrigger() error {
 	path := a.Path
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("failed to find application file '%s': %w", path, err)
 	}
 	return openApplication(path)
@@ -74,7 +74,7 @@ func NewApplicationCommand(name string, description mo.Option[string], path stri
 	}
 	cmd := &ApplicationCommand{
 		Command: Command{
-			TriggerID:   fmt.Sprintf("%s-%s-%s", category, name, id.MustGet()),
+			TriggerID:   fmt.Sprintf("%s-%s", category, id.MustGet()),
 			Name:        name,
 			Description: description,
 			Category:    category,

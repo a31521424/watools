@@ -330,6 +330,14 @@
     let lastTargetLang = "EN";
     let isTranslating = false;
     let latestRequestId = 0;
+    let activeHttpRequestId = null;
+    const invalidateTranslation = () => {
+        latestRequestId += 1;
+        if (activeHttpRequestId && window.watools?.CancelHttpProxy) {
+            void window.watools.CancelHttpProxy(activeHttpRequestId).catch(() => {});
+        }
+        activeHttpRequestId = null;
+    };
 
     const containsChinese = (value) => /[\u3400-\u9FFF]/.test(value);
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -409,34 +417,22 @@
     };
 
     const persistApiKey = async (value) => {
-        window.localStorage.setItem(apiKeyLocalStorageKey, value);
-        try {
-            await window.watools.StorageSet(apiKeyStorageKey, value);
-        } catch (error) {
-            // Keep local fallback so the user does not have to re-enter the key.
-        }
+        await window.watools.SecretSet(apiKeyStorageKey, value);
+        // Only remove legacy copies after the OS secret store accepted the key.
+        await window.watools.StorageRemove(apiKeyStorageKey);
+        window.localStorage.removeItem(apiKeyLocalStorageKey);
     };
 
     const loadApiKey = async () => {
-        let storedKey = "";
-
-        try {
-            storedKey = (await window.watools.StorageGet(apiKeyStorageKey)) || "";
-        } catch (error) {
-            storedKey = "";
-        }
-
+        let storedKey = await window.watools.SecretGet(apiKeyStorageKey);
         if (!storedKey) {
-            storedKey = window.localStorage.getItem(apiKeyLocalStorageKey) || "";
-            if (storedKey) {
-                try {
-                    await window.watools.StorageSet(apiKeyStorageKey, storedKey);
-                } catch (error) {
-                    // Keep local fallback when host storage is temporarily unavailable.
-                }
-            }
+            storedKey = (await window.watools.StorageGet(apiKeyStorageKey)) ||
+                window.localStorage.getItem(apiKeyLocalStorageKey) || "";
+            if (storedKey) await persistApiKey(storedKey);
+        } else {
+            await window.watools.StorageRemove(apiKeyStorageKey);
+            window.localStorage.removeItem(apiKeyLocalStorageKey);
         }
-
         apiKey = typeof storedKey === "string" ? storedKey.trim() : "";
         apiKeyInput.value = apiKey;
         setSettingsVisible(!apiKey);
@@ -459,8 +455,9 @@
             return;
         }
 
+        try { await persistApiKey(nextKey); }
+        catch (error) { setStatus(`密钥保存失败：${error instanceof Error ? error.message : error}`, "error"); return; }
         apiKey = nextKey;
-        await persistApiKey(apiKey);
         setStatus("API 密钥已保存。", "success");
         setSettingsVisible(false);
         showToast("DeepL 密钥已保存");
@@ -471,6 +468,8 @@
     };
 
     const translateText = async ({silentEmpty = false, immediate = false} = {}) => {
+        invalidateTranslation();
+        const requestId = latestRequestId;
         const text = sourceTextNode.value.trim();
         if (!text) {
             targetTextNode.value = "";
@@ -489,17 +488,14 @@
             return;
         }
 
-        if (isTranslating && !immediate) {
-            return;
-        }
-
-        const requestId = ++latestRequestId;
         isTranslating = true;
         updateDirectionUI(text);
         setStatus(immediate ? "正在翻译……" : "正在自动翻译……");
 
         try {
+            activeHttpRequestId = `translate-${Date.now()}-${requestId}`;
             const response = await window.watools.HttpProxy({
+                requestId: activeHttpRequestId,
                 url: deeplEndpoint,
                 method: "POST",
                 headers: {
@@ -513,7 +509,7 @@
                 timeout: 30000,
             });
 
-            if (requestId !== latestRequestId) {
+            if (requestId !== latestRequestId || sourceTextNode.value.trim() !== text) {
                 return;
             }
 
@@ -539,7 +535,7 @@
             detectedLabel.textContent = `检测结果 ${translation.detected_source_language || "AUTO"}`;
             setStatus("翻译完成。", "success");
         } catch (error) {
-            if (requestId !== latestRequestId) {
+            if (requestId !== latestRequestId || sourceTextNode.value.trim() !== text) {
                 return;
             }
 
@@ -551,6 +547,7 @@
         } finally {
             if (requestId === latestRequestId) {
                 isTranslating = false;
+                activeHttpRequestId = null;
             }
         }
     };
@@ -610,6 +607,7 @@
     });
 
     sourceTextNode.addEventListener("input", () => {
+        invalidateTranslation();
         updateDirectionUI(sourceTextNode.value);
         if (!sourceTextNode.value.trim()) {
             if (autoTranslateTimer) {
@@ -626,6 +624,7 @@
     sourceTextNode.addEventListener("keydown", (event) => {
         if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
             event.preventDefault();
+            event.stopPropagation();
             if (autoTranslateTimer) {
                 clearTimeout(autoTranslateTimer);
             }

@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"watools/pkg/db"
@@ -22,7 +23,7 @@ type WaPlugin struct {
 	ctx          context.Context
 	pluginStates []*models.PluginState
 	installer    *PluginInstaller
-	storageMutex sync.RWMutex // protect storage operations
+	stateMu      sync.RWMutex // protect storage operations
 }
 
 func GetWaPlugin() *WaPlugin {
@@ -43,39 +44,64 @@ func (p *WaPlugin) OnShutdown(ctx context.Context) {
 }
 
 func (p *WaPlugin) loadPlugins() {
-	dbInstance := db.GetWaDB()
-	p.pluginStates = dbInstance.GetPlugins(p.ctx)
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
+	if err := p.loadPluginsLocked(); err != nil {
+		logger.Error(err, "Failed to load plugins")
+	}
 }
 
-func (p *WaPlugin) GetPlugins() []map[string]interface{} {
-	return lo.Map(p.pluginStates, func(item *models.PluginState, index int) map[string]interface{} {
-		return item.GetFullInfo()
-	})
+func (p *WaPlugin) loadPluginsLocked() error {
+	states, err := db.GetWaDB().GetPlugins(p.ctx)
+	if err != nil {
+		return err
+	}
+	p.pluginStates = states
+	return nil
+}
+func (p *WaPlugin) GetPlugins() ([]map[string]interface{}, error) {
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
+	if err := p.loadPluginsLocked(); err != nil {
+		return nil, err
+	}
+	return lo.Map(p.pluginStates, func(item *models.PluginState, index int) map[string]interface{} { return item.GetFullInfo() }), nil
 }
 
 func (p *WaPlugin) GetJsEntryUrl(packageID string) string {
+	p.stateMu.RLock()
+	defer p.stateMu.RUnlock()
 	plugin, find := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
 		return item.PackageID == packageID
 	})
 	if !find {
 		return ""
 	}
+	if !plugin.Enabled {
+		return ""
+	}
 	return plugin.GetJsEntryUrl()
 }
 
 func (p *WaPlugin) UpdatePluginUsage(updates []models.PluginUsageUpdate) error {
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
 	dbInstance := db.GetWaDB()
-	return dbInstance.BatchUpdatePluginUsage(p.ctx, updates)
+	if err := dbInstance.BatchUpdatePluginUsage(p.ctx, updates); err != nil {
+		return err
+	}
+	return p.loadPluginsLocked()
 }
 
 // InstallPlugin installs a plugin from a .wt file
 func (p *WaPlugin) InstallPlugin(wtFilePath string) error {
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
 	if err := p.installer.InstallFromWtFile(wtFilePath); err != nil {
 		return err
 	}
-	// Reload plugins after installation
-	p.loadPlugins()
-	return nil
+	// Reload after committing the new revision.
+	return p.loadPluginsLocked()
 }
 
 // InstallPluginByFileDialog InstallPlugin install a plugin from a.wt file by file dialog
@@ -91,56 +117,51 @@ func (p *WaPlugin) InstallPluginByFileDialog() error {
 	if len(pluginPaths) == 0 {
 		return nil
 	}
-	needRefresh := false
+	var failures []error
 	for _, pluginPath := range pluginPaths {
-		if err := p.installer.InstallFromWtFile(pluginPath); err != nil {
-			logger.Error(err, "Failed to install plugin from file", "file", pluginPath)
-			continue
+		if err := p.InstallPlugin(pluginPath); err != nil {
+			failures = append(failures, fmt.Errorf("%s: %w", pluginPath, err))
 		}
-		needRefresh = true
 	}
-	if needRefresh {
-		p.loadPlugins()
-	}
-	return nil
+	return errors.Join(failures...)
+
 }
 
 // UninstallPlugin uninstalls a plugin by packageID
 func (p *WaPlugin) UninstallPlugin(packageID string) error {
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
 	if err := p.installer.UninstallPlugin(packageID); err != nil {
 		return err
 	}
-	// Reload plugins after uninstallation
-	p.loadPlugins()
-	return nil
+	return p.loadPluginsLocked()
 }
 
 // TogglePlugin enables or disables a plugin
 func (p *WaPlugin) TogglePlugin(packageID string, enabled bool) error {
-	dbInstance := db.GetWaDB()
-	if err := dbInstance.UpdatePluginEnabled(p.ctx, packageID, enabled); err != nil {
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
+	state, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool { return item.PackageID == packageID })
+	if !found {
+		return fmt.Errorf("plugin not found: %s", packageID)
+	}
+	if err := db.GetWaDB().UpdatePluginEnabled(p.ctx, packageID, enabled); err != nil {
 		return err
 	}
-	// Update local state
-	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
-		return item.PackageID == packageID
-	})
-	if found {
-		plugin.Enabled = enabled
-	}
+	state.Enabled = enabled
 	return nil
 }
 
 // GetStorage gets a value from plugin storage by key
 func (p *WaPlugin) GetStorage(packageID string, key string) (interface{}, error) {
-	p.storageMutex.RLock()
-	defer p.storageMutex.RUnlock()
+	p.stateMu.RLock()
+	defer p.stateMu.RUnlock()
 
 	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
 		return item.PackageID == packageID
 	})
-	if !found {
-		return nil, fmt.Errorf("plugin not found: %s", packageID)
+	if !found || !plugin.Enabled {
+		return nil, fmt.Errorf("plugin is missing or disabled: %s", packageID)
 	}
 
 	if plugin.Storage == nil {
@@ -157,78 +178,88 @@ func (p *WaPlugin) GetStorage(packageID string, key string) (interface{}, error)
 
 // SetStorage sets a value in plugin storage by key
 func (p *WaPlugin) SetStorage(packageID string, key string, value interface{}) error {
-	p.storageMutex.Lock()
-	defer p.storageMutex.Unlock()
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
 
 	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
 		return item.PackageID == packageID
 	})
-	if !found {
-		return fmt.Errorf("plugin not found: %s", packageID)
+	if !found || !plugin.Enabled {
+		return fmt.Errorf("plugin is missing or disabled: %s", packageID)
 	}
 
-	// initialize storage if nil
-	if plugin.Storage == nil {
-		plugin.Storage = make(map[string]interface{})
+	next := make(map[string]interface{}, len(plugin.Storage)+1)
+	for k, v := range plugin.Storage {
+		next[k] = v
 	}
+	next[key] = value
+	if err := p.saveStorage(packageID, next); err != nil {
+		return err
+	}
+	plugin.Storage = next
+	return nil
 
-	// set value
-	plugin.Storage[key] = value
-
-	// persist to database
-	return p.saveStorage(packageID, plugin.Storage)
 }
 
 // RemoveStorage removes a key from plugin storage
 func (p *WaPlugin) RemoveStorage(packageID string, key string) error {
-	p.storageMutex.Lock()
-	defer p.storageMutex.Unlock()
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
 
 	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
 		return item.PackageID == packageID
 	})
-	if !found {
-		return fmt.Errorf("plugin not found: %s", packageID)
+	if !found || !plugin.Enabled {
+		return fmt.Errorf("plugin is missing or disabled: %s", packageID)
 	}
 
 	if plugin.Storage == nil {
 		return nil
 	}
 
-	delete(plugin.Storage, key)
-
-	// persist to database
-	return p.saveStorage(packageID, plugin.Storage)
+	next := make(map[string]interface{}, len(plugin.Storage))
+	for k, v := range plugin.Storage {
+		if k != key {
+			next[k] = v
+		}
+	}
+	if err := p.saveStorage(packageID, next); err != nil {
+		return err
+	}
+	plugin.Storage = next
+	return nil
 }
 
 // ClearStorage clears all storage for a plugin
 func (p *WaPlugin) ClearStorage(packageID string) error {
-	p.storageMutex.Lock()
-	defer p.storageMutex.Unlock()
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
 
 	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
 		return item.PackageID == packageID
 	})
-	if !found {
-		return fmt.Errorf("plugin not found: %s", packageID)
+	if !found || !plugin.Enabled {
+		return fmt.Errorf("plugin is missing or disabled: %s", packageID)
 	}
 
-	plugin.Storage = make(map[string]interface{})
-
-	// persist to database
-	return p.saveStorage(packageID, plugin.Storage)
+	next := make(map[string]interface{})
+	if err := p.saveStorage(packageID, next); err != nil {
+		return err
+	}
+	plugin.Storage = next
+	return nil
 }
 
 // ListStorageKeys returns all keys in plugin storage
 func (p *WaPlugin) ListStorageKeys(packageID string) ([]string, error) {
-	p.storageMutex.RLock()
-	defer p.storageMutex.RUnlock()
+	p.stateMu.RLock()
+	defer p.stateMu.RUnlock()
 
 	plugin, found := lo.Find(p.pluginStates, func(item *models.PluginState) bool {
 		return item.PackageID == packageID
 	})
-	if !found {
-		return nil, fmt.Errorf("plugin not found: %s", packageID)
+	if !found || !plugin.Enabled {
+		return nil, fmt.Errorf("plugin is missing or disabled: %s", packageID)
 	}
 
 	if plugin.Storage == nil {
@@ -254,4 +285,16 @@ func (p *WaPlugin) saveStorage(packageID string, storage map[string]interface{})
 	}
 
 	return dbInstance.UpdatePluginStorage(p.ctx, packageID, string(storageJSON))
+}
+
+// IsEnabled is used by resource handlers; disabled packages cannot start new loads.
+func (p *WaPlugin) IsEnabled(packageID string) bool {
+	p.stateMu.RLock()
+	defer p.stateMu.RUnlock()
+	for _, state := range p.pluginStates {
+		if state.PackageID == packageID {
+			return state.Enabled
+		}
+	}
+	return false
 }

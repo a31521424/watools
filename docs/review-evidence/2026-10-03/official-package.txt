@@ -1,0 +1,6 @@
+packaged watools.plugin.calculator -> /private/tmp/watools-fix-final-official-packages/watools.plugin.calculator.wt
+packaged watools.plugin.common -> /private/tmp/watools-fix-final-official-packages/watools.plugin.common.wt
+packaged watools.plugin.json -> /private/tmp/watools-fix-final-official-packages/watools.plugin.json.wt
+packaged watools.plugin.qr -> /private/tmp/watools-fix-final-official-packages/watools.plugin.qr.wt
+packaged watools.plugin.textstats -> /private/tmp/watools-fix-final-official-packages/watools.plugin.textstats.wt
+packaged watools.plugin.translate -> /private/tmp/watools-fix-final-official-packages/watools.plugin.translate.wt

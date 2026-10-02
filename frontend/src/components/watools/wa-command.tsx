@@ -18,7 +18,7 @@ import {BaseItemProps, WaBaseItem} from "@/components/watools/wa-base-item";
 import {getClipboardContent} from "@/api/app";
 import {PluginContext} from "@/schemas/plugin";
 import {useShallow} from "zustand/react/shallow";
-import {createWaToolsApi} from "@/api/api";
+import {withPluginApi} from "@/lib/plugin-execution";
 import {useApplicationCommandStore} from "@/stores/applicationCommandStore";
 import {compareRankableItems, createRankingInputContext} from "@/lib/command-ranking";
 import {useCommandRankingStore} from "@/stores";
@@ -28,7 +28,8 @@ import {persistPluginLaunchContext} from "@/lib/plugin-context";
 export const WaCommand = () => {
     const inputRef = useRef<HTMLInputElement>(null)
     const commandListRef = useRef<HTMLDivElement>(null)
-    const [isPasted, setIsPasted] = React.useState<boolean>(false)
+    const [executionError, setExecutionError] = React.useState<string | null>(null)
+    const updateApplicationUsage = useApplicationCommandStore(state => state.updateCommandUsage)
     const {updatePluginUsage} = usePluginStore()
     const flushPluginUsage = usePluginStore(state => state.flushBufferUpdates)
     const flushApplicationUsage = useApplicationCommandStore(state => state.flushBufferUpdates)
@@ -63,13 +64,15 @@ export const WaCommand = () => {
     const rankingContext = useMemo(() => createRankingInputContext(pluginInput), [pluginInput])
 
     const onTriggerCommand = useCallback((command: CommandType) => {
-        clearValue()
-        TriggerCommandApi(command.triggerId, command.category).then(() => {
+        setExecutionError(null)
+        TriggerCommandApi(command.triggerId, command.category).then(async () => {
+            if (command.category === "Application" && "id" in command && typeof command.id === "string") await updateApplicationUsage(command.id)
+            clearValue()
             void Promise.allSettled([flushApplicationUsage(), flushPluginUsage()]).finally(() => {
                 void HideAppApi()
             })
-        })
-    }, [clearValue, flushApplicationUsage, flushPluginUsage])
+        }).catch(error => { Logger.error(`命令执行失败: ${error}`); setExecutionError(`命令执行失败：${String(error)}`) })
+    }, [clearValue, flushApplicationUsage, flushPluginUsage, updateApplicationUsage])
 
     const onTriggerPluginCommand = useCallback(async (entry: PluginCommandEntry, context: PluginContext) => {
         // Update plugin usage statistics
@@ -88,30 +91,19 @@ export const WaCommand = () => {
             if (launchId) {
                 params.set('launchId', launchId)
             }
-            if (context.input.value.trim()) {
-                params.set('seed', context.input.value)
-            }
             navigate(`/plugin?${params.toString()}`)
         } else if (entry.type === 'executable') {
-            // @ts-ignore
-            const previousWaTools = window.watools
-            // @ts-ignore
-            window.watools = createWaToolsApi(entry.packageId)
             try {
-                entry.execute && await entry.execute(context)
+                await withPluginApi(entry.packageId, api => {
+                    if (!usePluginStore.getState().getPluginById(entry.packageId)?.enabled) throw new Error('插件已停用');
+                    return entry.execute?.(context, api);
+                })
                 clearValue()
                 await Promise.allSettled([flushApplicationUsage(), flushPluginUsage()])
                 void HideAppApi()
             } catch (error) {
                 Logger.error(`Failed to execute plugin command: ${error}`)
-            } finally {
-                if (previousWaTools) {
-                    // @ts-ignore
-                    window.watools = previousWaTools
-                } else {
-                    // @ts-ignore
-                    delete window.watools
-                }
+                setExecutionError(`插件执行失败：${String(error)}`)
             }
         }
     }, [updatePluginUsage, navigate, clearValue, flushApplicationUsage, flushPluginUsage])
@@ -190,6 +182,7 @@ export const WaCommand = () => {
 
     useWindowFocus((focused) => {
         if (focused) {
+            const revision = useAppStore.getState().inputRevision
             getClipboardContent().then(res => {
                 if (!res) {
                     return
@@ -200,7 +193,7 @@ export const WaCommand = () => {
                             return
                         }
                         inputRef.current.select()
-                    }, 0))
+                    }, 0), revision)
                 }
             })
             inputRef.current?.focus()
@@ -243,13 +236,20 @@ export const WaCommand = () => {
         }
     }, [clearValue, flushApplicationUsage, flushPluginUsage])
 
-    const handlePaste = useCallback(() => {
-        setIsPasted(true)
-        getClipboardContent().then(res => {
-            console.log('Pasted clipboard content:', res);
-            setClipboardContent(res)
+    const handlePaste = useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
+        event.preventDefault()
+        const revision = useAppStore.getState().inputRevision
+        const text = event.clipboardData.getData('text/plain')
+        getClipboardContent().then(content => {
+            const result = content?.contentType === 'text' && text
+                ? {...content, text}
+                : content || {contentType: 'text' as const, text, imageBase64: null, files: null}
+            setClipboardContent(result, revision)
+        }).catch(error => {
+            Logger.error(`读取剪贴板失败: ${error}`)
+            if (text) setClipboardContent({contentType: 'text', text, imageBase64: null, files: null}, revision)
         })
-    }, [setClipboardContent, getClipboardContent, setIsPasted])
+    }, [setClipboardContent])
 
     return <Command
         value={selectedKey}
@@ -263,18 +263,15 @@ export const WaCommand = () => {
             imageBase64={imageBase64}
             files={files}
             onValueChange={value => {
-                if (!isPasted) {
-                    setValue(value, "text")
-                } else {
-                    setValue(value, "clipboard")
-                    setIsPasted(false)
-                }
+                setExecutionError(null)
+                setValue(value, "text")
             }}
             onPaste={handlePaste}
             className="text-gray-800"
             classNames={{wrapper: cn("text-xl", isPanelOpen ? undefined : "!border-none")}}
             value={displayValue}
         />
+        {executionError && <div role="alert" className="px-3 py-2 text-sm text-red-600">{executionError}</div>}
         <CommandList
             ref={commandListRef}
             className={cn(

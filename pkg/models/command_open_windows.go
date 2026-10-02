@@ -1,14 +1,17 @@
 package models
 
 import (
-	"fmt"
-	"os/exec"
+	"golang.org/x/sys/windows"
 )
 
 func openApplication(path string) error {
-	cmd := exec.Command("cmd", "/c", "start", "", path)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to run application: %w\n%s", err, output)
+	verb, err := windows.UTF16PtrFromString("open")
+	if err != nil {
+		return err
 	}
-	return nil
+	file, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return err
+	}
+	return windows.ShellExecute(0, verb, file, nil, nil, windows.SW_SHOWNORMAL)
 }

@@ -1,0 +1,31 @@
+Wails CLI v2.10.2
+
+
+# Build Options
+
+Platform(s)        | darwin/arm64
+Compiler           | /opt/homebrew/bin/go
+Skip Bindings      | true
+Build Mode         | production
+Devtools           | false
+Frontend Directory | /Users/banbxio/Desktop/watools/frontend
+Obfuscated         | false
+Skip Frontend      | true
+Compress           | false
+Package            | true
+Clean Bin Dir      | false
+LDFlags            |
+Tags               | []
+Race Detector      | false
+
+
+# Building target: darwin/arm64
+
+  • Compiling application: # watools
+ld: warning: ignoring duplicate libraries: '-lobjc'
+Done.
+  • Packaging application: Done.
+Built '/Users/banbxio/Desktop/watools/build/bin/watools.app/Contents/MacOS/watools' in 4.475s.
+
+ ♥   If Wails is useful to you or your company, please consider sponsoring the project:
+https://github.com/sponsors/leaanthony

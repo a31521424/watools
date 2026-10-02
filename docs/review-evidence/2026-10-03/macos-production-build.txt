@@ -1,0 +1,2 @@
+# watools
+ld: warning: ignoring duplicate libraries: '-lobjc'

@@ -1,3 +1,4 @@
+import type {WaToolsApi} from "@/api/api";
 import {AppClipboardContent, AppInput} from "@/schemas/app";
 
 type PluginIcon = string | null
@@ -20,7 +21,7 @@ export type PluginEntry = {
     type: "executable" | "ui"
     subTitle: string
     match: (context: PluginContext) => boolean
-    execute?: (context: PluginContext) => Promise<void>
+    execute?: (context: PluginContext, api?: WaToolsApi) => Promise<void>
     icon: PluginIcon
     file?: string
 }
@@ -39,6 +40,8 @@ export type Plugin = {
     uiEnabled: boolean
 
     enabled: boolean
+    loadStatus?: 'disabled' | 'ready' | 'failed'
+    loadError?: string
     storage: Record<string, any>
     lastUsedAt: Date | null
     usedCount: number

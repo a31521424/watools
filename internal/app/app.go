@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"watools/pkg/logger"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -14,8 +16,9 @@ var (
 )
 
 type WaApp struct {
+	hotkeyUpdateMu   sync.Mutex
 	ctx              context.Context
-	isHidden         bool
+	isHidden         atomic.Bool
 	hotkeyListener   []*HotkeyListener
 	lastScreenWidth  int
 	lastScreenHeight int
@@ -223,6 +226,8 @@ func (a *WaApp) GetHotkeys() []HotkeyConfigAPI {
 
 // UpdateHotkey updates a hotkey configuration (Wails binding method)
 func (a *WaApp) UpdateHotkey(apiConfig HotkeyConfigAPI) error {
+	a.hotkeyUpdateMu.Lock()
+	defer a.hotkeyUpdateMu.Unlock()
 	hm := GetHotkeyManager()
 
 	// Create app layer config
@@ -232,21 +237,25 @@ func (a *WaApp) UpdateHotkey(apiConfig HotkeyConfigAPI) error {
 		Hotkey: apiConfig.Hotkey,
 	}
 
-	// Validate and set config
+	old, exists := hm.GetConfig(cfg.ID)
+	if !exists {
+		return fmt.Errorf("unknown hotkey ID: %s", cfg.ID)
+	}
 	if err := hm.SetConfig(cfg); err != nil {
-		logger.Error(err, "Failed to set hotkey config", "id", cfg.ID)
 		return err
 	}
-
-	// Save config
-	if err := hm.SaveConfigs(); err != nil {
-		logger.Error(err, "Failed to save hotkey configs")
-		return err
+	rollback := func() {
+		_ = hm.SetConfig(old)
+		if err := hm.RegisterAll(); err != nil {
+			logger.Error(err, "Failed to restore hotkeys")
+		}
 	}
-
-	// Re-register all hotkeys
 	if err := hm.RegisterAll(); err != nil {
-		logger.Error(err, "Failed to re-register hotkeys")
+		rollback()
+		return err
+	}
+	if err := hm.SaveConfigs(); err != nil {
+		rollback()
 		return err
 	}
 

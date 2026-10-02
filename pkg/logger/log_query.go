@@ -2,6 +2,7 @@ package logger
 
 import (
 	"bufio"
+	"container/heap"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -113,61 +114,51 @@ func QueryLogs(query LogQuery) (LogQueryResult, error) {
 	sourceFilter := normalizeFilter(query.Sources)
 	pluginFilter := normalizeFilter(query.PluginIDs)
 
-	matchedRecords := make([]LogRecord, 0, defaultLogQueryLimit)
+	start := parseCursor(query.Cursor)
+	if start > 10000 {
+		return LogQueryResult{}, fmt.Errorf("log cursor exceeds 10000; narrow the filter")
+	}
+	limit := query.Limit
+	if limit <= 0 {
+		limit = defaultLogQueryLimit
+	}
+	if limit > maxLogQueryLimit {
+		limit = maxLogQueryLimit
+	}
+	retained := &recordHeap{}
 	availableSources := make(map[string]struct{})
 	availablePluginIDs := make(map[string]struct{})
-
+	total := 0
+	capacity := start + limit + 1
 	for _, file := range files {
-		fileRecords, fileSources, filePluginIDs, err := collectLogFileRecords(file, keyword, levelFilter, sourceFilter, pluginFilter)
+		err := scanLogFile(file, func(record LogRecord) {
+			if record.Source != "" && len(availableSources) < 1024 {
+				availableSources[record.Source] = struct{}{}
+			}
+			if record.PluginID != "" && len(availablePluginIDs) < 1024 {
+				availablePluginIDs[record.PluginID] = struct{}{}
+			}
+			if !matchesLogFilters(record, keyword, levelFilter, sourceFilter, pluginFilter) {
+				return
+			}
+			total++
+			if retained.Len() < capacity {
+				heap.Push(retained, record)
+			} else if newerRecord(record, (*retained)[0]) {
+				heap.Pop(retained)
+				heap.Push(retained, record)
+			}
+		})
 		if err != nil {
 			return LogQueryResult{}, err
 		}
-
-		matchedRecords = append(matchedRecords, fileRecords...)
-		mergeStringSet(availableSources, fileSources)
-		mergeStringSet(availablePluginIDs, filePluginIDs)
 	}
-
-	sort.Slice(matchedRecords, func(i, j int) bool {
-		leftTime := parseLogTimestamp(matchedRecords[i].Timestamp)
-		rightTime := parseLogTimestamp(matchedRecords[j].Timestamp)
-
-		switch {
-		case !leftTime.Equal(rightTime):
-			return leftTime.After(rightTime)
-		case matchedRecords[i].File != matchedRecords[j].File:
-			return matchedRecords[i].File > matchedRecords[j].File
-		default:
-			return matchedRecords[i].Line > matchedRecords[j].Line
-		}
-	})
-
-	start := parseCursor(query.Cursor)
-	if start > len(matchedRecords) {
-		start = len(matchedRecords)
-	}
-
-	limit := query.Limit
-	switch {
-	case limit <= 0:
-		limit = defaultLogQueryLimit
-	case limit > maxLogQueryLimit:
-		limit = maxLogQueryLimit
-	}
-
-	end := start + limit
-	if end > len(matchedRecords) {
-		end = len(matchedRecords)
-	}
-
-	result := LogQueryResult{
-		Records:            matchedRecords[start:end],
-		AvailableSources:   setToSortedSlice(availableSources),
-		AvailablePluginIDs: setToSortedSlice(availablePluginIDs),
-		TotalMatched:       len(matchedRecords),
-	}
-
-	if end < len(matchedRecords) {
+	matchedRecords := []LogRecord(*retained)
+	sort.Slice(matchedRecords, func(i, j int) bool { return newerRecord(matchedRecords[i], matchedRecords[j]) })
+	start = min(start, len(matchedRecords))
+	end := min(start+limit, len(matchedRecords))
+	result := LogQueryResult{Records: matchedRecords[start:end], AvailableSources: setToSortedSlice(availableSources), AvailablePluginIDs: setToSortedSlice(availablePluginIDs), TotalMatched: total}
+	if end < total {
 		result.NextCursor = strconv.Itoa(end)
 	}
 
@@ -221,48 +212,41 @@ func resolveLogFiles(requestedFiles []string) ([]LogFileInfo, error) {
 	return resolved, nil
 }
 
-func collectLogFileRecords(
-	file LogFileInfo,
-	keyword string,
-	levelFilter map[string]struct{},
-	sourceFilter map[string]struct{},
-	pluginFilter map[string]struct{},
-) ([]LogRecord, map[string]struct{}, map[string]struct{}, error) {
+func scanLogFile(file LogFileInfo, consume func(LogRecord)) error {
 	handle, err := os.Open(file.Path)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to open log file %s: %w", file.Name, err)
+		return err
 	}
 	defer handle.Close()
-
 	scanner := bufio.NewScanner(handle)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-
-	records := make([]LogRecord, 0, 128)
-	sources := make(map[string]struct{})
-	pluginIDs := make(map[string]struct{})
-
-	for lineNumber := 1; scanner.Scan(); lineNumber++ {
-		record := parseLogLine(file, lineNumber, scanner.Text())
-
-		if record.Source != "" {
-			sources[record.Source] = struct{}{}
-		}
-		if record.PluginID != "" {
-			pluginIDs[record.PluginID] = struct{}{}
-		}
-
-		if !matchesLogFilters(record, keyword, levelFilter, sourceFilter, pluginFilter) {
-			continue
-		}
-
-		records = append(records, record)
+	for line := 1; scanner.Scan(); line++ {
+		consume(parseLogLine(file, line, scanner.Text()))
 	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to scan log file %s: %w", file.Name, err)
+	return scanner.Err()
+}
+func newerRecord(a, b LogRecord) bool {
+	left, right := parseLogTimestamp(a.Timestamp), parseLogTimestamp(b.Timestamp)
+	if !left.Equal(right) {
+		return left.After(right)
 	}
+	if a.File != b.File {
+		return a.File > b.File
+	}
+	return a.Line > b.Line
+}
 
-	return records, sources, pluginIDs, nil
+type recordHeap []LogRecord
+
+func (h recordHeap) Len() int            { return len(h) }
+func (h recordHeap) Less(i, j int) bool  { return newerRecord(h[j], h[i]) }
+func (h recordHeap) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
+func (h *recordHeap) Push(v interface{}) { *h = append(*h, v.(LogRecord)) }
+func (h *recordHeap) Pop() interface{} {
+	old := *h
+	v := old[len(old)-1]
+	*h = old[:len(old)-1]
+	return v
 }
 
 func parseLogLine(file LogFileInfo, lineNumber int, rawLine string) LogRecord {

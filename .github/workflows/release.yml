@@ -28,13 +28,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - id: release
+        env:
+          REQUESTED_RELEASE_TAG: ${{ inputs.release_tag }}
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            release_tag="${{ inputs.release_tag }}"
+            release_tag="${REQUESTED_RELEASE_TAG}"
           else
             release_tag="${GITHUB_REF_NAME}"
           fi
@@ -96,7 +98,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -123,6 +125,20 @@ jobs:
             echo "pnpm install failed on attempt ${attempt}, retrying..." >&2
             sleep $((attempt * 10))
           done
+
+      - name: Verify frontend
+        working-directory: frontend
+        run: pnpm test && pnpm build
+
+      - name: Verify backend
+        run: go test ./...
+
+      - name: Check Go vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 -tags desktop,production ./...
+
+      - name: Check frontend vulnerabilities
+        working-directory: frontend
+        run: pnpm audit --audit-level=high
 
       - name: Add Go bin to PATH
         shell: bash
@@ -218,7 +234,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - uses: actions/download-artifact@v4
         with:

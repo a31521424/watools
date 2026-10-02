@@ -27,7 +27,6 @@ package api
 import "C"
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,23 +35,23 @@ import (
 	"unsafe"
 )
 
-func (a *WaApi) OpenFolderWithPath(path string) {
+func (a *WaApi) OpenFolderWithPath(path string) error {
 	if strings.HasPrefix(path, "~/") {
 		path = strings.TrimPrefix(path, "~/")
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return
+			return err
 		}
 		path = filepath.Join(homeDir, path)
 	}
 	stat, err := os.Stat(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return
+	if err != nil {
+		return fmt.Errorf("path unavailable: %w", err)
 	}
 	if !stat.IsDir() || filepath.Ext(path) == ".app" {
-		_ = exec.Command("open", "-R", path).Start()
+		return exec.Command("open", "-R", path).Start()
 	} else {
-		_ = exec.Command("open", path).Start()
+		return exec.Command("open", path).Start()
 	}
 }
 

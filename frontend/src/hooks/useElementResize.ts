@@ -4,7 +4,7 @@ import {WindowGetSize, WindowSetSize} from "../../wailsjs/runtime";
 
 export const useElementResize = <T extends HTMLElement>(
     params: { onResize: (entries: ResizeObserverEntry[]) => void }
-): RefObject<T> => {
+): RefObject<T | null> => {
     const elementRef = useRef<T>(null)
 
     useEffect(() => {

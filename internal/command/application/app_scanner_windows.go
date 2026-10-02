@@ -314,7 +314,9 @@ func parseShortcut(lnkPath string) (*models.ApplicationCommand, error) {
 		}
 	}
 
-	return models.NewApplicationCommand(commandName, commandDescription, targetPath, commandIconPath, mo.None[string](), fi.ModTime()), nil
+	// Launch the shortcut through Windows Shell so Arguments and WorkingDirectory
+	// retain their native semantics, and use its source path as the scan identity.
+	return models.NewApplicationCommand(commandName, commandDescription, lnkPath, commandIconPath, mo.None[string](), fi.ModTime()), nil
 }
 
 func parseExecutable(exePath string) (*models.ApplicationCommand, error) {

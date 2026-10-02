@@ -3,7 +3,7 @@ import {useLocation, useSearchParams} from "wouter";
 import {useAppStore, usePluginStore} from "@/stores";
 import {createWaToolsApi} from "@/api/api";
 import {normalizePluginAssetPath} from "@/lib/plugin";
-import {buildPluginContext, getLegacySeedValue, resolvePluginLaunchContext} from "@/lib/plugin-context";
+import {buildPluginContext, resolvePluginLaunchContext, releasePluginLaunchContext} from "@/lib/plugin-context";
 
 export const WaPlugin = () => {
     const [searchParams] = useSearchParams()
@@ -33,7 +33,7 @@ export const WaPlugin = () => {
         launchId,
         seed,
         liveContext,
-    }), [launchId, seed, liveContext])
+    }), [packageId, file, launchId, seed])
 
     const handleHotkey = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -49,8 +49,8 @@ export const WaPlugin = () => {
         }
     }, []);
 
+    const plugin = getPluginById(packageId)
     useEffect(() => {
-        const plugin = getPluginById(packageId)
         const safeFile = normalizePluginAssetPath(file)
         const matchedEntry = plugin?.enabled ? plugin.entry.find(entry => entry.type === "ui" && entry.file === safeFile) : undefined
 
@@ -61,16 +61,12 @@ export const WaPlugin = () => {
         const params = new URLSearchParams({
             t: Date.now().toString(),
         })
-        const legacySeed = getLegacySeedValue(launchContext)
-        if (legacySeed) {
-            params.set('seed', legacySeed)
-        }
         const url = `${plugin.homeUrl}/${safeFile}?${params.toString()}`
         setPluginUrl(url)
         return () => {
             setPluginUrl(null)
         }
-    }, [packageId, file, launchContext, getPluginById]);
+    }, [packageId, file, launchContext, getPluginById, plugin?.enabled, plugin?.homeUrl, plugin?.loadStatus]);
 
     const handleIframeLoad = () => {
         if (!iframeRef.current) {
@@ -96,11 +92,13 @@ export const WaPlugin = () => {
             detail: (iframeWindow as any).pluginContext,
         }))
 
+        releasePluginLaunchContext(launchId)
         clearInputValue()
     }
 
     useEffect(() => {
         return () => {
+            releasePluginLaunchContext(launchId)
             const iframeWindow = iframeRef.current?.contentWindow
             iframeWindow?.removeEventListener('keydown', handleHotkey)
         }
@@ -112,6 +110,6 @@ export const WaPlugin = () => {
             className="block h-full min-h-0 w-full flex-1 border-0"
             src={pluginUrl} onLoad={handleIframeLoad}
         />}
-        {!pluginUrl && 'loading...'}
+        {!pluginUrl && <div className="p-6">{plugin?.loadError || '插件不可用，请检查启用状态或重新安装。'}<button className="ml-4 underline" onClick={() => navigate('/')}>返回启动器</button></div>}
     </div>
 }

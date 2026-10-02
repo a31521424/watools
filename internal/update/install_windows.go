@@ -8,7 +8,7 @@ import (
 )
 
 func installUpdateAsset(downloadedPath string) (InstallResult, error) {
-	cmd := exec.Command("cmd", "/c", "start", "", downloadedPath)
+	cmd := exec.Command(downloadedPath)
 	if err := cmd.Start(); err != nil {
 		return InstallResult{}, fmt.Errorf("failed to launch installer: %w", err)
 	}

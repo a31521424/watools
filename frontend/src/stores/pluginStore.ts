@@ -1,6 +1,7 @@
+import {createUsageFlusher} from "@/lib/usage-buffer";
 import {create} from 'zustand'
 import {Plugin} from '@/schemas/plugin'
-import {getPlugins, updatePluginUsage, togglePlugin as togglePluginApi, uninstallPlugin as uninstallPluginApi} from "@/api/plugin";
+import {getPlugins, updatePluginUsage, togglePlugin as togglePluginApi, uninstallPlugin as uninstallPluginApi, loadPluginEntries, disposePlugin} from "@/api/plugin";
 import {Logger} from "@/lib/logger";
 
 interface PluginState {
@@ -26,29 +27,21 @@ export const usePluginStore = create<PluginState>((set, get) => {
     let isInitialized = false
     let loadPromise: Promise<void> | null = null
 
-    const debouncedFlushUpdates = () => {
-        if (debounceTimer) {
-            clearTimeout(debounceTimer)
-        }
-
-        debounceTimer = setTimeout(async () => {
-            const {updateBuffer} = get()
-
-            if (updateBuffer.size === 0) return
-
-            try {
-                const updates = Array.from(updateBuffer.entries()).map(([packageId, data]) => ({
-                    packageId,
-                    lastUsedAt: data.lastUsedAt,
-                    usedCount: data.usedCount
-                }))
-
-                await updatePluginUsage(updates)
-                set({updateBuffer: new Map()})
-            } catch (error) {
-                Logger.error(`Failed to flush plugin buffer updates: ${error}`)
+    const flushPending = createUsageFlusher(
+        () => get().updateBuffer,
+        snapshot => set(state => {
+            const remaining = new Map(state.updateBuffer)
+            for (const [id, value] of snapshot) {
+                if (remaining.get(id) === value) remaining.delete(id)
             }
-        }, DEBOUNCE_DELAY)
+            return {updateBuffer: remaining}
+        }),
+        snapshot => updatePluginUsage(Array.from(snapshot, ([packageId, data]) => ({packageId, ...data}))),
+    )
+
+    const debouncedFlushUpdates = () => {
+        if (debounceTimer) clearTimeout(debounceTimer)
+        debounceTimer = setTimeout(() => { void flushBufferUpdates() }, DEBOUNCE_DELAY)
     }
 
     const fetchPlugins = async () => {
@@ -76,6 +69,9 @@ export const usePluginStore = create<PluginState>((set, get) => {
     }
 
     const refreshPlugins = async () => {
+        await flushBufferUpdates()
+        if (get().updateBuffer.size) throw new Error("使用记录未保存，请重试刷新")
+        for (const plugin of get().plugins) await disposePlugin(plugin.packageId)
         isInitialized = false
         await fetchPlugins()
     }
@@ -115,39 +111,26 @@ export const usePluginStore = create<PluginState>((set, get) => {
         }));
 
         // Trigger debounced batch update
-        debouncedFlushUpdates();
+        await flushBufferUpdates();
     }
 
     const flushBufferUpdates = async () => {
-        if (debounceTimer) {
-            clearTimeout(debounceTimer);
-            debounceTimer = null;
-        }
-
-        const {updateBuffer} = get();
-        if (updateBuffer.size === 0) return;
-
-        try {
-            const updates = Array.from(updateBuffer.entries()).map(([packageId, data]) => ({
-                packageId,
-                lastUsedAt: data.lastUsedAt,
-                usedCount: data.usedCount
-            }));
-
-            await updatePluginUsage(updates);
-            set({updateBuffer: new Map()});
-        } catch (error) {
-            Logger.error(`Failed to flush plugin buffer updates: ${error}`);
-        }
+        if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null }
+        try { await flushPending() }
+        catch (error) { Logger.error(`Failed to flush usage: ${error}`); debouncedFlushUpdates() }
     }
 
     const togglePlugin = async (packageId: string, enabled: boolean) => {
         try {
             await togglePluginApi(packageId, enabled)
-            // Update local state
+            const current = getPluginById(packageId)
+            if (!current) return
+            const next = {...current, enabled, entry: enabled ? current.entry : []}
+            if (enabled) await loadPluginEntries(next)
+            else { await disposePlugin(packageId); next.loadStatus = 'disabled'; next.loadError = undefined }
             set(state => ({
                 plugins: state.plugins.map(p =>
-                    p.packageId === packageId ? {...p, enabled} : p
+                    p.packageId === packageId ? next : p
                 )
             }))
         } catch (error) {
@@ -159,6 +142,7 @@ export const usePluginStore = create<PluginState>((set, get) => {
     const uninstallPlugin = async (packageId: string) => {
         try {
             await uninstallPluginApi(packageId)
+            await disposePlugin(packageId)
             // Remove from local state
             set(state => ({
                 plugins: state.plugins.filter(p => p.packageId !== packageId)

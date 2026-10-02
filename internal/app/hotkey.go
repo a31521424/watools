@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 	"strings"
-	"watools/pkg/logger"
+	"sync"
 
 	"golang.design/x/hotkey"
 )
@@ -55,90 +55,61 @@ type HotkeyListener struct {
 	Modifiers []hotkey.Modifier
 	Key       hotkey.Key
 	ID        string
+	mu        sync.Mutex
 	hk        *hotkey.Hotkey
 	quit      chan struct{}
 }
 
-func (l *HotkeyListener) listen() {
-	// Ensure channel is initialized
-	if l.quit == nil {
-		l.quit = make(chan struct{}, 1)
-	}
-	if !l.IsRegistered() {
-		logger.Info(fmt.Sprintf("Hotkey listener unregistered, id: %s", l.ID))
-		return
-	}
-
+// Each listener captures its own channels. Unregister cannot replace the state
+// read by a goroutine belonging to an earlier registration.
+func (l *HotkeyListener) listen(hk *hotkey.Hotkey, quit <-chan struct{}) {
 	for {
 		select {
-		case <-l.quit:
-			logger.Info(fmt.Sprintf("Hotkey listener stopped, id: %s", l.ID))
+		case <-quit:
 			return
-		case <-l.hk.Keydown():
+		case _, ok := <-hk.Keydown():
+			if !ok {
+				return
+			}
+			select {
+			case <-quit:
+				return
+			default:
+			}
 			if l.OnTrigger != nil {
 				l.OnTrigger()
-			} else {
-				logger.Info(fmt.Sprintf("Hotkey trigger function is nil, id: %s", l.ID))
 			}
 		}
 	}
 }
-
 func (l *HotkeyListener) Register() error {
-	// If already registered, unregister first
-	if l.IsRegistered() {
-		if err := l.Unregister(); err != nil {
-			logger.Info(fmt.Sprintf("Failed to unregister existing hotkey, id: %s, error: %v", l.ID, err))
-		}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.hk != nil {
+		return fmt.Errorf("hotkey is already registered")
 	}
-
-	l.quit = make(chan struct{}, 1)
-	l.hk = hotkey.New(l.Modifiers, l.Key)
-
-	err := l.hk.Register()
-	if err != nil {
-		logger.Info(fmt.Sprintf("Failed to register hotkey, id: %s, error: %v", l.ID, err))
-		// Clean up resources
-		l.hk = nil
-		l.quit = nil
+	hk := hotkey.New(l.Modifiers, l.Key)
+	if err := hk.Register(); err != nil {
 		return err
 	}
-
-	go l.listen()
+	quit := make(chan struct{})
+	l.hk = hk
+	l.quit = quit
+	go l.listen(hk, quit)
 	return nil
 }
-
 func (l *HotkeyListener) Unregister() error {
-	// Check if registered
-	if !l.IsRegistered() {
-		return nil // Already unregistered or never registered
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.hk == nil {
+		return nil
 	}
-
-	err := l.hk.Unregister()
-	if err != nil {
-		logger.Info(fmt.Sprintf("Failed to unregister hotkey, id: %s, error: %v", l.ID, err))
-		// Clean up resources even if error occurs
+	if err := l.hk.Unregister(); err != nil {
+		return err
 	}
-
-	// Send stop signal
-	if l.quit != nil {
-		select {
-		case l.quit <- struct{}{}:
-		default:
-			// Channel is full, no need to handle
-		}
-	}
-
-	// Clean up resources
+	close(l.quit)
 	l.hk = nil
 	l.quit = nil
-
-	logger.Info(fmt.Sprintf("Hotkey unregistered successfully, id: %s", l.ID))
-	return err
+	return nil
 }
-
-func (l *HotkeyListener) IsRegistered() bool {
-	return l.hk != nil
-}
-
-
+func (l *HotkeyListener) IsRegistered() bool { l.mu.Lock(); defer l.mu.Unlock(); return l.hk != nil }

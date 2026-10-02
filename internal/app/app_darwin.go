@@ -2,7 +2,7 @@ package app
 
 /*
    #cgo CFLAGS: -x objective-c
-   #cgo LDFLAGS: -framework Cocoa -framework Foundation -framework Carbon
+   #cgo LDFLAGS: -framework Cocoa -framework Foundation -framework Carbon -framework UniformTypeIdentifiers
    #import <Cocoa/Cocoa.h>
    #import <Carbon/Carbon.h>
    #import <dispatch/dispatch.h>
@@ -361,15 +361,15 @@ func (a *WaApp) showAppAsPanel() {
 	runtime.WindowShow(a.ctx)
 	a.positionWindow()
 	C.activateCurrentAppWindow()
-	a.isHidden = false
+	a.isHidden.Store(false)
 }
 
 func (a *WaApp) hideAppWithFocusReturn() {
-	if !a.isHidden {
+	if !a.isHidden.Load() {
 		C.returnFocusToPreviousApp()
 		time.Sleep(100 * time.Millisecond)
 		runtime.WindowHide(a.ctx)
-		a.isHidden = true
+		a.isHidden.Store(true)
 	}
 }
 
@@ -382,7 +382,7 @@ func (a *WaApp) ShowApp() {
 }
 
 func (a *WaApp) HideOrShowApp() {
-	if a.isHidden {
+	if a.isHidden.Load() {
 		a.ShowApp()
 	} else {
 		a.HideApp()

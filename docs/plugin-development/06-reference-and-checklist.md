@@ -16,6 +16,8 @@
 ### `window.watools`
 
 - `HttpProxy(request): Promise<response>`
+- `CancelHttpProxy(requestId): Promise<void>`
+- `SecretGet/Set/Remove()`：敏感值的系统存储
 - `StorageGet/Set/Remove/Clear/Keys()`
 - `OpenFolder(path)`
 - `SaveBase64Image(base64): Promise<path>`
@@ -28,7 +30,7 @@ type PluginEntry = {
     type: "executable" | "ui"
     subTitle: string
     match: (context: PluginContext) => boolean
-    execute?: (context: PluginContext) => Promise<void>
+    execute?: (context: PluginContext, api?: WaToolsApi) => Promise<void>
     icon: string | null
     file?: string
 }
@@ -87,7 +89,7 @@ declare global {
 
 - [ ] 使用 API 包装
 - [ ] HTTP 请求使用 `window.watools.HttpProxy`
-- [ ] 存储使用 `window.watools.StorageXxx`
+- [ ] 普通偏好使用 `window.watools.StorageXxx`，密钥使用 `SecretXxx` 且不明文降级
 - [ ] UI 插件通过 `window.pluginContext` 读取上下文
 - [ ] UI 插件监听 `watools:context-ready`
 - [ ] 不使用 `alert` / `confirm` / `prompt`

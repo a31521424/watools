@@ -38,3 +38,10 @@ func TestCompareVersions(t *testing.T) {
 		})
 	}
 }
+
+func TestInstallRejectsUnverifiedPath(t *testing.T) {
+	s := &Service{}
+	if _, err := s.Install("/arbitrary/installer.exe"); err == nil {
+		t.Fatal("arbitrary path accepted")
+	}
+}

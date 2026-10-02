@@ -1,0 +1,8 @@
+package db
+import("testing";"time";"watools/pkg/models")
+func TestReviewProbeUsageConversion(t *testing.T){
+ a:=Application{ID:"probe",Name:"Probe",Category:"Application",Path:"/private/tmp/probe.app",DirUpdatedAt:time.Now(),LastUsedAt:models.ToOptionTime(time.Now()),UsedCount:42}
+ c:=ConvertApplicationCommand(a)
+ if c.UsedCount!=0 || c.LastUsedAt.IsSome(){t.Fatalf("observed statistics reset did not reproduce")}
+ t.Logf("Database UsedCount=42 converted to UsedCount=%d, LastUsedAt present=%t",c.UsedCount,c.LastUsedAt.IsSome())
+}

@@ -1,0 +1,22 @@
+
+> frontend@0.0.0 test /Users/banbxio/Desktop/watools/frontend
+> node --test ../scripts/frontend-regressions.test.cjs
+
+✔ clearing input cannot revive a pending query; typing discards clipboard attachments (114.385666ms)
+✔ JSON core rejects incomplete values and control characters (0.859084ms)
+✔ all JSON and query keys survive serialization as data (0.874625ms)
+✔ a disabled plugin loads its entry on enable; writes during flush remain durable (18.128167ms)
+✔ usage retry preserves a failed snapshot (1.7915ms)
+✔ translation accepts the latest input while busy and ignores cleared/stale responses (0.574958ms)
+✔ secret migration deletes plaintext only after a successful secure write (0.600292ms)
+✔ plugin launch context is a stable in-memory snapshot and can be released (4.607959ms)
+✔ async executable plugins retain their own API and restore the host API (6.639375ms)
+✔ late clipboard and focus reads cannot replace cleared or newly typed input (4.082333ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 271.640167
