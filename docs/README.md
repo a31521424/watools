@@ -1,60 +1,105 @@
-# WaTools 文档索引
+# WaTools 文档系统
 
-文档入口。先看索引，再按任务进入具体主题，不要默认整包阅读所有文档。
+本目录按当前实现、开发指南、未来计划和历史材料分类。Agent 首先读取 [根目录约束](../AGENT.md)，再按任务进入具体文档，不需要一次读取全部文件。当前应用仍使用 Wails v2；下一轮优先推进 Wails v3，目标已登记到 backlog，尚未实施。
 
-## 快速入口
+## 分类与入口
 
-- [仓库速览](../AGENT.md)
-  面向开发者和代理的目录地图、启动链路和快速摘要
-- [架构说明](./architecture.md)
-  看分层结构、核心边界、运行链路和数据流
-- [UI 风格说明](./ui-style.md)
-  看主界面定位、视觉基调、交互风格和页面层级
-- [实现机制说明](./implementation-mechanism.md)
-  看 Wails 绑定、命令、插件、更新和资源分发机制
-- [功能模块详解](./feature-modules.md)
-  按用户可感知能力查看模块说明
+| 分类 | 入口与用途 |
+| --- | --- |
+| 架构 | [架构](./architecture/architecture.md)、[实现机制](./architecture/implementation-mechanism.md)、[功能模块](./architecture/feature-modules.md)：说明当前实现 |
+| 设计 | [UI 风格](./design/ui-style.md)：当前界面定位、布局和交互规范 |
+| 开发 | [发布流程](./development/release-cd.md)：当前构建、发布和更新分发 |
+| 插件开发 | [专题索引](./plugin-development/README.md)：按需读取六个章节 |
+| Backlog | [目标索引](./backlog/README.md)：优先级、依赖、实施范围和验收标准 |
+| 调研 | [框架与语言调研](./research/technology-direction-2026-10-02.md)：保留讨论依据，最新路线以 backlog 为准 |
+| 审查 | [原始审查](./reviews/review-2026-10-02.md)、[修复记录](./reviews/remediation-2026-10-03.md)、[证据索引](./reviews/evidence/README.md)：有日期的发现和验证边界 |
 
-## 推荐阅读路径
+## 按需阅读
 
-### 1. 初次了解项目
+- 了解项目：架构 → 功能模块；需要具体调用链时再读实现机制。
+- 修改界面：UI 风格 → 对应组件；需要宿主能力时补充实现机制。
+- 修改后端：实现机制 → 对应包；涉及历史缺陷时读取修复记录和指定证据。
+- 开发插件：插件开发索引 → 相关章节 → 对应官方插件示例。
+- 推进优化：backlog 索引 → 本次目标文档 → 依赖和源码；不要默认启动整个 backlog。
+- 修改发布：发布流程 → CI 和更新源码。
 
-1. [仓库速览](../AGENT.md)
-2. [架构说明](./architecture.md)
-3. [功能模块详解](./feature-modules.md)
+## 文档维护规则
 
-### 2. 准备改前端界面
+1. 当前实现写入 architecture、design、development 和 plugin-development；未实现的目标写入 backlog，不混写为已具备的能力。
+2. 一份文档聚焦一个主题，使用明确文件名。新增、移动、删除文件时同步更新本页完整目录、相关专题入口和引用；改变分类时同步更新 `AGENT.md`。
+3. Backlog 项目包含状态、优先级、依赖、现状问题、范围、验收与验证。状态变化时同时更新目标文档和 backlog 索引。
+4. 完成 backlog 后，登记实现提交、实际检查和未覆盖的验收，并更新现状文档。需要 GUI 或实机验收的项目不能仅凭编译成功标记完成。
+5. Research 与 reviews 保留日期和适用版本。历史推荐不覆盖当前计划，旧探针和扫描结果不代表当前代码状态。
+6. 验证材料放在 `reviews/evidence/<日期>/`，使用索引解释来源、命令和范围；不要写入真实用户数据或凭据。
+7. 使用相对 Markdown 链接。移动文件时也检查代码块路径、脚本的仓库根目录定位和外层 README 引用。
 
-1. [UI 风格说明](./ui-style.md)
-2. [实现机制说明](./implementation-mechanism.md)
+## 仓库其他入口
 
-### 3. 准备改后端机制
+- [AGENT.md](../AGENT.md)：统一约束和任务索引；[AGENTS.md](../AGENTS.md) 为标准 agent 入口。
+- [README](../README.md) 与 [中文说明](../README.zh-CN.md)：对外介绍。
+- [官方插件目录](../plugins/README.md)：插件源码、打包和安装；每个插件目录保留自身 README。
 
-1. [架构说明](./architecture.md)
-2. [实现机制说明](./implementation-mechanism.md)
+## 完整文件目录
 
-### 4. 准备开发或维护插件
+下方包含本目录内所有文档、历史探针和验证输出；用途见分类入口与证据索引。维护时以实际文件系统为准更新。
 
-1. [PLUGIN_DEVELOPMENT_INDEX.md](./PLUGIN_DEVELOPMENT_INDEX.md)
-2. 只打开索引中明确相关的章节
-
-## 现有专题文档
-
-- [remediation-2026-10-03.md](./remediation-2026-10-03.md)
-  已知问题修复、验证边界、兼容性变化与 Wails v3 Beta 后续推进顺序
-
-- [technology-direction-2026-10-02.md](./technology-direction-2026-10-02.md)
-  Wails、Electron 与 Tauri 调研，包含插件独立窗口、语言选型和下一轮验证路线
-- [review-2026-10-02.md](./review-2026-10-02.md)
-  全仓功能、安全与优化审查，包含优先级、验证材料和下一轮工作规划
-- [PLUGIN_DEVELOPMENT_INDEX.md](./PLUGIN_DEVELOPMENT_INDEX.md)
-  插件开发入口索引，包含阅读路径和专题拆分
-- [release-cd.md](./release-cd.md)
-  发布与更新分发相关说明
-
-## 相关目录入口
-
-- [plugins/README.md](../plugins/README.md)
-  官方插件源码、打包与安装说明
-- [README.md](../README.md)
-  项目对外介绍与开发启动说明
+```text
+docs/
+├── architecture/
+│   ├── architecture.md
+│   ├── feature-modules.md
+│   └── implementation-mechanism.md
+├── backlog/
+│   ├── README.md
+│   ├── development-and-testing.md
+│   ├── diagnostics-and-agent-tools.md
+│   ├── plugin-loading-and-sdk.md
+│   ├── plugin-trust-and-permissions.md
+│   ├── plugin-windows-and-sessions.md
+│   ├── services-and-host-api.md
+│   └── wails-v3-migration.md
+├── design/
+│   └── ui-style.md
+├── development/
+│   └── release-cd.md
+├── plugin-development/
+│   ├── 01-llm-must-read.md
+│   ├── 02-templates-and-packaging.md
+│   ├── 03-runtime-and-context.md
+│   ├── 04-api-and-browser.md
+│   ├── 05-ui-and-shortcuts.md
+│   ├── 06-reference-and-checklist.md
+│   └── README.md
+├── research/
+│   └── technology-direction-2026-10-02.md
+├── reviews/
+│   ├── evidence/
+│   │   ├── 2026-10-02/
+│   │   │   ├── README.md
+│   │   │   ├── api-probe_test.go.txt
+│   │   │   ├── db-probe_test.go.txt
+│   │   │   ├── govulncheck.txt
+│   │   │   ├── pnpm-audit-summary.json
+│   │   │   ├── runtime-probes-output.txt
+│   │   │   ├── runtime-probes.cjs
+│   │   │   ├── update-probe_test.go.txt
+│   │   │   └── watcher-probe_test.go.txt
+│   │   ├── 2026-10-03/
+│   │   │   ├── README.md
+│   │   │   ├── frontend-audit.json
+│   │   │   ├── frontend-build.txt
+│   │   │   ├── frontend-tests.txt
+│   │   │   ├── macos-production-build.txt
+│   │   │   ├── official-package.txt
+│   │   │   ├── watools-final-go-race.txt
+│   │   │   ├── watools-final-go-test.txt
+│   │   │   ├── watools-final-go-vet.txt
+│   │   │   ├── watools-final-vuln-macos.txt
+│   │   │   ├── watools-final-vuln-windows.txt
+│   │   │   ├── watools-final-wails-build.txt
+│   │   │   └── watools-final-windows-build.txt
+│   │   └── README.md
+│   ├── remediation-2026-10-03.md
+│   └── review-2026-10-02.md
+└── README.md
+```

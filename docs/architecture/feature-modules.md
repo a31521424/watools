@@ -1,6 +1,6 @@
 # 功能模块详解
 
-[返回文档索引](./README.md) · [返回仓库速览](../AGENT.md)
+[返回文档索引](../README.md) · [返回仓库速览](../../AGENT.md)
 
 ## 概览
 
@@ -91,5 +91,5 @@
 - 作用：维护仓库内置的插件源码、打包与安装流程
 - 用户入口：`plugins/official/`、`cmd/pluginctl`
 - 主要实现：`cmd/pluginctl/main.go`、`plugins/README.md`
-- 核心行为：列出插件、打包 `.wt`、安装到本地 WaTools 缓存
+- 核心行为：列出插件、打包 `.wt`、安装到本地 WaTools 持久数据目录
 - 注意事项：`plugins/dist/` 是产物目录，不是源码目录

@@ -1,6 +1,6 @@
 # 架构说明
 
-[返回文档索引](./README.md) · [返回仓库速览](../AGENT.md)
+[返回文档索引](../README.md) · [返回仓库速览](../../AGENT.md)
 
 ## 概览
 
@@ -9,7 +9,7 @@ WaTools 是一个以 Wails 为壳的桌面应用，核心分为 5 层：
 1. Wails 桌面容器
 2. Go 后端能力层
 3. React 前端交互层
-4. SQLite 与本地缓存持久化层
+4. SQLite 与本地数据持久化层
 5. 插件运行与资源分发层
 
 整体上不是传统 Web 应用，而是“本地桌面容器 + 本地系统能力 + 前端命令面板”的组合。
@@ -18,14 +18,14 @@ WaTools 是一个以 Wails 为壳的桌面应用，核心分为 5 层：
 
 ### 1. 宿主层
 
-- 入口在 [`main.go`](../main.go)
+- 入口在 [`main.go`](../../main.go)
 - Wails 负责创建透明无边框窗口、生命周期钩子、菜单和前后端绑定
 - `frontend/dist` 会在构建后嵌入到 Go 二进制中
 - `/api/*` 请求由自定义 handler 接管，而不是完全交给前端静态资源服务器
 
 ### 2. 后端能力层
 
-后端主要在 [`internal/`](../internal/) 下拆分职责：
+后端主要在 [`internal/`](../../internal) 下拆分职责：
 
 - `app/`
   窗口显隐、热键、剪贴板、平台差异行为
@@ -42,7 +42,7 @@ WaTools 是一个以 Wails 为壳的桌面应用，核心分为 5 层：
 
 ### 3. 前端交互层
 
-前端代码集中在 [`frontend/src/`](../frontend/src/)：
+前端代码集中在 [`frontend/src/`](../../frontend/src)：
 
 - `components/watools/`
   主界面与主要业务页面
@@ -55,19 +55,19 @@ WaTools 是一个以 Wails 为壳的桌面应用，核心分为 5 层：
 - `schemas/`
   业务类型定义
 
-前端主入口是 [`frontend/src/app.tsx`](../frontend/src/app.tsx)，页面壳由 [`frontend/src/components/watools/watools.tsx`](../frontend/src/components/watools/watools.tsx) 承接。
+前端主入口是 [`frontend/src/app.tsx`](../../frontend/src/app.tsx)，页面壳由 [`frontend/src/components/watools/watools.tsx`](../../frontend/src/components/watools/watools.tsx) 承接。
 
 ### 4. 数据持久化层
 
-- SQLite 访问层在 [`pkg/db/`](../pkg/db/)
+- SQLite 访问层在 [`pkg/db/`](../../pkg/db)
 - SQL 源文件在 `pkg/db/queries/`
 - 迁移脚本在 `pkg/db/migrations/`
 - 应用命令、插件状态、插件存储和使用统计都依赖本地数据库
 
 ### 5. 插件运行层
 
-- 官方插件源码位于 [`plugins/official/`](../plugins/official/)
-- `.wt` 插件包安装后会被复制到本地缓存目录
+- 官方插件源码位于 [`plugins/official/`](../../plugins/official)
+- `.wt` 插件包安装后写入持久数据目录中的独立 revision，缓存目录保留日志、图标与更新包
 - UI 插件通过 iframe 承载
 - executable 插件直接通过注入 API 的方式执行
 

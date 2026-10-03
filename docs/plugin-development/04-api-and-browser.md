@@ -63,9 +63,9 @@ StorageKeys(): Promise<string[]>
 
 `HttpProxyRequest` 可提供 `requestId`；取消时调用 `CancelHttpProxy(requestId)`。请求体最多 4 MiB，响应体最多 8 MiB，超时最多 60000 ms，宿主最多同时执行 8 个请求。退出会取消请求。HTTP(S) 的 localhost 和内网访问仍属于当前可信插件能力。
 
-API 密钥等敏感值使用 `SecretGet/Set/Remove`，不要放入 Storage、localStorage、URL 或日志。普通 Storage 与浏览器存储可以保存非敏感偏好。SecretGet 未设置时返回空字符串；系统存储不可用时 Promise 会拒绝，不能降级为明文保存。
+API 密钥等敏感值使用 `SecretGet/Set/Remove`，不要放入 Storage、localStorage、URL 或日志。普通 Storage 与浏览器存储可以保存非敏感偏好。SecretGet 未设置时返回空字符串；宿主存储失败时 Promise 会拒绝，不额外复制到浏览器存储。
 
-macOS 使用 Keychain，Windows 使用当前用户范围的 DPAPI。package scope 标识数据归属，不限制同源插件访问其他宿主 API；当前插件必须可信。`execute(context, api)` 支持显式 API 参数，旧 `window.watools` 方式仍兼容并串行执行。
+macOS 按用户选择使用 `<data>/secrets/<account>.local` 本地明文文件，目录权限 0700、文件权限 0600，不访问 Keychain；Windows 继续使用当前用户范围的 DPAPI。Secret API 的名称不表示所有平台都加密落盘。package scope 标识数据归属，不限制同源插件访问其他宿主 API；当前插件必须可信。`execute(context, api)` 支持显式 API 参数，旧 `window.watools` 方式仍兼容并串行执行。
 
 ## API 包装模板
 

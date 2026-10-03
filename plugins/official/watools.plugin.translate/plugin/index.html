@@ -418,7 +418,7 @@
 
     const persistApiKey = async (value) => {
         await window.watools.SecretSet(apiKeyStorageKey, value);
-        // Only remove legacy copies after the OS secret store accepted the key.
+        // Only remove legacy copies after the host credential store accepted the key.
         await window.watools.StorageRemove(apiKeyStorageKey);
         window.localStorage.removeItem(apiKeyLocalStorageKey);
     };

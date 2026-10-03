@@ -58,4 +58,4 @@ go run ./cmd/pluginctl install watools.plugin.translate
 - UI plugins should read launch data from `window.pluginContext` and `watools:context-ready`.
 - `seed` query params and `window.inputValue` are compatibility fallbacks only. The host does not put input text in URLs.
 - Repackage and reinstall changed official plugins; updating the host alone does not replace installed plugin files.
-- Translation requires the new Secret API. Secure storage failures are reported without writing a plaintext fallback.
+- Translation requires the new Secret API. macOS saves credentials in owner-only local plaintext files; Windows uses DPAPI. Host storage failures are reported without copying keys to browser storage.

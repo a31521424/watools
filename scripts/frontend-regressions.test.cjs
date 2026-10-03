@@ -132,7 +132,7 @@ test('translation accepts the latest input while busy and ignores cleared/stale 
     assert.equal(context.targetTextNode.value,'');
 });
 
-test('secret migration deletes plaintext only after a successful secure write', async () => {
+test('secret migration deletes legacy copies only after a successful host write', async () => {
     const html=fs.readFileSync(path.join(root,'plugins/official/watools.plugin.translate/plugin/index.html'),'utf8');
     const calls=[];let fail=true;
     const context={apiKeyStorageKey:'key',apiKeyLocalStorageKey:'legacy',window:{

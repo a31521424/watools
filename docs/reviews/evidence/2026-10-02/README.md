@@ -34,7 +34,7 @@ UsageConversion: database UsedCount=42 -> UsedCount=0, LastUsedAt present=false
 在仓库根目录、已安装 frontend 依赖的环境运行：
 
 ```sh
-node docs/review-evidence/2026-10-02/runtime-probes.cjs
+node docs/reviews/evidence/2026-10-02/runtime-probes.cjs
 ```
 
 探针读取实际源码并调用 TypeScript transpileModule；模拟状态容器保留 set 与 get 的状态更新行为，不挂载 React 或运行 Wails。输出针对函数级缺陷，完整 WebView 交互需要另外验证。
@@ -50,7 +50,7 @@ import json
 import tempfile
 
 root = Path.cwd()
-evidence = root / 'docs/review-evidence/2026-10-02'
+evidence = root / 'docs/reviews/evidence/2026-10-02'
 target = Path(tempfile.mkdtemp(prefix='watools-review-overlay-'))
 packages = {
     'api': 'internal/api',

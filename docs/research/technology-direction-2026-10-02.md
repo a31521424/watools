@@ -1,8 +1,8 @@
 # WaTools 桌面框架与下一轮技术方向调研
 
-[返回文档索引](./README.md) · [全仓审查](./review-2026-10-02.md)
+[返回文档索引](../README.md) · [全仓审查](../reviews/review-2026-10-02.md)
 
-**后续决定（2026-10-03）：先修复当前仓库已知问题，随后继续 Go + React 并升级 Wails v3 Beta。下文保留候选框架的原始调研判断；实际推进以 [修复与迁移准备](./remediation-2026-10-03.md) 为准。**
+**当前推进方向（2026-10-03）：在框架比较后，下一轮优先迁移 Wails v3、增加插件小窗并优化开发调试。目标已登记到 [backlog](../backlog/README.md)，尚未实施。下文保留前期候选分析与推荐讨论，不作为当前执行顺序。macOS Keychain 已按要求移除。**
 
 调研日期：2026-10-02。基于当前仓库与框架官方资料，讨论插件独立窗口、Wails 生态、Go 是否继续承担主要开发工作，以及下一轮改造的推进顺序。本轮没有实现框架迁移，也没有实测候选框架的性能或窗口行为。
 
@@ -10,21 +10,46 @@
 
 当前按“插件可打开多个独立窗口，启动器隐藏后仍能保留”的需求评估；是否还需要附着启动器的临时浮窗，尚待确认。以下选型倾向属于项目判断，不是框架性能排名。
 
+## 2026-10-03 补充：以简化长期开发为目标
+
+当前用途是常驻启动器、应用搜索、本地工具插件与独立插件窗口，现有插件主要是 HTML/JavaScript。选型应先保留 React、TypeScript、插件内容与用户数据，只调整宿主和运行边界；更换 UI 框架、数据库与插件格式不是这次选型的必要条件。
+
+如果主要目标是宿主、SDK 与插件共享语言和类型，建议优先验证 Electron + TypeScript。如果体积和常驻资源是硬指标，Tauri v2 是另一条路线；若重用 Go 更重要，Wails v3 仍是成本较低的选择。这是针对本项目的判断，尚未实测候选应用，不能据此承诺某个框架在此项目的内存或响应速度。
+
+| 候选 | 与当前场景的关系 | 必须承担的成本 |
+| --- | --- | --- |
+| Electron + TypeScript + React | 宿主、SDK、插件可共享 TS 契约；BrowserWindow 提供插件独立窗，WebContentsView 提供独立 Web 内容视图 | 分发 Chromium/Node 与持续更新；应用扫描、图标和特殊系统行为仍需平台实现；慢任务不能阻塞主进程 |
+| Tauri v2 + Rust + React | 系统 WebView，支持按窗口与 WebView 配置能力，适合重视轻量分发的路线 | Go 原生服务改写为 Rust，仍有两种业务语言及系统 WebView 差异；权限配置不能代替插件身份校验 |
+| Wails v3 + Go + React | 大量现有 Go 能力可保留；原生多窗口已可作为独立插件窗的基础 | v3 迁移和平台验收；Go/TS 桥接仍需维护，当前全局插件运行模型仍需重构 |
+| Electrobun + TypeScript + React（新候选） | TS 主进程、系统 WebView，可选固定 CEF；具备多窗口和隔离嵌入视图的构建基础 | 新运行时与工具链、npm 包兼容、两平台原生行为和自动化需要验证，不能直接按宣传体积判断真实应用资源 |
+
+框架事实来自 [Electron 进程模型](https://www.electronjs.org/docs/latest/tutorial/process-model)、[WebContentsView](https://www.electronjs.org/docs/latest/api/web-contents-view)、[Tauri 架构](https://v2.tauri.app/concept/architecture/)、[Tauri capabilities](https://v2.tauri.app/security/capabilities/) 与 [Wails v3 多窗口](https://v3.wails.io/features/windows/multiple/)。表中的迁移成本与优先级是本仓库的工程判断。
+
+Electrobun 值得新增到原型名单。此次官方文档已是 2.x 路线：默认 TS 运行时是 Cottontail，构建工具是 Hutch，Bun 是可选项，也支持 Go/Rust 等原生主进程。不能继续用早期“只有 Bun + TypeScript”的资料做选型。系统 WebView 与可选 CEF，以及内嵌隔离内容见 [官方概览](https://framework.blackboard.sh/electrobun/) 与 [Creating UI](https://framework.blackboard.sh/electrobun/guides/creating-ui/)。官方 [2.x 迁移指南](https://framework.blackboard.sh/electrobun/guides/migrating-to-v2/) 说明工具链也在改变；对希望降低维护复杂度的本项目，我建议先做独立原型，暂不直接替换主仓库。
+
+Electron 的价值在于把平台编排、SDK 契约和插件逻辑集中到 TS，并使用 Chromium 渲染；Playwright 有实验性 [Electron 自动化入口](https://playwright.dev/docs/api/class-electron)。这是开发与验证路径上的优势，不能推导出 agent 必然更少出错。插件侧仍需禁用 Node integration，配置 sandbox、context isolation，并由宿主验证 IPC 来源与权限，参见 [Electron 安全指南](https://www.electronjs.org/docs/latest/tutorial/security)。
+
+建议下一步只验证一个完整场景：快捷键呼出启动器，搜索后打开翻译插件小窗，隐藏启动器，小窗继续输入与翻译；再打开第二个实例、关闭并重新打开，检查存储和资源清理。对这个场景同时测冷启动、空闲 CPU、进程树内存、窗口焦点、中文输入法与安装体积。性能指标先从当前应用测基线，不预设框架宣传数字就是验收标准。
+
+无论换不换栈，建议把职责压成三个边界：宿主拥有窗口、插件会话、存储和原生服务；插件使用有类型的显式 SDK；React 负责视图与临时输入状态。启动时读 manifest 和声明式匹配规则，真正执行或打开时才加载插件代码。CPU 任务进可终止的 worker，第三方插件只获得所需的宿主调用。这样才能减少当前全局 API 注入、状态多处缓存和跨语言接口扩散带来的维护成本。
+
+macOS 已按用户要求移除 Keychain，凭据使用应用目录内的明文文件（目录 0700、文件 0600）；Windows DPAPI 保留。宿主 SDK 不再把 Secret API 等同于所有平台都加密。此改动不依赖将来选用的桌面框架，也未迁移或删除真实系统凭据。
+
 ## 当前仓库的约束
 
-当前使用 Wails v2.10.2，Go 1.26.0，前端为 React 19、TypeScript、Vite 和 Zustand。主要依据是 [`go.mod`](../go.mod)、[`frontend/package.json`](../frontend/package.json) 和 [`main.go`](../main.go)。
+当前使用 Wails v2.10.2，Go 1.26.0，前端为 React 19、TypeScript、Vite 和 Zustand。主要依据是 [`go.mod`](../../go.mod)、[`frontend/package.json`](../../frontend/package.json) 和 [`main.go`](../../main.go)。
 
 独立窗口受两层约束影响：框架采用 v2 的单窗口模型；应用内部也围绕一个启动器页面组织插件运行。后者需要在任何候选框架中重构。
 
 | 当前实现 | 多窗口带来的具体问题 | 建议的边界 |
 | --- | --- | --- |
 | UI 插件在 `WaPlugin` 的 iframe 中，通过主页面注入 runtime 和 API | 新窗口不能依赖原主页面替它完成初始化 | 插件视图自行连接受限 SDK |
-| 启动上下文存入 `sessionStorage` | 不应假设另一个顶层窗口能读取启动器的会话存储 | 宿主管理会话，通过受控通道交付上下文 |
+| 启动上下文当前存入主页面内存 Map（旧版曾使用 `sessionStorage`） | 不应假设另一个顶层窗口能读取启动器的会话存储 | 宿主管理会话，通过受控通道交付上下文 |
 | 插件状态与使用次数在页面级 Zustand store 中缓存 | 多窗口各自计数、刷新、写回，可能发生覆盖和状态不一致 | 宿主作为状态权威，窗口订阅事件，计数按增量写入 |
 | enabled 插件的入口模块在主页面动态 import | 慢 matcher 或异常插件影响启动器；多个实例的执行上下文难以管理 | 按需加载，独立执行环境，超时及终止机制 |
 | macOS 通过 key/main/第一个窗口寻找“当前窗口”，隐藏操作使用应用级 `hide` | 容易操作错窗口，隐藏启动器时连带隐藏插件窗口 | 明确区分 launcher、plugin、settings，并按 ID 操作 |
 
-代码依据：[`wa-plugin.tsx`](../frontend/src/components/watools/wa-plugin.tsx)、[`plugin-context.ts`](../frontend/src/lib/plugin-context.ts)、[`pluginStore.ts`](../frontend/src/stores/pluginStore.ts)、[`api/plugin.ts`](../frontend/src/api/plugin.ts)、[`app_darwin.go`](../internal/app/app_darwin.go)。
+代码依据：[`wa-plugin.tsx`](../../frontend/src/components/watools/wa-plugin.tsx)、[`plugin-context.ts`](../../frontend/src/lib/plugin-context.ts)、[`pluginStore.ts`](../../frontend/src/stores/pluginStore.ts)、[`api/plugin.ts`](../../frontend/src/api/plugin.ts)、[`app_darwin.go`](../../internal/app/app_darwin.go)。
 
 尤其需要明确“展开”的状态语义：第一次实现可以序列化插件状态，再在独立窗口重建视图。把原 iframe 的实时 DOM 和 JavaScript 执行环境直接搬进原生窗口，不应作为所有框架都能满足的默认要求。
 

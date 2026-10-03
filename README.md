@@ -80,15 +80,15 @@ Start with the entry that matches the task instead of reading everything end-to-
   Repository map, runtime summary, and fast orientation for developers and agents
 - [`docs/README.md`](./docs/README.md)
   Documentation index
-- [`docs/architecture.md`](./docs/architecture.md)
+- [`docs/architecture/architecture.md`](./docs/architecture/architecture.md)
   System layers, runtime boundaries, and data flow
-- [`docs/ui-style.md`](./docs/ui-style.md)
+- [`docs/design/ui-style.md`](./docs/design/ui-style.md)
   Command palette structure, routes, and UI direction
-- [`docs/implementation-mechanism.md`](./docs/implementation-mechanism.md)
+- [`docs/architecture/implementation-mechanism.md`](./docs/architecture/implementation-mechanism.md)
   Wails binding, command, plugin, update, and resource-serving mechanisms
-- [`docs/feature-modules.md`](./docs/feature-modules.md)
+- [`docs/architecture/feature-modules.md`](./docs/architecture/feature-modules.md)
   User-facing functional modules
-- [`docs/PLUGIN_DEVELOPMENT_INDEX.md`](./docs/PLUGIN_DEVELOPMENT_INDEX.md)
+- [`docs/plugin-development/README.md`](./docs/plugin-development/README.md)
   Plugin development reading path
 
 ## Repository Layout
@@ -170,14 +170,14 @@ go run ./cmd/pluginctl install
 More plugin details:
 
 - [`plugins/README.md`](./plugins/README.md)
-- [`docs/PLUGIN_DEVELOPMENT_INDEX.md`](./docs/PLUGIN_DEVELOPMENT_INDEX.md)
+- [`docs/plugin-development/README.md`](./docs/plugin-development/README.md)
 
 ## Release and Updates
 
 The repository includes a GitHub Actions release workflow and app update support.
 
-- Workflow: [`/.github/workflows/release.yml`](./.github/workflows/release.yml)
-- Notes: [`docs/release-cd.md`](./docs/release-cd.md)
+- Workflow: [`/.github/workflows/release.yml`](.github/workflows/release.yml)
+- Notes: [`docs/development/release-cd.md`](./docs/development/release-cd.md)
 
 ## Trust Model
 
@@ -185,7 +185,7 @@ Installed plugins are currently treated as trusted local code chosen by the user
 
 ## Contributing
 
-Issues and pull requests are welcome. If you are changing architecture, plugin behavior, or developer-facing workflows, update the matching docs under [`docs/`](./docs/) together with the code.
+Issues and pull requests are welcome. If you are changing architecture, plugin behavior, or developer-facing workflows, update the matching docs under [`docs/`](./docs) together with the code.
 
 ## License
 

@@ -1,6 +1,6 @@
 # 实现机制说明
 
-[返回文档索引](./README.md) · [返回仓库速览](../AGENT.md)
+[返回文档索引](../README.md) · [返回仓库速览](../../AGENT.md)
 
 ## 概览
 
@@ -8,7 +8,7 @@
 
 ## Wails 绑定机制
 
-当前前后端桥接以 [`internal/coordinator/coordinator.go`](../internal/coordinator/coordinator.go) 为单一出口。
+当前前后端桥接以 [`internal/coordinator/coordinator.go`](../../internal/coordinator/coordinator.go) 为单一出口。
 
 实际含义：
 
@@ -25,7 +25,7 @@
 
 ## 命令系统机制
 
-命令系统的核心在 [`internal/command/`](../internal/command/)。
+命令系统的核心在 [`internal/command/`](../../internal/command)。
 
 它分成两类：
 
@@ -55,7 +55,7 @@
 
 ## 插件系统机制
 
-插件机制集中在 [`internal/plugin/`](../internal/plugin/)。
+插件机制集中在 [`internal/plugin/`](../../internal/plugin)。
 
 ### 安装与状态
 
@@ -73,7 +73,7 @@
 
 ### UI 插件上下文注入
 
-UI 插件页由 [`frontend/src/components/watools/wa-plugin.tsx`](../frontend/src/components/watools/wa-plugin.tsx) 承接。
+UI 插件页由 [`frontend/src/components/watools/wa-plugin.tsx`](../../frontend/src/components/watools/wa-plugin.tsx) 承接。
 
 宿主会向 iframe 注入：
 
@@ -110,7 +110,7 @@ Storage 使用 packageId 区分数据归属。当前采用可信插件模型，�
 
 ## 更新机制
 
-更新能力由 [`internal/update/`](../internal/update/) 与 coordinator 暴露接口组成。
+更新能力由 [`internal/update/`](../../internal/update) 与 coordinator 暴露接口组成。
 
 当前流程：
 
@@ -145,6 +145,6 @@ WaTools 不是纯静态前端资源加载模式，`/api/*` 路由由自定义 ha
 
 相关代码主要位于：
 
-- [`pkg/db/`](../pkg/db/)
-- [`pkg/logger/`](../pkg/logger/)
-- [`internal/app/`](../internal/app/)
+- [`pkg/db/`](../../pkg/db)
+- [`pkg/logger/`](../../pkg/logger)
+- [`internal/app/`](../../internal/app)

@@ -1,5 +1,7 @@
 # Release CD
 
+[Docs index](../README.md) · [Agent entry](../../AGENT.md)
+
 This repository now includes a GitHub Actions release workflow at `.github/workflows/release.yml`.
 
 ## Trigger

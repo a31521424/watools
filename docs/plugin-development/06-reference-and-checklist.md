@@ -17,7 +17,7 @@
 
 - `HttpProxy(request): Promise<response>`
 - `CancelHttpProxy(requestId): Promise<void>`
-- `SecretGet/Set/Remove()`：敏感值的系统存储
+- `SecretGet/Set/Remove()`：插件凭据存储（macOS 本地明文文件，Windows DPAPI）
 - `StorageGet/Set/Remove/Clear/Keys()`
 - `OpenFolder(path)`
 - `SaveBase64Image(base64): Promise<path>`
@@ -89,7 +89,7 @@ declare global {
 
 - [ ] 使用 API 包装
 - [ ] HTTP 请求使用 `window.watools.HttpProxy`
-- [ ] 普通偏好使用 `window.watools.StorageXxx`，密钥使用 `SecretXxx` 且不明文降级
+- [ ] 普通偏好使用 `window.watools.StorageXxx`，密钥使用 `SecretXxx`，遵循宿主的平台存储策略，不额外复制到 localStorage
 - [ ] UI 插件通过 `window.pluginContext` 读取上下文
 - [ ] UI 插件监听 `watools:context-ready`
 - [ ] 不使用 `alert` / `confirm` / `prompt`

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
-const root = path.resolve(__dirname, '../../..');
+const root = path.resolve(__dirname, '../../../..');
 const ts = require(path.join(root, 'frontend/node_modules/typescript'));
 function mockCreate(init) {
   let state;

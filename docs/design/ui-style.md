@@ -1,6 +1,6 @@
 # UI 风格说明
 
-[返回文档索引](./README.md) · [返回仓库速览](../AGENT.md)
+[返回文档索引](../README.md) · [返回仓库速览](../../AGENT.md)
 
 ## 界面定位
 
@@ -16,7 +16,7 @@ WaTools 的主界面不是传统多页面应用，而是一个桌面级 command 
 
 ## 界面结构
 
-主界面壳在 [`frontend/src/components/watools/watools.tsx`](../frontend/src/components/watools/watools.tsx)，当前路由分为：
+主界面壳在 [`frontend/src/components/watools/watools.tsx`](../../frontend/src/components/watools/watools.tsx)，当前路由分为：
 
 - `/`
   主命令面板
@@ -43,8 +43,8 @@ WaTools 的主界面不是传统多页面应用，而是一个桌面级 command 
 
 相关样式主要分布在：
 
-- [`frontend/src/app.css`](../frontend/src/app.css)
-- [`frontend/src/style.css`](../frontend/src/style.css)
+- [`frontend/src/app.css`](../../frontend/src/app.css)
+- [`frontend/src/style.css`](../../frontend/src/style.css)
 
 ## 设计令牌与组件风格
 

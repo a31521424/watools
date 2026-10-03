@@ -1,6 +1,6 @@
 # WaTools 已知问题修复与 Wails v3 迁移准备
 
-[返回文档索引](./README.md) · [原始审查与复现材料](./review-2026-10-02.md)
+[返回文档索引](../README.md) · [原始审查与复现材料](./review-2026-10-02.md)
 
 本轮按照“先验证并修复已知问题，随后升级 Wails v3 Beta”的决定推进。应用仍使用 Wails v2.10.2；修复覆盖插件安装和状态、输入与上下文、更新完整性、文件监听、网络资源限制、持久化与依赖安全。没有迁移框架，也没有操作用户现有插件或生产数据库。
 
@@ -31,7 +31,7 @@
 | R17 翻译丢失最新请求 | 新输入立即使旧结果失效；允许最新请求；清空同样失效；取消旧 HTTP；避免快捷键重复触发 | 旧请求、新请求及清空后的延迟响应测试；真实 DeepL 网络验收待补 |
 | R18 清空使 iframe 重建 | 启动上下文绑定会话，清空启动器不再改变它；停用和更新会更新视图状态 | 上下文快照测试与构建；实际 iframe 重载次数待 GUI 验收 |
 | R19 同源插件拥有完整宿主权限 | **架构项未关闭**；串行执行修正旧 API 串包，停用阻止新资源和存储调用 | 仍采用可信插件模型，packageId 校验和系统凭据存储均不能隔离恶意插件 |
-| R20 密钥和输入明文扩散 | 普通插件列表不返回 storage；启动上下文仅保存在内存；排序持久化去除原文；删除剪贴板原文日志；新增 Secret API；翻译密钥成功写入系统存储后删除活动数据库和 localStorage 旧副本 | 迁移顺序回归；系统凭据实机验收待补；保留的旧缓存备份可能仍含历史密钥 |
+| R20 密钥和输入明文扩散 | 普通插件列表不返回 storage；启动上下文仅保存在内存；排序持久化去除原文；删除剪贴板原文日志；新增 Secret API；翻译密钥成功写入宿主存储后删除活动数据库和 localStorage 旧副本 | 迁移顺序回归；按用户选择 macOS 使用本地明文文件，密钥加密落盘不作为已完成项；Windows DPAPI 实机验收待补；旧缓存备份可能含历史密钥 |
 | R21 临时包和解压资源 | 随机临时目录；插件包限制 10000 文件、单文件 64 MiB、展开合计 256 MiB；更新包另有限额；拒绝特殊文件与重复条目 | 安全解压测试与官方插件安装；旧 revision 的回收策略仍待下一轮 |
 | R22 HTTP 资源无限制 | 请求体 4 MiB、响应体 8 MiB、超时最多 60 秒、同时运行最多 8 请求；请求 ID 可取消；退出取消请求 | httptest 覆盖超限、取消、并发和退出 |
 | R23 事件丢失后不同步 | 合并事件以最终文件状态为准；移除五秒内跳过后续事件；Windows 新建目录递归监听；队列背压；每两分钟对账；延迟和重试可取消 | 文件事件与取消测试；OS 级溢出通过周期对账恢复，不保证即时更新 |
@@ -47,7 +47,7 @@
 
 macOS 的持久目录默认为 `~/Library/Application Support/watools`，Windows 使用当前用户的应用配置目录。日志、图标与更新包仍属于缓存。迁移使用 SQLite 在线备份形成一致快照，不把正在使用的 WAL 直接当成普通文件复制。迁移失败不会发布半成品，也不会删除旧数据；旧版本应退出后再启动新版，避免它继续向旧目录写入。
 
-SecretGet、SecretSet、SecretRemove 与普通 Storage API 分开。macOS 使用 Security 框架的 Keychain API；Windows 使用当前用户范围的 DPAPI，磁盘只保存密文。不使用把密钥放入命令行参数的方案。密钥存储的系统机制参见 [Apple Keychain 文档](https://developer.apple.com/documentation/security/adding-a-password-to-the-keychain) 和 [Microsoft DPAPI 文档](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata)。这些机制保护落盘数据，不建立插件之间的权限边界。
+SecretGet、SecretSet、SecretRemove 与普通 Storage API 分开。后续按用户要求移除 macOS Keychain 接入，改为 `<data>/secrets/<account>.local` 本地明文文件，目录权限 0700、文件权限 0600，写入后原子替换；Windows 保留当前用户范围的 [DPAPI](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata)，磁盘保存密文。macOS 本地文件不提供加密，也不建立插件之间的权限边界。应用不自动读取或删除此前可能写入的 Keychain 项目；已经迁入 Keychain 的密钥需要重新填写。
 
 翻译和 JSON 插件的修复位于官方插件源码。已经安装的旧包不会仅因宿主更新而自动变成新源码，需要重新打包并安装对应 `.wt`。同版本重装允许生成新 revision，并保留用户配置。
 
@@ -55,7 +55,7 @@ SecretGet、SecretSet、SecretRemove 与普通 Storage API 分开。macOS 使用
 
 ## 验证命令与验收范围
 
-本地使用 Go 1.26.8 和 pnpm 10.21.0。以下检查已针对最终代码运行通过，输出保存在 [验证材料目录](./review-evidence/2026-10-03/)。前端 10 项回归全部通过；两平台生产代码 govulncheck 与 pnpm audit 均未报告已知漏洞；macOS 原生应用构建和 Windows 生产代码交叉编译通过。6 个官方插件打包通过，临时真实 SQLite 安装重装也验证了禁用状态、使用次数和 storage 保留，以及 revision 切换与旧文件保留。
+本地使用 Go 1.26.8 和 pnpm 10.21.0。以下检查已针对最终代码运行通过，输出保存在 [验证材料目录](./evidence/2026-10-03)。前端 10 项回归全部通过；两平台生产代码 govulncheck 与 pnpm audit 均未报告已知漏洞；macOS 原生应用构建和 Windows 生产代码交叉编译通过。6 个官方插件打包通过，临时真实 SQLite 安装重装也验证了禁用状态、使用次数和 storage 保留，以及 revision 切换与旧文件保留。
 
 ```sh
 go test ./...
@@ -74,11 +74,11 @@ Windows 本地检查采用交叉编译与平台源码扫描，不等于在 Windo
 
 原生 macOS Wails 构建需要读取系统版本。当前执行沙箱拒绝 sysctl 的两个版本探测；本地验证用临时工具把这两个读取转为 sw_vers，数据来自真实系统版本，其他 sysctl 调用不替换。工具没有写入仓库，应用代码不依赖它。`.app` 构建已通过，并补齐直接 desktop 构建需要的 UniformTypeIdentifiers 链接。
 
-原生 GUI 和凭据读写、实际更新重启与故障恢复、Windows 快捷方式及快捷键，需要在测试安装中验收。不要在用户唯一可用的安装上通过故意损坏更新包做破坏性验证。当前 Keychain/DPAPI 单元测试验证命名和输入约束，没有读取或修改用户的真实凭据。
+原生 GUI 和凭据读写、实际更新重启与故障恢复、Windows 快捷方式及快捷键，需要在测试安装中验收。不要在用户唯一可用的安装上通过故意损坏更新包做破坏性验证。移除 Keychain 后新增 macOS 本地存储测试，覆盖读写、替换、权限、命名空间、并发、删除及大小限制；Windows DPAPI 仍待实机验收。没有读取或修改用户的真实凭据。
 
-## 下一轮 Wails v3 Beta 推进顺序
+## Wails v3 Beta 后续推进顺序
 
-已确定继续 Go + React，并升级 Wails v3 Beta 引入原生多窗口能力。迁移应作为独立改造，保留本轮修复的回归测试与数据目录。
+后续框架比较已收敛到优先推进 Wails v3；最新目标、依赖和验收由 [backlog](../backlog/README.md) 维护。当前仍是 Wails v2，下面保留修复后提出的迁移边界，不代表目标已完成。
 
 1. 锁定一个已验证的 v3 Beta 版本，先恢复主窗口、资源服务、Go 绑定、原生菜单和发布构建；暂不同时重写插件格式。
 2. 引入按 ID 管理的 WindowService，明确 launcher、plugin、settings。隐藏启动器只操作启动器窗口，插件小窗继续存活。

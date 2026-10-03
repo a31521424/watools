@@ -76,15 +76,15 @@ WaTools 早期主要以人工设计和人工编码的方式推进。核心架构
   仓库地图、运行摘要和快速上下文入口
 - [`docs/README.md`](./docs/README.md)
   文档总索引
-- [`docs/architecture.md`](./docs/architecture.md)
+- [`docs/architecture/architecture.md`](./docs/architecture/architecture.md)
   系统分层、边界与数据流
-- [`docs/ui-style.md`](./docs/ui-style.md)
+- [`docs/design/ui-style.md`](./docs/design/ui-style.md)
   主界面结构、路由与 UI 风格
-- [`docs/implementation-mechanism.md`](./docs/implementation-mechanism.md)
+- [`docs/architecture/implementation-mechanism.md`](./docs/architecture/implementation-mechanism.md)
   Wails 绑定、命令、插件、更新与资源分发机制
-- [`docs/feature-modules.md`](./docs/feature-modules.md)
+- [`docs/architecture/feature-modules.md`](./docs/architecture/feature-modules.md)
   面向用户的功能模块拆解
-- [`docs/PLUGIN_DEVELOPMENT_INDEX.md`](./docs/PLUGIN_DEVELOPMENT_INDEX.md)
+- [`docs/plugin-development/README.md`](./docs/plugin-development/README.md)
   插件开发阅读入口
 
 ## 仓库结构
@@ -166,14 +166,14 @@ go run ./cmd/pluginctl install
 更多插件说明见：
 
 - [`plugins/README.md`](./plugins/README.md)
-- [`docs/PLUGIN_DEVELOPMENT_INDEX.md`](./docs/PLUGIN_DEVELOPMENT_INDEX.md)
+- [`docs/plugin-development/README.md`](./docs/plugin-development/README.md)
 
 ## 发布与更新
 
 仓库包含 GitHub Actions 发布流程和应用更新能力。
 
-- 工作流：[`/.github/workflows/release.yml`](./.github/workflows/release.yml)
-- 说明：[`docs/release-cd.md`](./docs/release-cd.md)
+- 工作流：[`/.github/workflows/release.yml`](.github/workflows/release.yml)
+- 说明：[`docs/development/release-cd.md`](./docs/development/release-cd.md)
 
 ## 信任模型
 
@@ -181,7 +181,7 @@ go run ./cmd/pluginctl install
 
 ## 贡献
 
-欢迎提交 issue 和 pull request。如果改动涉及架构、插件行为或开发者工作流，请同步更新 [`docs/`](./docs/) 下对应文档。
+欢迎提交 issue 和 pull request。如果改动涉及架构、插件行为或开发者工作流，请同步更新 [`docs/`](./docs) 下对应文档。
 
 ## 许可证
 
