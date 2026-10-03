@@ -65,6 +65,10 @@ SIGINT/SIGTERM 转发到独立任务进程组，取消后即使子命令返回�
 
 ## 调试边界
 
+2026-10-04 起，agent 日常执行以不占用用户当前桌面为约束。`check/check-race/build` 可进行无界面检查与构建；原生 GUI 测试转到独立 macOS VM/测试机，主机实体验收只在用户明确同意的时间窗口内进行。仅使用临时数据目录、隐藏窗口、另一个 Space 或恢复剪贴板，都不构成独立桌面会话隔离。
+
+当前 `dev` 仍会启动原生应用，`browser` 也尚未全面屏蔽宿主副作用：应用/系统命令触发及 `OpenFolder` 等仍可能执行宿主 `open`/`osascript`。因此不能把 browser 模式当作安全沙箱；agent 暂时仅调试已核对无桌面副作用的路径，不操作系统命令、打开应用/目录或权限入口。安全的原生能力适配、无界面 UI 回归和 VM runner 尚未实现，实施方案见 [开发工作流目标](../backlog/development-and-testing.md)。这些约定不改变当前命令含义。
+
 `browser` 使用 v3 `server` build tag，不是固定数据模拟。页面和 `/wails/runtime` 必须来自 9246 宿主；仅打开 9245 Vite 页面无法调用 Go。服务器强制绑定 loopback，事件由 Wails WebSocket 桥接。浏览器可验证真实插件加载、存储、搜索、接口和热更新；框架在 server 模式的原生窗口、剪贴板和对话框能力不能作为桌面验收。server 的自动剪贴板读取返回空内容，宿主呼出/隐藏为空操作，图片剪贴板写入明确报不支持，避免进入没有 AppKit 主线程的 Cocoa 桥接。使用 `dev` 验证这些原生能力。
 
 浏览器/桌面检查不混写：源码测试不等于 WebKit 交互，合成键盘事件不等于物理全局快捷键或真实输入法。迁移验收中可临时用 Wails 官方 `mcp` build tag 检查原生 WebView；默认产物没有 MCP 服务。完整 Go 断点流程、无宿主固定数据模拟、插件多窗口与远端 macOS CI 仍在对应 backlog。

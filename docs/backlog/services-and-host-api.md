@@ -6,7 +6,7 @@
 
 ## 现状问题
 
-`internal/coordinator/coordinator.go` 是单一绑定出口，包含转发和 `map[string]interface{}` 参数转换；部分模块依赖全局单例与 Wails context。`frontend/src/api/` 直接引用生成绑定，浏览器调试被原生依赖阻断。
+`internal/coordinator/coordinator.go` 是单一绑定出口，包含转发和 `map[string]interface{}` 参数转换；部分模块依赖全局单例与 Wails context。`frontend/src/api/` 直接引用生成绑定。browser 模式已支持真实 Go 服务，但部分系统能力仍有主机副作用，固定场景模拟与可替换 Host API 尚未实施。
 
 ## 实施范围
 
@@ -26,4 +26,4 @@
 
 ## 实施记录
 
-尚未开始。当前仍使用 v2 coordinator 出口，不应提前引用计划中的 v3 服务。
+尚未开始本目标的服务拆分。当前已经使用 v3 coordinator 单一服务出口，不应提前引用计划中的独立领域服务或可替换 Host API。
