@@ -31,29 +31,7 @@
 
 ## 实施记录
 
-### 2026-10-04 确定低干扰开发与测试方案
-
-用户反馈原生测试持续干扰主机使用。此前隔离了应用数据，却仍共用当前桌面的前台焦点、全局快捷键、剪贴板和对话框；改用 CLI/MCP 不会改变这些副作用。已在 AGENT.md 与本地指南登记执行约束，下面的适配和 runner 尚未实施，不能宣称已有完全无副作用的 browser 模式。
-
-| 层级 | 执行环境 | 覆盖与边界 |
-| --- | --- | --- |
-| 日常开发与快速检查 | 前端浏览器/无界面浏览器；Go 无 GUI 测试 | 搜索、状态、插件 UI、存储及错误行为。窗口、剪贴板、快捷键、对话框及外部应用/系统命令使用内存夹具或动作记录 |
-| 真实 Go 集成与 UI 回归 | Wails server + 无界面 Chromium/WebKit | 使用真实绑定、事件、资源路由、临时 SQLite 和插件 revision，只替换会影响主机的系统能力；不冒充原生 WKWebView、IME 或焦点验收 |
-| 原生自动化 | 独立 macOS VM 或测试机 | AppKit 生命周期、原生 WebView、菜单、对话框、焦点、快捷键注册与权限状态；关闭宿主/访客剪贴板及共享用户目录等桥接，限制资源和并发 |
-| 最后少量人工验收 | 用户指定的主机时间窗口 | 真实中文候选/提交、物理全局快捷键、多屏/热插拔及硬件相关体验；说明操作与时间，完成后关闭测试进程并记录剩余边界 |
-
-实施顺序：
-
-1. 先收紧 browser/test profile 的系统副作用。为剪贴板、窗口/快捷键、文件选择与外部命令执行设置可替换的明确边界；生产实现保持真实 macOS 行为，测试实现用内存内容/预设路径/动作记录，不让未实现能力落回真实系统。不要仅在 React 层 mock 或给所有业务接口复制一份假后端。
-2. 增加无界面浏览器关键路径回归：搜索、插件打开、使用计数、存储、禁用/重装、清空与异步旧响应、失败提示。真实 Go 集成保留数据库/插件服务；纯 UI 模式通过类型化 Host API 使用固定场景。维护适配契约检查，限制日常测试并发，控制编译和 VM 的 CPU/内存占用。
-3. 把有价值的原生探针整理为独立 VM runner，记录 OS/版本/测试环境与超时清理。VM 未准备好时，不自动回退到用户主机。VM 使用合成数据，不挂载用户目录、不连接用户账号，不开启共享剪贴板；访客 UI 操作仅在访客会话发生。
-4. 按变更影响选择测试范围：纯业务/UI 改动运行前两层；Cocoa/Wails/快捷键改动追加 VM 原生回归；真实输入法/硬件相关变更安排主机人工窗口。失败优先保留日志、trace 与自己的页面快照，避免一边修改一边反复重启主机 GUI。
-
-沿用当前 `browser/check/check-race/build` 入口；新增 profile/UI/VM 测试入口的名字在实施时确定，不把计划命令写成现有能力。主机上新建另一个 Space、另一个临时目录或仅把窗口隐藏，均不作为原生隔离方案；容器不能替代 macOS AppKit 桌面验收。
-
-官方依据：[Wails server build](https://v3.wails.io/guides/server-build/)、[Playwright 浏览器与 headless 支持](https://playwright.dev/docs/browsers)、[Apple silicon 上运行 macOS VM](https://developer.apple.com/documentation/virtualization/running-macos-in-a-virtual-machine-on-apple-silicon)。Wails 滚动文档不覆盖本仓库固定 Beta.27 的实际 API；实施以固定源码及真实回归为准。Apple 支持 macOS VM，不代表 VM 可以覆盖用户主机的物理键盘、输入法、显示器拓扑或全部 TCC 情况。
-
-### 既有工作流实施记录
+2026-10-04 需求调整：用户移除新增的低干扰 browser/test 适配与 VM runner 安排，保留原有 `dev/browser/check/check-race/build` 流程，本阶段不新增避免干扰当前桌面的执行约束。下列既有开发调试与测试目标保持原范围。
 
 2026-10-03 开始推进。基础阶段提交主题：`feat(dev): add isolated macOS development workflow`，对应提交哈希见 Git 历史。
 
