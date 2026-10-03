@@ -16,7 +16,6 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/samber/mo"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 var (
@@ -25,6 +24,7 @@ var (
 )
 
 type WaLaunchApp struct {
+	notify            func()
 	ctx               context.Context
 	runnersMu         sync.RWMutex
 	reconcileMu       sync.Mutex
@@ -42,7 +42,8 @@ func GetWaLaunch() *WaLaunchApp {
 	return launchAppInstance
 }
 
-func (w *WaLaunchApp) OnStartup(ctx context.Context) {
+func (w *WaLaunchApp) OnStartup(ctx context.Context, notify func()) {
+	w.notify = notify
 	w.ctx, w.cancel = context.WithCancel(ctx)
 	w.initAppWatcher()
 	w.asyncUpdateApplications(30 * time.Second)
@@ -158,7 +159,9 @@ func (w *WaLaunchApp) updateApplications() {
 		logger.Error(err, "Failed to batch insert new commands to db")
 	}
 	if len(insertCommands)+len(updateCommands)+len(removeCommands) > 0 {
-		runtime.EventsEmit(w.ctx, "watools.applicationChanged")
+		if w.notify != nil {
+			w.notify()
+		}
 	}
 }
 
@@ -263,7 +266,7 @@ func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string, triggerCategory mod
 }
 
 func (w *WaLaunchApp) initAppWatcher() {
-	eventHandler := watcher.NewDefaultAppEventHandler(w.ctx)
+	eventHandler := watcher.NewDefaultAppEventHandler(w.ctx, w.notify)
 
 	watchManager, err := watcher.NewAppWatchManager(eventHandler, w.ctx)
 	if err != nil {

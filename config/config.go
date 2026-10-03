@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	_ "embed"
 	"encoding/json"
 	"log"
@@ -9,8 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type Project struct {
@@ -27,7 +24,6 @@ var ProjectInfo Project
 
 var (
 	initOnce  sync.Once
-	wailsCtx  context.Context
 	isDevMode bool
 )
 
@@ -74,13 +70,8 @@ func ProjectCacheDir() string {
 	return cacheDir
 }
 
-func InitWithWailsContext(ctx context.Context) {
-	initOnce.Do(func() {
-		wailsCtx = ctx
-
-		info := runtime.Environment(wailsCtx)
-		isDevMode = info.BuildType == "dev"
-	})
+func InitEnvironment(debug bool) {
+	initOnce.Do(func() { isDevMode = debug })
 }
 
 func IsDevMode() bool {

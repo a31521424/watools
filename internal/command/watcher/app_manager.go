@@ -12,8 +12,6 @@ import (
 	"watools/pkg/db"
 	"watools/pkg/logger"
 	"watools/pkg/models"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // appWatchManager app watch manager darwin implementation
@@ -264,15 +262,17 @@ func (awm *appWatchManager) GetConfig() *WatcherConfig {
 
 // defaultAppEventHandler default app event handler darwin implementation
 type defaultAppEventHandler struct {
-	db  *db.WaDB
-	ctx context.Context
+	notify func()
+	db     *db.WaDB
+	ctx    context.Context
 }
 
 // NewDefaultAppEventHandler create default event handler
-func NewDefaultAppEventHandler(ctx context.Context) DefaultAppEventHandler {
+func NewDefaultAppEventHandler(ctx context.Context, notify func()) DefaultAppEventHandler {
 	return &defaultAppEventHandler{
-		db:  db.GetWaDB(),
-		ctx: ctx,
+		db:     db.GetWaDB(),
+		ctx:    ctx,
+		notify: notify,
 	}
 }
 
@@ -339,7 +339,9 @@ func (h *defaultAppEventHandler) onAppModifiedInternal(command *models.Applicati
 
 // emitApplicationChanged emit application changed event to frontend
 func (h *defaultAppEventHandler) emitApplicationChanged() {
-	runtime.EventsEmit(h.ctx, "watools.applicationChanged")
+	if h.notify != nil {
+		h.notify()
+	}
 }
 
 func (awm *appWatchManager) wait(delay time.Duration) error {

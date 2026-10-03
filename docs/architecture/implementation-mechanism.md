@@ -12,7 +12,7 @@
 
 实际含义：
 
-- `main.go` 只绑定 `WaAppCoordinator`
+- `main.go` 只注册 `WaAppCoordinator` v3 服务
 - 前端不会直接绑定 `internal/app`、`internal/plugin` 或其他业务包
 - 新的前端可调用能力，必须先在业务模块实现，再由 coordinator 暴露
 
@@ -22,6 +22,12 @@
 2. 在 coordinator 增加对外方法
 3. 必要时补前端 `api/` 封装
 4. 更新前端 store、schema 或组件
+
+当前固定 Wails v3 Beta.27，前端通过 `frontend/bindings/watools/internal/coordinator/waappcoordinator` 调用自动生成的方法；配套 npm runtime 固定同版本。coordinator 使用 `ServiceStartup/ServiceShutdown` 管理数据库、扫描、插件与 API 的生命周期。启动前注入 App 和 launcher 窗口引用；窗口存在后执行尺寸定位与快捷键注册。命令 watcher 接收通知回调，coordinator 将通知发到 v3 事件总线。
+
+主窗口是透明无边框 WebviewWindow，macOS 位置与焦点桥接接收该窗口的 NativeWindow 句柄，不再查找任意 key/main window。原生菜单改为 v3 menu roles；插件安装文件对话框明确附着主窗口。
+
+插件继续注入 `window.runtime` 兼容对象，由 `frontend/src/lib/legacy-runtime.ts` 将旧名称转换为 v3 API，包含旧剪贴板成功布尔值、窗口尺寸 `{w,h}` 与事件可变参数。常用日志走显式宿主方法；v3 framework 自动调用日志过滤 args/result。这个兼容对象不是完整 v2 运行时或不可信插件沙箱，具体支持边界见插件指南。
 
 ## 命令系统机制
 
@@ -118,7 +124,7 @@ Storage 使用 packageId 区分数据归属。当前采用可信插件模型，�
 2. 后端返回版本信息
 3. 前端触发下载
 4. 后端执行安装
-5. 若安装结果要求退出，则通过 Wails runtime 退出应用
+5. 若安装结果要求退出，则通过 v3 App.Quit 退出应用
 
 ## HTTP 与资源分发机制
 

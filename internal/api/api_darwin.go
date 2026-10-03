@@ -5,14 +5,14 @@ package api
    #cgo LDFLAGS: -framework Cocoa -framework Foundation
    #import <Cocoa/Cocoa.h>
 
-   int setClipboardPNGData(const void *bytes, int length) {
+   static int setClipboardPNGData(const void *bytes, int length) {
        @autoreleasepool {
            if (bytes == NULL || length <= 0) {
                return 0;
            }
 
            NSData *data = [NSData dataWithBytes:bytes length:length];
-           NSImage *image = [[NSImage alloc] initWithData:data];
+           NSImage *image = [[[NSImage alloc] initWithData:data] autorelease];
            if (image == nil) {
                return 0;
            }
@@ -28,6 +28,7 @@ import "C"
 
 import (
 	"fmt"
+	"github.com/wailsapp/wails/v3/pkg/application"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -60,7 +61,13 @@ func (a *WaApi) copyImageBytesToClipboard(imgBytes []byte) error {
 		return fmt.Errorf("image data is empty")
 	}
 
-	if C.setClipboardPNGData(unsafe.Pointer(&imgBytes[0]), C.int(len(imgBytes))) == 0 {
+	var written C.int
+	// v3 dispatches bindings concurrently; serialize all NSPasteboard access
+	// on the native main thread, including writes alongside clipboard reads.
+	application.InvokeSync(func() {
+		written = C.setClipboardPNGData(unsafe.Pointer(&imgBytes[0]), C.int(len(imgBytes)))
+	})
+	if written == 0 {
 		return fmt.Errorf("failed to write image to clipboard")
 	}
 

@@ -1,11 +1,6 @@
 {
-  "$schema": "https://wails.io/schemas/config.v2.json",
   "name": "watools",
   "outputfilename": "watools",
-  "frontend:install": "pnpm install --frozen-lockfile",
-  "frontend:build": "pnpm run build",
-  "frontend:dev:watcher": "pnpm run dev",
-  "frontend:dev:serverUrl": "auto",
   "author": {
     "name": "banbxio",
     "email": "a31521424@gmail.com"

@@ -4,8 +4,8 @@ import {useLocation} from "wouter"
 import {Button} from "@/components/ui/button"
 import {cn} from "@/lib/utils"
 import {checkForUpdates, downloadUpdate, installUpdate, type InstallResult, type UpdateInfo} from "@/api/update"
-import {OpenFolder} from "../../../wailsjs/go/coordinator/WaAppCoordinator"
-import {BrowserOpenURL} from "../../../wailsjs/runtime/runtime"
+import {OpenFolder} from "../../../bindings/watools/internal/coordinator/waappcoordinator"
+import {BrowserOpenURL} from "@/lib/legacy-runtime"
 
 const SURFACE_STYLE = {
     "--bg": "#f4f7fb",

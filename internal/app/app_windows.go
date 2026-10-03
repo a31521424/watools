@@ -3,11 +3,10 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/wailsapp/wails/v3/pkg/application"
 	"os/exec"
 	"strings"
 	"time"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // ClipboardContentType represents the primary type of content in clipboard
@@ -46,23 +45,29 @@ func runPowerShell(script string) (string, error) {
 func (a *WaApp) showAppAsPanel() {
 	time.Sleep(10 * time.Millisecond)
 	a.checkAndRepositionIfNeeded()
-	runtime.WindowShow(a.ctx)
+	a.window.Show()
 	a.positionWindow()
 	a.isHidden.Store(false)
 }
 
 func (a *WaApp) hideAppWithFocusReturn() {
 	if !a.isHidden.Load() {
-		runtime.WindowHide(a.ctx)
+		a.window.Hide()
 		a.isHidden.Store(true)
 	}
 }
 
 func (a *WaApp) HideApp() {
+	if application.System.IsServer() {
+		return
+	}
 	a.hideAppWithFocusReturn()
 }
 
 func (a *WaApp) ShowApp() {
+	if application.System.IsServer() {
+		return
+	}
 	a.showAppAsPanel()
 }
 
@@ -169,6 +174,10 @@ func (a *WaApp) GetClipboardFiles() ([]string, error) {
 // GetClipboardContent performs automatic type detection and returns all available content
 // Priority order for ContentType: Files > Image > Text > Empty
 func (a *WaApp) GetClipboardContent() (*ClipboardContent, error) {
+	// Headless development has no native event loop or desktop clipboard.
+	if application.System.IsServer() {
+		return &ClipboardContent{Types: []string{}, ContentType: ClipboardTypeEmpty}, nil
+	}
 	content := &ClipboardContent{}
 
 	types, err := a.GetClipboardTypes()

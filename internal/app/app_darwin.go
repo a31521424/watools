@@ -9,14 +9,14 @@ package app
 
    static NSRunningApplication *previousActiveApp = nil;
 
-   void clearPreviousActiveApp() {
+   static void clearPreviousActiveApp() {
        if (previousActiveApp != nil) {
            [previousActiveApp release];
            previousActiveApp = nil;
        }
    }
 
-   void storePreviousActiveApp() {
+   static void storePreviousActiveApp() {
        @autoreleasepool {
            NSRunningApplication *frontmostApp = [[NSWorkspace sharedWorkspace] frontmostApplication];
            NSRunningApplication *currentApp = [NSRunningApplication currentApplication];
@@ -33,23 +33,23 @@ package app
        }
    }
 
-   void activateCurrentAppWindowOnMainThread();
-   void returnFocusToPreviousAppOnMainThread();
+   static void activateCurrentAppWindowOnMainThread(void *handle);
+   static void returnFocusToPreviousAppOnMainThread();
 
-   void activateCurrentAppWindow() {
+   static void activateCurrentAppWindow(void *handle) {
        @autoreleasepool {
            if ([NSThread isMainThread]) {
-               activateCurrentAppWindowOnMainThread();
+               activateCurrentAppWindowOnMainThread(handle);
                return;
            }
 
            dispatch_sync(dispatch_get_main_queue(), ^{
-               activateCurrentAppWindowOnMainThread();
+               activateCurrentAppWindowOnMainThread(handle);
            });
        }
    }
 
-   void returnFocusToPreviousApp() {
+   static void returnFocusToPreviousApp() {
        @autoreleasepool {
            if ([NSThread isMainThread]) {
                returnFocusToPreviousAppOnMainThread();
@@ -62,7 +62,7 @@ package app
        }
    }
 
-   void hideCurrentWindow() {
+   static void hideCurrentWindow() {
        NSApplication *app = [NSApplication sharedApplication];
        [app hide:nil];
    }
@@ -77,28 +77,9 @@ package app
        int rightMargin;
    } WaWindowPositionMetrics;
 
-   NSWindow* getCurrentAppWindow() {
-       NSWindow *window = [NSApp keyWindow];
-       if (window != nil) {
-           return window;
-       }
-
-       window = [NSApp mainWindow];
-       if (window != nil) {
-           return window;
-       }
-
-       NSArray<NSWindow *> *windows = [NSApp windows];
-       if (windows != nil && [windows count] > 0) {
-           return windows[0];
-       }
-
-       return nil;
-   }
-
-   void activateCurrentAppWindowOnMainThread() {
+   static void activateCurrentAppWindowOnMainThread(void *handle) {
        NSApplication *app = [NSApplication sharedApplication];
-       NSWindow *window = getCurrentAppWindow();
+       NSWindow *window = (NSWindow *)handle;
 
        [app unhide:nil];
        if (@available(macOS 14.0, *)) {
@@ -115,7 +96,7 @@ package app
        }
    }
 
-   void returnFocusToPreviousAppOnMainThread() {
+   static void returnFocusToPreviousAppOnMainThread() {
        if (previousActiveApp == nil || [previousActiveApp isTerminated]) {
            clearPreviousActiveApp();
            return;
@@ -139,13 +120,13 @@ package app
        });
    }
 
-   int isSecureEventInputEnabled() {
+   static int isSecureEventInputEnabled() {
        return IsSecureEventInputEnabled() ? 1 : 0;
    }
 
-   WaWindowPositionMetrics positionCurrentWindowOnMainThread(int windowWidth, int windowHeight, int topOffset) {
+   static WaWindowPositionMetrics positionCurrentWindowOnMainThread(void *handle, int windowWidth, int windowHeight, int topOffset) {
        WaWindowPositionMetrics metrics = {0};
-       NSWindow *window = getCurrentAppWindow();
+       NSWindow *window = (NSWindow *)handle;
        if (window == nil) {
            return metrics;
        }
@@ -180,15 +161,15 @@ package app
        return metrics;
    }
 
-   WaWindowPositionMetrics positionCurrentWindow(int windowWidth, int windowHeight, int topOffset) {
+   static WaWindowPositionMetrics positionCurrentWindow(void *handle, int windowWidth, int windowHeight, int topOffset) {
        @autoreleasepool {
            if ([NSThread isMainThread]) {
-               return positionCurrentWindowOnMainThread(windowWidth, windowHeight, topOffset);
+               return positionCurrentWindowOnMainThread(handle, windowWidth, windowHeight, topOffset);
            }
 
            __block WaWindowPositionMetrics metrics = {0};
            dispatch_sync(dispatch_get_main_queue(), ^{
-               metrics = positionCurrentWindowOnMainThread(windowWidth, windowHeight, topOffset);
+               metrics = positionCurrentWindowOnMainThread(handle, windowWidth, windowHeight, topOffset);
            });
            return metrics;
        }
@@ -197,7 +178,7 @@ package app
    // ==================== Clipboard C Functions ====================
 
    // Returns JSON array of available clipboard types (caller must free)
-   char* getClipboardTypes() {
+   static char* getClipboardTypes() {
        @autoreleasepool {
            NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
            NSArray<NSPasteboardType> *types = [pasteboard types];
@@ -217,12 +198,12 @@ package app
                return strdup("[]");
            }
 
-           NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+           NSString *jsonString = [[[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding] autorelease];
            return strdup([jsonString UTF8String]);
        }
    }
 
-   int hasClipboardType(const char* type) {
+   static int hasClipboardType(const char* type) {
        @autoreleasepool {
            NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
            NSString *nsType = [NSString stringWithUTF8String:type];
@@ -231,7 +212,7 @@ package app
    }
 
    // Returns UTF-8 string from clipboard (caller must free)
-   char* getClipboardText() {
+   static char* getClipboardText() {
        @autoreleasepool {
            NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
            NSString *text = [pasteboard stringForType:NSPasteboardTypeString];
@@ -244,7 +225,7 @@ package app
 
    // Returns PNG image data from clipboard (caller must free)
    // Supports PNG, TIFF, JPEG and converts all to PNG format
-   void* getClipboardImageData(size_t *outSize) {
+   static void* getClipboardImageData(size_t *outSize) {
        @autoreleasepool {
            NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 
@@ -263,14 +244,14 @@ package app
                return NULL;
            }
 
-           NSImage *image = [[NSImage alloc] initWithData:imageData];
+           NSImage *image = [[[NSImage alloc] initWithData:imageData] autorelease];
            if (image == nil) {
                *outSize = 0;
                return NULL;
            }
 
            CGImageRef cgImage = [image CGImageForProposedRect:NULL context:nil hints:nil];
-           NSBitmapImageRep *bitmapRep = [[NSBitmapImageRep alloc] initWithCGImage:cgImage];
+           NSBitmapImageRep *bitmapRep = [[[NSBitmapImageRep alloc] initWithCGImage:cgImage] autorelease];
            NSData *pngData = [bitmapRep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
 
            if (pngData == nil) {
@@ -287,7 +268,7 @@ package app
    }
 
    // Returns JSON array of file paths from clipboard (caller must free)
-   char* getClipboardFiles() {
+   static char* getClipboardFiles() {
        @autoreleasepool {
            NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
            NSArray *classes = @[[NSURL class]];
@@ -312,7 +293,7 @@ package app
                return strdup("[]");
            }
 
-           NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+           NSString *jsonString = [[[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding] autorelease];
            return strdup([jsonString UTF8String]);
        }
    }
@@ -323,11 +304,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/wailsapp/wails/v3/pkg/application"
 	"time"
 	"unsafe"
 	"watools/pkg/logger"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // ClipboardContentType represents the primary type of content in clipboard
@@ -355,12 +335,12 @@ type ClipboardContent struct {
 // ==================== Window Management ====================
 
 func (a *WaApp) showAppAsPanel() {
-	C.storePreviousActiveApp()
+	application.InvokeSync(func() { C.storePreviousActiveApp() })
 	time.Sleep(10 * time.Millisecond)
 	a.checkAndRepositionIfNeeded()
-	runtime.WindowShow(a.ctx)
+	a.window.Show()
 	a.positionWindow()
-	C.activateCurrentAppWindow()
+	C.activateCurrentAppWindow(a.window.NativeWindow())
 	a.isHidden.Store(false)
 }
 
@@ -368,16 +348,22 @@ func (a *WaApp) hideAppWithFocusReturn() {
 	if !a.isHidden.Load() {
 		C.returnFocusToPreviousApp()
 		time.Sleep(100 * time.Millisecond)
-		runtime.WindowHide(a.ctx)
+		a.window.Hide()
 		a.isHidden.Store(true)
 	}
 }
 
 func (a *WaApp) HideApp() {
+	if application.System.IsServer() {
+		return
+	}
 	a.hideAppWithFocusReturn()
 }
 
 func (a *WaApp) ShowApp() {
+	if application.System.IsServer() {
+		return
+	}
 	a.showAppAsPanel()
 }
 
@@ -400,7 +386,7 @@ func (a *WaApp) positionWindowOnScreen(windowWidth int, windowHeight int) bool {
 	}
 
 	topOffset := clampWindowTopOffset(screen.Size.Height, windowHeight)
-	metrics := C.positionCurrentWindow(C.int(windowWidth), C.int(windowHeight), C.int(topOffset))
+	metrics := C.positionCurrentWindow(a.window.NativeWindow(), C.int(windowWidth), C.int(windowHeight), C.int(topOffset))
 	if metrics.ok == 0 {
 		return false
 	}
@@ -420,10 +406,14 @@ func (a *WaApp) positionWindowOnScreen(windowWidth int, windowHeight int) bool {
 
 // ==================== Clipboard API ====================
 
+// v3 bindings run concurrently. NSPasteboard and its cached Cocoa objects
+// must be accessed on the application main thread, just like window operations.
+
 // GetClipboardTypes returns all available NSPasteboard type identifiers
 // Common types: public.utf8-plain-text, public.png, public.file-url
 func (a *WaApp) GetClipboardTypes() ([]string, error) {
-	cTypes := C.getClipboardTypes()
+	var cTypes *C.char
+	application.InvokeSync(func() { cTypes = C.getClipboardTypes() })
 	if cTypes == nil {
 		return []string{}, nil
 	}
@@ -442,12 +432,15 @@ func (a *WaApp) GetClipboardTypes() ([]string, error) {
 func (a *WaApp) HasClipboardType(typeStr string) bool {
 	cType := C.CString(typeStr)
 	defer C.free(unsafe.Pointer(cType))
-	return C.hasClipboardType(cType) == 1
+	var available C.int
+	application.InvokeSync(func() { available = C.hasClipboardType(cType) })
+	return available == 1
 }
 
 // GetClipboardText returns plain text from clipboard
 func (a *WaApp) GetClipboardText() (string, error) {
-	cText := C.getClipboardText()
+	var cText *C.char
+	application.InvokeSync(func() { cText = C.getClipboardText() })
 	if cText == nil {
 		return "", fmt.Errorf("no text in clipboard")
 	}
@@ -459,7 +452,8 @@ func (a *WaApp) GetClipboardText() (string, error) {
 // Automatically converts TIFF/JPEG to PNG format for consistency
 func (a *WaApp) GetClipboardImage() (string, error) {
 	var size C.size_t
-	cData := C.getClipboardImageData(&size)
+	var cData unsafe.Pointer
+	application.InvokeSync(func() { cData = C.getClipboardImageData(&size) })
 
 	if cData == nil || size == 0 {
 		return "", fmt.Errorf("no image in clipboard")
@@ -472,7 +466,8 @@ func (a *WaApp) GetClipboardImage() (string, error) {
 
 // GetClipboardFiles returns absolute file paths from clipboard
 func (a *WaApp) GetClipboardFiles() ([]string, error) {
-	cFiles := C.getClipboardFiles()
+	var cFiles *C.char
+	application.InvokeSync(func() { cFiles = C.getClipboardFiles() })
 	if cFiles == nil {
 		return []string{}, nil
 	}
@@ -490,6 +485,10 @@ func (a *WaApp) GetClipboardFiles() ([]string, error) {
 // GetClipboardContent performs automatic type detection and returns all available content
 // Priority order for ContentType: Files > Image > Text > Empty
 func (a *WaApp) GetClipboardContent() (*ClipboardContent, error) {
+	// Headless development has no native event loop or desktop clipboard.
+	if application.System.IsServer() {
+		return &ClipboardContent{Types: []string{}, ContentType: ClipboardTypeEmpty}, nil
+	}
 	content := &ClipboardContent{}
 
 	types, err := a.GetClipboardTypes()

@@ -6,7 +6,7 @@ import {
     InstallPluginApi,
     UninstallPluginApi,
     TogglePluginApi
-} from "../../wailsjs/go/coordinator/WaAppCoordinator"
+} from "../../bindings/watools/internal/coordinator/waappcoordinator"
 import {sanitizePluginEntries} from "@/lib/plugin";
 
 const normalizeStringList = (value: unknown): string[] => {

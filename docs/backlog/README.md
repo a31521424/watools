@@ -2,13 +2,13 @@
 
 [返回文档系统](../README.md) · [Agent 约束](../../AGENT.md)
 
-登记与需求调整日期：2026-10-03。当前 Wails v2.10.2 继续作为已修复的运行基线。下一轮优先保留 Go、React、TypeScript 和用户数据，推进 Wails v3、插件独立小窗与开发调试能力。按用户最新要求，先覆盖当前 macOS 开发机上的自用需求，Windows 兼容和对外分发延期；完整范围见 [项目需求](../requirements/developer-self-use.md)。开发工作流的基础入口已落地，尚未执行框架迁移；不同时更换 UI 框架、数据库和插件包格式。
+登记与需求调整日期：2026-10-03。Wails v2 基线保留在提交 `809f635`；当前宿主代码使用固定 Wails v3 Beta.27。下一轮优先保留 Go、React、TypeScript 和用户数据，推进 Wails v3、插件独立小窗与开发调试能力。按用户最新要求，先覆盖当前 macOS 开发机上的自用需求，Windows 兼容和对外分发延期；完整范围见 [项目需求](../requirements/developer-self-use.md)。开发工作流的基础入口已落地，v3 代码迁移已实施，原生验收边界见目标记录；不同时更换 UI 框架、数据库和插件包格式。
 
 ## 目标目录
 
 | 目标 | 优先级 | 状态 | 依赖 |
 | --- | --- | --- | --- |
-| [Wails v3 迁移](./wails-v3-migration.md) | P0 | planned | 无；先确认固定 Beta 版本与平台基线 |
+| [Wails v3 迁移](./wails-v3-migration.md) | P0 | in-progress | 固定 Beta.27；代码已迁移，待完成原生验收 |
 | [服务与宿主接口整理](./services-and-host-api.md) | P0 | planned | v3 基础壳可运行；作为迁移中的独立步骤推进 |
 | [插件会话与独立小窗](./plugin-windows-and-sessions.md) | P0 | planned | v3 窗口、绑定和宿主接口 |
 | [开发工作流与测试](./development-and-testing.md) | P0 | in-progress | 基础入口与数据隔离已实施；模拟适配与原生检查仍依赖后续目标 |

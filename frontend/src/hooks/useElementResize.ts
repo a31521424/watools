@@ -1,5 +1,5 @@
 import {RefObject, useEffect, useRef} from 'react'
-import {WindowGetSize, WindowSetSize} from "../../wailsjs/runtime";
+import {WindowGetSize, WindowSetSize} from "@/lib/legacy-runtime";
 
 
 export const useElementResize = <T extends HTMLElement>(

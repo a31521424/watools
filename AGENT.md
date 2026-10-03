@@ -4,10 +4,10 @@
 
 ## 当前实现与后续方向
 
-- 当前是 Go + Wails v2.10.2 + React 19 + TypeScript + Vite 7，Go 工具链以 `go.mod` 和 CI 为准。
+- 当前是 Go + Wails v3.0.0-beta.27 + React 19 + TypeScript + Vite 7，Go 工具链以 `go.mod` 和 CI 为准。
 - Go 负责原生能力、命令扫描、插件安装和 SQLite 持久化；React 负责启动器、插件页与管理界面。
 - 插件提供 `executable` 和 `ui` 入口；当前 UI 插件在主窗口 iframe 中运行。
-- 下一轮优先方向是 Wails v3 迁移、插件独立小窗和开发调试优化，详见 [backlog](./docs/backlog/README.md)。这些目标尚未实现，不能作为现有 API 使用。
+- Wails v3 代码迁移已落地，原生验收按 backlog 记录。下一轮优先方向是插件独立小窗和开发调试优化，详见 [backlog](./docs/backlog/README.md)。插件小窗与后续目标尚未实现，不能作为现有 API 使用。
 - 阶段需求以 [开发者自用需求](./docs/requirements/developer-self-use.md) 为准：优先当前 macOS 开发机上的稳定使用与快速调试，Windows 兼容和对外分发任务延期。保留现有平台实现，未完成的延期项不作为自用阶段完成条件。
 - macOS 按用户要求不使用系统 Keychain；凭据当前保存为应用数据目录内的本地明文文件。Windows 仍使用 DPAPI，不要把 Secret SDK 名称解释为所有平台都加密。
 
@@ -16,7 +16,7 @@
 1. 先确认当前任务范围、工作区改动和相关调用链。保留已有工作，不擅自丢弃、重置或覆盖用户改动。
 2. 将当前实现、历史审查、未来方案分开。Backlog 是计划，不是自动实施授权；只处理本次明确要求的范围。
 3. 按任务索引读取最少必要文档，再核对源码。代码与文档不一致时，明确指出并同步修正文档，不把历史描述当作当前事实。
-4. 现阶段新的 Wails v2 可调用方法仍通过 `WaAppCoordinator` 暴露。迁移 v3 服务时同时迁移调用方、生成绑定、生命周期和文档，不能提前混用 v2/v3 API。
+4. 当前 Wails v3 注册 `WaAppCoordinator` 服务。新增宿主能力仍从此出口暴露；拆分领域服务时同时更新调用方、生成绑定、生命周期和文档，不混用 v2/v3 API。
 5. Wails 绑定与 sqlc 输出属于生成代码。优先修改生成源并重新生成，不通过手改输出制造与生成源不一致的实现。
 6. 改动围绕明确职责；只在需要替换、模拟或平台分离的边界增加接口，不为了分层增加重复转发。业务接口使用明确类型。
 7. 不使用用户真实凭据或唯一数据目录做破坏性验证。开发和测试使用独立临时数据、缓存目录；日志不写入凭据或完整剪贴板内容。
@@ -57,12 +57,12 @@
 
 ## 源码定位
 
-- `main.go`、`config/`、`wails.json`：应用入口、目录配置与当前 Wails v2 构建。
+- `main.go`、`config/`、`wails.json`：应用入口、目录配置与当前 Wails v3 初始化与构建。
 - `internal/coordinator/`：当前唯一的 Wails 绑定出口。
 - `internal/app/`、`internal/app_menu/`：窗口、快捷键、剪贴板、原生菜单与平台行为。
 - `internal/command/`：应用扫描、命令触发和文件监听。
 - `internal/plugin/`、`internal/handler/`：插件安装、状态、存储及资源路由。
 - `internal/api/`、`internal/secrets/`、`internal/update/`：宿主能力、凭据与更新。
 - `frontend/src/components/watools/`、`frontend/src/stores/`、`frontend/src/api/`、`frontend/src/lib/`：界面、状态、宿主调用与插件运行机制。
-- `frontend/wailsjs/`、`pkg/db/`：生成绑定、SQLite 查询和迁移；`pkg/logger/`：日志。
+- `frontend/bindings/`、`pkg/db/`：生成绑定、SQLite 查询和迁移；`pkg/logger/`：日志。
 - `cmd/pluginctl/`、`plugins/`：插件工具与官方插件源码；`scripts/`、`.github/workflows/`：检查和发布自动化。

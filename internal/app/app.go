@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"watools/pkg/logger"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 var (
@@ -17,7 +17,8 @@ var (
 
 type WaApp struct {
 	hotkeyUpdateMu   sync.Mutex
-	ctx              context.Context
+	desktop          *application.App
+	window           *application.WebviewWindow
 	isHidden         atomic.Bool
 	hotkeyListener   []*HotkeyListener
 	lastScreenWidth  int
@@ -25,20 +26,20 @@ type WaApp struct {
 }
 
 func (a *WaApp) positionWindow() {
-	windowWidth, windowHeight := runtime.WindowGetSize(a.ctx)
+	windowWidth, windowHeight := a.window.Size()
 	if a.positionWindowOnScreen(windowWidth, windowHeight) {
 		return
 	}
 
-	runtime.WindowCenter(a.ctx)
+	a.window.Center()
 
 	screen, ok := a.getPrimaryScreen()
 	if !ok {
 		return
 	}
 
-	currentX, _ := runtime.WindowGetPosition(a.ctx)
-	runtime.WindowSetPosition(a.ctx, currentX, clampWindowTopOffset(screen.Size.Height, windowHeight))
+	currentX, _ := a.window.Position()
+	a.window.SetPosition(currentX, clampWindowTopOffset(screen.Size.Height, windowHeight))
 }
 
 func clampWindowWidth(screenWidth int) int {
@@ -92,25 +93,12 @@ func clampWindowTopOffset(screenHeight int, windowHeight int) int {
 	return offset
 }
 
-func (a *WaApp) getPrimaryScreen() (runtime.Screen, bool) {
-	screens, err := runtime.ScreenGetAll(a.ctx)
-	if err != nil {
-		logger.Error(err, "Failed to get screens")
-		return runtime.Screen{}, false
+func (a *WaApp) getPrimaryScreen() (application.Screen, bool) {
+	screen := a.desktop.Screen.GetPrimary()
+	if screen == nil {
+		return application.Screen{}, false
 	}
-	if len(screens) == 0 {
-		return runtime.Screen{}, false
-	}
-
-	primaryScreen := screens[0]
-	for _, screen := range screens {
-		if screen.IsPrimary {
-			primaryScreen = screen
-			break
-		}
-	}
-
-	return primaryScreen, true
+	return *screen, true
 }
 
 // HotkeyConfigAPI represents a hotkey configuration for API responses
@@ -140,12 +128,16 @@ func (a *WaApp) initWindowSize() {
 		a.lastScreenHeight = primaryScreen.Size.Height
 		width = clampWindowWidth(primaryScreen.Size.Width)
 	}
-	runtime.WindowSetSize(a.ctx, width, height)
+	a.window.SetSize(width, height)
 	a.positionWindow()
 }
 
-func (a *WaApp) OnStartup(ctx context.Context) {
-	a.ctx = ctx
+func (a *WaApp) ConfigureDesktop(desktop *application.App, window *application.WebviewWindow) {
+	a.desktop, a.window = desktop, window
+}
+
+// OnWindowReady runs once after the native window exists.
+func (a *WaApp) OnWindowReady() {
 	a.initWindowSize()
 	a.registerHotkeys()
 }
@@ -173,16 +165,16 @@ func (a *WaApp) checkAndRepositionIfNeeded() {
 		width := clampWindowWidth(primaryScreen.Size.Width)
 		height := 64
 
-		runtime.WindowSetSize(a.ctx, width, height)
+		a.window.SetSize(width, height)
 		a.positionWindow()
 	}
 }
 func (a *WaApp) Reload() {
-	runtime.WindowReload(a.ctx)
+	a.window.Reload()
 }
 
 func (a *WaApp) ReloadAPP() {
-	runtime.WindowReloadApp(a.ctx)
+	a.window.ForceReload()
 }
 
 func (a *WaApp) registerHotkeys() {

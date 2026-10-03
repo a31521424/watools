@@ -60,7 +60,7 @@ WaTools 早期主要以人工设计和人工编码的方式推进。核心架构
 ## 技术栈
 
 - 后端：Go `1.26`
-- 桌面框架：Wails `v2`
+- 桌面框架：Wails `v3.0.0-beta.27`
 - 前端：React `19`、TypeScript、Vite `7`
 - 样式：Tailwind CSS `4`
 - 状态管理：Zustand

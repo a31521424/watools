@@ -77,7 +77,7 @@ WaTools 是一个以 Wails 为壳的桌面应用，核心分为 5 层：
 
 1. `main.go` 初始化配置与日志，并启动 Wails
 2. `WaAppCoordinator` 在 `Startup` 时初始化 app、command、plugin 等模块
-3. 前端通过 `frontend/wailsjs` 调用 coordinator 暴露的方法
+3. 前端通过 `frontend/bindings` 调用 coordinator 暴露的方法
 4. coordinator 将请求分发到具体子模块
 5. 前端 `stores` 和 `components` 根据返回结果渲染命令项、插件页与管理页
 

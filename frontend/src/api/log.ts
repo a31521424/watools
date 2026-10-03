@@ -1,4 +1,4 @@
-import {GetLogDirectoryApi, ListLogFilesApi, QueryLogsApi} from "../../wailsjs/go/coordinator/WaAppCoordinator"
+import {GetLogDirectoryApi, ListLogFilesApi, QueryLogsApi} from "../../bindings/watools/internal/coordinator/waappcoordinator"
 import {LogFileInfo, LogQuery, LogRecord, QueryLogsResult} from "@/schemas/log"
 
 const normalizeLogRecord = (record: Partial<LogRecord>): LogRecord => ({

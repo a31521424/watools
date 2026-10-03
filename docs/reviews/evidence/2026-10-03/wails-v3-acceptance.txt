@@ -1,0 +1,68 @@
+Wails v3 Beta.27 migration acceptance, 2026-10-03
+Environment: macOS 26.6.2 arm64, Go 1.26.8, Node 24.11.0, pnpm 10.21.0.
+Baseline: 809f635 (v2). Go/CLI: v3.0.0-beta.27; npm: 3.0.0-beta.27.
+All application data/cache isolated; copied v2 development SQLite and plugin revisions only, no secrets.
+No raw clipboard, credentials or actual user input are included in this record.
+
+Final commands (all exited 0):
+node scripts/dev.mjs check
+  workflow regressions: 16/16
+  frontend regressions: 11/11
+  TypeScript/Vite build, Go all-package tests, server app/api tests, vet, production compilation
+node scripts/dev.mjs check-race
+  Go all-package race tests passed
+node scripts/dev.mjs build
+  build/bin/watools.app; arm64 Mach-O; LC_BUILD_VERSION minos 12.0
+codesign --verify --deep --strict build/bin/watools.app
+plutil -lint build/bin/watools.app/Contents/Info.plist
+Fixed wails3 CLI regenerated 10 TypeScript files; SHA-256 content unchanged.
+go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 -tags production ./...
+  No vulnerabilities found (current scan; no permanent security guarantee).
+pnpm --dir frontend audit --audit-level=high
+  No known vulnerabilities found.
+
+Independent reviews:
+Two subagents reviewed native/backend and frontend/workflow separately.
+Findings fixed: image clipboard write needed native-main-thread dispatch;
+server InvokeSync has no native main loop, so native clipboard/window paths must be blocked.
+Both independent re-reviews found no remaining commit blockers.
+Independent workflow/frontend/tsc, core Go race, server tests and diff checks passed.
+
+Browser QA (dedicated agent-browser session, real server on loopback 9246):
+Loaded 6 v2 development plugins and 237 application commands.
+Search calculator -> actual iframe; context input calculator.
+Entered (2+3)*4 and Enter -> result 20, one stored history entry.
+Browser errors empty. Session closed. These are synthetic DOM inputs.
+
+Native WebKit QA via temporary official Wails production,mcp build, loopback MCP 9247:
+Search calculator -> actual iframe; SDK and input context injected.
+Plugin StorageSet/Get/Remove round trip passed.
+Legacy clipboard write returned true, text read matched synthetic probe; original text restored.
+Legacy event round trip carried the variadic [probe,3] payload.
+Reinstall preserved disabled state and synthetic storage; re-enabled and removed test key.
+Hide -> visible=false focused=false; show -> visible=true focused=true after native state settled.
+Reload /plugin -> iframe and SDK recovered, storage value persisted and was removed.
+Logging marker reached rotating file; bound log-file listing returned array.
+Update check returned structured RuntimeError for upstream manifest HTTP 404; no update installed.
+
+Native restart/concurrency probe output:
+restart 1 {"readCount": 40, "typed": true}
+parallelImageClipboard {"base64Present": true, "hasImage": true, "imageWriteCount": 25}
+restart 2 {"readCount": 40, "typed": true}
+restart 3 {"readCount": 40, "typed": true}
+restart 4 {"readCount": 40, "typed": true}
+restart 5 {"readCount": 40, "typed": true}
+
+Headless server HTTP smoke (isolated new directories, /wails/runtime real transport):
+serverClipboard {'count': 40, 'allEmpty': True}
+serverNativeWindowNoOp True
+serverImageClipboard {'status': 422, 'unsupported': True}
+serverShellRouteReload True
+
+Limits:
+Default shipped build has no MCP tag/service. Temporary native/server processes were closed.
+Synthetic UI inputs are not physical IME/global-hotkey tests.
+Not executed: physical Chinese IME, global OS hotkeys, visual transparency, multi-screen switching,
+native file dialog, first-time OS permission grants, real update install/restart, Windows/Intel/universal,
+notarization/distribution, or remote CI. Backlog remains in-progress for required native acceptance.
+Reverse v3-write -> v2-read data compatibility is not validated; rollback uses pre-upgrade backups.

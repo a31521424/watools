@@ -1,4 +1,4 @@
-import {LogDebug, LogError, LogInfo} from "../../wailsjs/runtime";
+import {LogDebug, LogError, LogInfo} from "@/lib/legacy-runtime";
 
 export class Logger {
     static info = (message: string) => LogInfo(`[Fronted] ${message}`)

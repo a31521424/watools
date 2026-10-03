@@ -2,7 +2,7 @@ import {createUsageFlusher} from "@/lib/usage-buffer";
 import {create} from "zustand";
 import {ApplicationCommandType, CommandGroupType} from "@/schemas/command";
 import {getApplicationCommands, updateApplicationUsage} from "@/api/command";
-import {EventsOn} from "../../wailsjs/runtime";
+import {EventsOn} from "@/lib/legacy-runtime";
 import Fuse, {IFuseOptions} from "fuse.js";
 import {Logger} from "@/lib/logger";
 

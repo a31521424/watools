@@ -191,3 +191,37 @@ test('late clipboard and focus reads cannot replace cleared or newly typed input
     store.getState().setClipboardContent({contentType:'text',text:'fresh paste'},current);
     assert.equal(store.getState().value,'fresh paste');assert.equal(store.getState().valueType,'clipboard');
 });
+
+test('v2 plugin runtime preserves clipboard booleans, window sizes and variadic event payloads', async () => {
+    const callbacks = new Map();
+    let failClipboard = false;
+    let target;
+    const cancelled = [];
+    const register = (name, callback) => {callbacks.set(name, callback); return () => {callbacks.delete(name); cancelled.push(name)}};
+    const {legacyRuntime: runtime} = loadTS('frontend/src/lib/legacy-runtime.ts', {
+        '@wailsio/runtime': {
+            Application: {}, Browser: {}, Screens: {}, System: {},
+            Clipboard: {Text: async () => 'probe', SetText: async () => {if (failClipboard) throw Error('clipboard unavailable')}},
+            Window: {Get: name => {target = name; return {Size: async () => ({width: 920, height: 64})}}},
+            Events: {On: register, Once: register, OnMultiple: register,
+                Emit: async (name, data) => callbacks.get(name)?.({name, data}),
+                Off: (...names) => names.forEach(name => callbacks.delete(name)), OffAll: () => callbacks.clear()},
+        },
+        '../../bindings/watools/internal/coordinator/waappcoordinator': {LogFrontendApi: async () => {}},
+    });
+    assert.equal(target, 'launcher');
+    assert.equal(await runtime.ClipboardSetText('probe'), true);
+    failClipboard = true;
+    await assert.rejects(runtime.ClipboardSetText('probe'), /clipboard unavailable/);
+    assert.equal(JSON.stringify(await runtime.WindowGetSize()), '{"w":920,"h":64}');
+    const observations = [];
+    const off = runtime.EventsOn('probe', (...args) => observations.push(args));
+    await runtime.EventsEmit('probe', 'first', 3);
+    callbacks.get('probe')({data: {value: 'host object'}});
+    callbacks.get('probe')({data: null});
+    assert.equal(JSON.stringify(observations), '[["first",3],[{"value":"host object"}],[]]');
+    off();
+    await runtime.EventsEmit('probe', 'ignored');
+    assert.equal(observations.length, 3);
+    assert.deepEqual(cancelled, ['probe']);
+});

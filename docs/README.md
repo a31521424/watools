@@ -1,6 +1,6 @@
 # WaTools 文档系统
 
-本目录按项目需求、当前实现、开发指南、未来计划和历史材料分类。Agent 首先读取 [根目录约束](../AGENT.md)，再按任务进入具体文档，不需要一次读取全部文件。当前应用仍使用 Wails v2；下一轮优先推进 Wails v3，目标已登记到 backlog，尚未实施。当前阶段以 macOS 开发者自用为优先，Windows 与对外分发任务延期。
+本目录按项目需求、当前实现、开发指南、未来计划和历史材料分类。Agent 首先读取 [根目录约束](../AGENT.md)，再按任务进入具体文档，不需要一次读取全部文件。当前应用使用固定 Wails v3 Beta.27，代码迁移与验收边界见 backlog；插件独立小窗仍未实施。当前阶段以 macOS 开发者自用为优先，Windows 与对外分发任务延期。
 
 ## 分类与入口
 
@@ -9,7 +9,7 @@
 | 需求 | [开发者自用需求](./requirements/developer-self-use.md)：项目目标、自用场景、优先级和延期边界 |
 | 架构 | [架构](./architecture/architecture.md)、[实现机制](./architecture/implementation-mechanism.md)、[功能模块](./architecture/feature-modules.md)：说明当前实现 |
 | 设计 | [UI 风格](./design/ui-style.md)：当前界面定位、布局和交互规范 |
-| 开发 | [本地开发](./development/local-workflow.md)：macOS 统一命令、隔离与调试；[发布流程](./development/release-cd.md)：当前发布和更新分发 |
+| 开发 | [本地开发](./development/local-workflow.md)：macOS 统一命令、隔离与调试；[发布流程](./development/release-cd.md)：发布与更新机制及迁移暂停记录 |
 | 插件开发 | [专题索引](./plugin-development/README.md)：按需读取六个章节 |
 | Backlog | [目标索引](./backlog/README.md)：优先级、依赖、实施范围和验收标准 |
 | 调研 | [框架与语言调研](./research/technology-direction-2026-10-02.md)：保留讨论依据，最新路线以 backlog 为准 |
@@ -100,6 +100,7 @@ docs/
 │   │   │   ├── frontend-tests.txt
 │   │   │   ├── macos-production-build.txt
 │   │   │   ├── official-package.txt
+│   │   │   ├── wails-v3-acceptance.txt
 │   │   │   ├── watools-final-go-race.txt
 │   │   │   ├── watools-final-go-test.txt
 │   │   │   ├── watools-final-go-vet.txt

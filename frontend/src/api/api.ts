@@ -12,7 +12,7 @@ import {
     DeletePluginStorageKeyApi,
     ClearPluginStorageApi,
     ListPluginStorageKeysApi
-} from "../../wailsjs/go/coordinator/WaAppCoordinator";
+} from "../../bindings/watools/internal/coordinator/waappcoordinator";
 
 export type WaToolsApi = {
     OpenFolder: typeof OpenFolder;

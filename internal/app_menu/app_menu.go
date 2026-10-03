@@ -1,22 +1,21 @@
 package app_menu
 
 import (
+	"github.com/wailsapp/wails/v3/pkg/application"
 	"watools/internal/app"
-
-	"github.com/wailsapp/wails/v2/pkg/menu"
-	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 )
 
-func GetWatoolsMenu() *menu.Menu {
-	appMenu := menu.NewMenuFromItems(menu.EditMenu(), menu.WindowMenu(), menu.AppMenu())
-
-	viewMenu := appMenu.AddSubmenu("View")
-	viewMenu.AddText("Reload", keys.Combo("r", keys.CmdOrCtrlKey, keys.ShiftKey), func(_ *menu.CallbackData) {
+func GetWatoolsMenu() *application.Menu {
+	menu := application.NewMenu()
+	menu.AddRole(application.AppMenu)
+	menu.AddRole(application.EditMenu)
+	menu.AddRole(application.WindowMenu)
+	view := menu.AddSubmenu("View")
+	view.Add("Reload").SetAccelerator("CmdOrCtrl+Shift+r").OnClick(func(_ *application.Context) {
 		app.GetWaApp().ReloadAPP()
 	})
-	viewMenu.AddText("Refresh", keys.CmdOrCtrl("r"), func(_ *menu.CallbackData) {
+	view.Add("Refresh").SetAccelerator("CmdOrCtrl+r").OnClick(func(_ *application.Context) {
 		app.GetWaApp().Reload()
 	})
-
-	return appMenu
+	return menu
 }

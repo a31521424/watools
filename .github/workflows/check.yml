@@ -25,6 +25,12 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Configure macOS deployment target
+        if: runner.os == 'macOS'
+        run: |
+          echo 'MACOSX_DEPLOYMENT_TARGET=12.0' >> "$GITHUB_ENV"
+          echo 'CGO_CFLAGS=-mmacosx-version-min=12.0' >> "$GITHUB_ENV"
+          echo 'CGO_LDFLAGS=-mmacosx-version-min=12.0' >> "$GITHUB_ENV"
       - run: pnpm install --frozen-lockfile
         working-directory: frontend
       - name: Verify macOS development entry
@@ -35,11 +41,13 @@ jobs:
       - run: pnpm build
         working-directory: frontend
       - run: go test ./...
+      - run: go test -tags server ./internal/app ./internal/api
+        if: runner.os == 'macOS'
       - run: go test -race ./...
         if: runner.os == 'macOS'
-      - run: go build -tags desktop,production ./...
+      - run: go build -tags production ./...
       - run: go vet ./...
-      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 -tags desktop,production ./...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 -tags production ./...
       - run: pnpm audit --audit-level=high
         working-directory: frontend
       - run: go run ./cmd/pluginctl package --output dist-plugins

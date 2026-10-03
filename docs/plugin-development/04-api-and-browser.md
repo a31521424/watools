@@ -2,6 +2,8 @@
 
 ## `window.runtime`
 
+宿主使用 Wails v3，并提供旧调用形状的兼容层。以下为当前支持的常用接口；调用仍锚定启动器，尚未提供插件独立窗口。写入剪贴板成功返回 `true`，宿主失败时 Promise 拒绝。窗口、事件发送与日志方法现在可能返回 Promise，需要处理错误时应 `await`。
+
 ```typescript
 EventsEmit(eventName: string, ...data: any): void
 EventsOn(eventName: string, callback: (...data: any) => void): () => void
@@ -37,9 +39,9 @@ Hide(): void
 Show(): void
 Environment(): Promise<{buildType: string, platform: string, arch: string}>
 
-OnFileDrop(callback: (x: number, y: number, paths: string[]) => void, useDropTarget: boolean): void
-OnFileDropOff(): void
 ```
+
+旧文档曾列出 `OnFileDrop/OnFileDropOff`，但 v2 宿主未启用原生文件拖入；当前 v3 兼容层也未提供这些方法。文件选择仍使用 HTML `<input type="file">`；不要依赖尚未实现的原生文件路径拖入能力。
 
 ## `window.watools`
 

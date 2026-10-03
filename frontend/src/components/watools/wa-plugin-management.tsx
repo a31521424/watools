@@ -8,8 +8,8 @@ import {Switch} from '@/components/ui/switch'
 import {cn} from '@/lib/utils'
 import {Plugin} from '@/schemas/plugin'
 import {usePluginStore} from '@/stores/pluginStore'
-import {InstallPluginByFileDialogApi} from '../../../wailsjs/go/coordinator/WaAppCoordinator'
-import {BrowserOpenURL} from '../../../wailsjs/runtime/runtime'
+import {InstallPluginByFileDialogApi} from '../../../bindings/watools/internal/coordinator/waappcoordinator'
+import {BrowserOpenURL} from '@/lib/legacy-runtime'
 
 const SURFACE_STYLE = {
     '--bg': '#f3f6fa',

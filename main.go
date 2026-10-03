@@ -4,65 +4,58 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"sync"
 	"watools/config"
+	"watools/internal/app"
 	"watools/internal/app_menu"
 	"watools/internal/coordinator"
 	"watools/internal/handler"
 	"watools/pkg/logger"
 
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 //go:embed wails.json
-var wailsJson []byte
+var projectJSON []byte
 
 func init() {
-	initLang()
-	config.ParseProject(wailsJson)
+	os.Setenv("LANG", "en_US.UTF-8")
+	os.Setenv("LC_ALL", "en_US.UTF-8")
+	config.ParseProject(projectJSON)
 	logger.InitWaLogger()
 }
 
-func initLang() {
-	os.Setenv("LANG", "en_US.UTF-8")
-	os.Setenv("LC_ALL", "en_US.UTF-8")
-}
-
 func main() {
-	waAppCoordinator := coordinator.GetWaAppCoordinator()
-	appMenu := app_menu.GetWatoolsMenu()
-
-	err := wails.Run(&options.App{
-		Title:     "watools",
-		Width:     1280,
-		Height:    64,
-		Frameless: true,
-		AssetServer: &assetserver.Options{
-			Assets:  assets,
-			Handler: handler.NewWaHandler(),
+	service := coordinator.GetWaAppCoordinator()
+	desktop := application.New(application.Options{
+		Name:        config.ProjectName(),
+		Server:      application.ServerOptions{Host: "127.0.0.1", Port: 9246},
+		Description: fmt.Sprintf("Version: %s\nAuthor: %s", config.ProjectVersion(), config.ProjectAuthor()),
+		Services:    []application.Service{application.NewService(service)},
+		Assets: application.AssetOptions{
+			Handler:        handler.WithAssets(application.AssetFileServerFS(assets)),
+			DisableLogging: true,
 		},
-		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
-		OnStartup:        waAppCoordinator.Startup,
-		OnShutdown:       waAppCoordinator.Shutdown,
-		Bind:             []interface{}{waAppCoordinator},
-		Mac: &mac.Options{
-			TitleBar:             mac.TitleBarHidden(),
-			WebviewIsTransparent: true,
-			About: &mac.AboutInfo{
-				Title:   config.ProjectName(),
-				Message: fmt.Sprintf("Version: %s\nAuthor: %s", config.ProjectVersion(), config.ProjectAuthor()),
-			},
-		},
-		Logger: logger.NewAdapter(),
-		Menu:   appMenu,
+		Logger: logger.NewSlogAdapter(),
 	})
-
-	if err != nil {
+	window := desktop.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name: "launcher", Title: "watools", Width: 1280, Height: 64,
+		Frameless:        true,
+		BackgroundType:   application.BackgroundTypeTransparent,
+		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
+		Mac:              application.MacWindow{TitleBar: application.MacTitleBarHidden},
+	})
+	service.ConfigureDesktop(desktop, window)
+	var ready sync.Once
+	window.OnWindowEvent(events.Common.WindowRuntimeReady, func(event *application.WindowEvent) {
+		ready.Do(app.GetWaApp().OnWindowReady)
+	})
+	desktop.Menu.SetApplicationMenu(app_menu.GetWatoolsMenu())
+	if err := desktop.Run(); err != nil {
 		logger.Error(err)
 	}
 }

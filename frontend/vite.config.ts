@@ -1,5 +1,6 @@
 import {defineConfig} from 'vite'
 import react from '@vitejs/plugin-react'
+import wails from '@wailsio/runtime/plugins/vite'
 // @ts-ignore
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
@@ -8,6 +9,7 @@ import path from "node:path";
 export default defineConfig({
     plugins: [
         react(),
+        wails("./bindings"),
         tailwindcss(),
     ],
     build: {
@@ -22,13 +24,9 @@ export default defineConfig({
         }
     },
     server: {
-        proxy: {
-            '/api/': {
-                bypass: () => {
-                    return false
-                }
-            }
-        },
+        host: '127.0.0.1',
+        port: Number(process.env.WAILS_VITE_PORT) || 9245,
+        strictPort: true,
         watch: {
             ignored: [
                 '**/node_modules/**',

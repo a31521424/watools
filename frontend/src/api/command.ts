@@ -1,6 +1,6 @@
 import {ApplicationCommandType, CommandGroupType, OperationCommandType} from "@/schemas/command";
 import {isContainNonAscii, toPinyin, toPinyinInitial} from "@/lib/search";
-import {GetApplicationCommandsApi, GetOperatorCommandsApi, UpdateApplicationUsageApi} from "../../wailsjs/go/coordinator/WaAppCoordinator";
+import {GetApplicationCommandsApi, GetOperatorCommandsApi, UpdateApplicationUsageApi} from "../../bindings/watools/internal/coordinator/waappcoordinator";
 
 const dedupeBy = <T>(items: T[], getKey: (item: T) => string): T[] => {
     const uniqueItems = new Map<string, T>()

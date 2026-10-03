@@ -1,9 +1,9 @@
-import {GetClipboardContentApi} from "../../wailsjs/go/coordinator/WaAppCoordinator";
+import {GetClipboardContentApi} from "../../bindings/watools/internal/coordinator/waappcoordinator";
 import {AppClipboardContent, AppClipboardContentType} from "@/schemas/app";
 
 export const getClipboardContent = async (): Promise<AppClipboardContent | null> => {
     const content = await GetClipboardContentApi()
-    if (content.contentType === "empty") {
+    if (!content || content.contentType === "empty") {
         return null
     }
     const data: AppClipboardContent = {

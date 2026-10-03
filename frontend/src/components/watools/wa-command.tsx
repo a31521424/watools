@@ -5,7 +5,7 @@ import {cn} from "@/lib/utils";
 import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {PluginCommandEntry, usePluginItems} from "@/components/watools/wa-plugin-item";
-import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../wailsjs/go/coordinator/WaAppCoordinator";
+import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../bindings/watools/internal/coordinator/waappcoordinator";
 import {useAppStore, usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
 import {useLocation} from "wouter";

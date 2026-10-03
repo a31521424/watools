@@ -1,3 +1,5 @@
+> 2026-10-03 v3 迁移说明：当前 macOS 自用包由 `node scripts/dev.mjs build` 构建；本页下方的公开分发流程保留为 v2 历史基线。release workflow 在 prepare 阶段明确停止，避免用 v2 CLI 构建 v3 源码或发布未经验证的 Windows/universal 包。恢复分发时须迁移整条构建、安装器和发布验收流程；本次未推送、发布或触发远端 CI。
+
 # Release CD
 
 [Docs index](../README.md) · [Agent entry](../../AGENT.md)

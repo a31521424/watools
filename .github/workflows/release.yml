@@ -49,6 +49,12 @@ jobs:
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
           echo "release_version=${release_tag#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Require migrated distribution workflow
+        run: |
+          echo 'Wails v3 macOS self-use builds are available through node scripts/dev.mjs build.' >&2
+          echo 'Windows/universal installers and public distribution are deferred; migrate and validate this v2 release workflow before publishing.' >&2
+          exit 1
+
       - name: Validate Wails version metadata
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.release_version }}

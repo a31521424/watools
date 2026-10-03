@@ -16,10 +16,12 @@ import (
 	"watools/pkg/logger"
 	"watools/pkg/models"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 type WaAppCoordinator struct {
+	desktop     *application.App
+	window      *application.WebviewWindow
 	ctx         context.Context
 	waApp       *app.WaApp
 	waLaunchApp *command.WaLaunchApp
@@ -44,22 +46,30 @@ func GetWaAppCoordinator() *WaAppCoordinator {
 	return waAppCoordinatorInstance
 }
 
-func (w *WaAppCoordinator) Startup(ctx context.Context) {
-	w.ctx = ctx
-
-	config.InitWithWailsContext(ctx)
-
-	w.waApi.OnStartup(ctx)
-	w.waApp.OnStartup(ctx)
-	w.waLaunchApp.OnStartup(ctx)
-	w.waPluginApp.OnStartup(ctx)
+//wails:ignore
+func (w *WaAppCoordinator) ConfigureDesktop(desktop *application.App, window *application.WebviewWindow) {
+	w.desktop, w.window = desktop, window
+	w.waApp.ConfigureDesktop(desktop, window)
 }
 
-func (w *WaAppCoordinator) Shutdown(ctx context.Context) {
+func (w *WaAppCoordinator) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
+	w.ctx = ctx
+
+	config.InitEnvironment(w.desktop.Env.Info().Debug)
+
+	w.waApi.OnStartup(ctx)
+	w.waLaunchApp.OnStartup(ctx, func() { w.desktop.Event.Emit("watools.applicationChanged") })
+	w.waPluginApp.OnStartup(ctx)
+	return nil
+}
+
+func (w *WaAppCoordinator) ServiceShutdown() error {
+	ctx := w.ctx
 	w.waApi.Shutdown()
 	w.waApp.Shutdown(ctx)
 	w.waLaunchApp.Shutdown(ctx)
 	w.waPluginApp.OnShutdown(ctx)
+	return nil
 }
 
 // region app
@@ -169,7 +179,12 @@ func (w *WaAppCoordinator) InstallPluginApi(wtFilePath string) error {
 
 // InstallPluginByFileDialogApi installs a plugin from a .wt file by file dialog
 func (w *WaAppCoordinator) InstallPluginByFileDialogApi() error {
-	return w.waPluginApp.InstallPluginByFileDialog()
+	paths, err := w.desktop.Dialog.OpenFile().SetTitle("Select Plugin .wt File(s)").
+		AddFilter("WaTools Plugin Files", "*.wt").AttachToWindow(w.window).PromptForMultipleSelection()
+	if err != nil {
+		return err
+	}
+	return w.waPluginApp.InstallPluginPaths(paths)
 }
 
 // UninstallPluginApi uninstalls a plugin by packageID
@@ -245,7 +260,7 @@ func (w *WaAppCoordinator) InstallUpdateApi(downloadedPath string) (update.Insta
 	if result.ShouldQuit {
 		go func() {
 			time.Sleep(400 * time.Millisecond)
-			runtime.Quit(w.ctx)
+			w.desktop.Quit()
 		}()
 	}
 	return result, nil
@@ -394,4 +409,18 @@ func (w *WaAppCoordinator) DeletePluginSecretApi(packageID, key string) error {
 		return fmt.Errorf("plugin is not enabled")
 	}
 	return secrets.Remove(packageID, key)
+}
+
+// LogFrontendApi preserves frontend logging in the existing rotating log.
+func (w *WaAppCoordinator) LogFrontendApi(level, message string) {
+	switch level {
+	case "debug":
+		logger.Debug(message)
+	case "info":
+		logger.Info(message)
+	case "warn":
+		logger.Warning(message)
+	default:
+		logger.ErrorWithPureString(message)
+	}
 }

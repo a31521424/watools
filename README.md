@@ -64,7 +64,7 @@ The only Wails-bound API surface is the coordinator in `internal/coordinator/`, 
 ## Technology Stack
 
 - Backend: Go `1.26`
-- Desktop framework: Wails `v2`
+- Desktop framework: Wails `v3.0.0-beta.27`
 - Frontend: React `19`, TypeScript, Vite `7`
 - Styling: Tailwind CSS `4`
 - State management: Zustand

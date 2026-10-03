@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/wailsapp/wails/v3/pkg/application"
 	"image/png"
 	"io"
 	"net/http"
@@ -82,6 +83,9 @@ func saveImageFile(dir string, data []byte) (string, error) {
 }
 
 func (a *WaApi) CopyBase64ImageToClipboard(base64Data string) error {
+	if application.System.IsServer() {
+		return fmt.Errorf("native image clipboard is unavailable in browser/server mode")
+	}
 	imgBytes, err := base64.StdEncoding.DecodeString(base64Data)
 	if err != nil {
 		return fmt.Errorf("failed to decode base64 image: %w", err)

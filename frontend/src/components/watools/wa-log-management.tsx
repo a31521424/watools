@@ -18,7 +18,7 @@ import {Sheet, SheetContent} from "@/components/ui/sheet"
 import {cn} from "@/lib/utils"
 import {getLogDirectory, listLogFiles, queryLogs} from "@/api/log"
 import {LogFileInfo, LogRecord} from "@/schemas/log"
-import {OpenFolder} from "../../../wailsjs/go/coordinator/WaAppCoordinator"
+import {OpenFolder} from "../../../bindings/watools/internal/coordinator/waappcoordinator"
 
 const SURFACE_STYLE = {
     "--bg": "#eef2f6",

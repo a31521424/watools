@@ -11,7 +11,6 @@ import (
 	"watools/pkg/models"
 
 	"github.com/samber/lo"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 var (
@@ -105,15 +104,7 @@ func (p *WaPlugin) InstallPlugin(wtFilePath string) error {
 }
 
 // InstallPluginByFileDialog InstallPlugin install a plugin from a.wt file by file dialog
-func (p *WaPlugin) InstallPluginByFileDialog() error {
-	pluginPaths, err := runtime.OpenMultipleFilesDialog(p.ctx, runtime.OpenDialogOptions{
-		Title:            "Select Plugin .wt File(s)",
-		Filters:          []runtime.FileFilter{{DisplayName: "WaTools Plugin Files", Pattern: "*.wt"}},
-		DefaultDirectory: "",
-	})
-	if err != nil {
-		return err
-	}
+func (p *WaPlugin) InstallPluginPaths(pluginPaths []string) error {
 	if len(pluginPaths) == 0 {
 		return nil
 	}
