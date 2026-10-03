@@ -1,11 +1,12 @@
 # WaTools 文档系统
 
-本目录按当前实现、开发指南、未来计划和历史材料分类。Agent 首先读取 [根目录约束](../AGENT.md)，再按任务进入具体文档，不需要一次读取全部文件。当前应用仍使用 Wails v2；下一轮优先推进 Wails v3，目标已登记到 backlog，尚未实施。
+本目录按项目需求、当前实现、开发指南、未来计划和历史材料分类。Agent 首先读取 [根目录约束](../AGENT.md)，再按任务进入具体文档，不需要一次读取全部文件。当前应用仍使用 Wails v2；下一轮优先推进 Wails v3，目标已登记到 backlog，尚未实施。当前阶段以 macOS 开发者自用为优先，Windows 与对外分发任务延期。
 
 ## 分类与入口
 
 | 分类 | 入口与用途 |
 | --- | --- |
+| 需求 | [开发者自用需求](./requirements/developer-self-use.md)：项目目标、自用场景、优先级和延期边界 |
 | 架构 | [架构](./architecture/architecture.md)、[实现机制](./architecture/implementation-mechanism.md)、[功能模块](./architecture/feature-modules.md)：说明当前实现 |
 | 设计 | [UI 风格](./design/ui-style.md)：当前界面定位、布局和交互规范 |
 | 开发 | [发布流程](./development/release-cd.md)：当前构建、发布和更新分发 |
@@ -21,11 +22,12 @@
 - 修改后端：实现机制 → 对应包；涉及历史缺陷时读取修复记录和指定证据。
 - 开发插件：插件开发索引 → 相关章节 → 对应官方插件示例。
 - 推进优化：backlog 索引 → 本次目标文档 → 依赖和源码；不要默认启动整个 backlog。
+- 调整需求或验收：开发者自用需求 → backlog 索引 → 本次目标文档；延期平台项不混入当前阶段完成条件。
 - 修改发布：发布流程 → CI 和更新源码。
 
 ## 文档维护规则
 
-1. 当前实现写入 architecture、design、development 和 plugin-development；未实现的目标写入 backlog，不混写为已具备的能力。
+1. 项目需求与阶段边界写入 requirements，具体实施目标写入 backlog；当前实现写入 architecture、design、development 和 plugin-development，不把需求或计划混写为已具备的能力。
 2. 一份文档聚焦一个主题，使用明确文件名。新增、移动、删除文件时同步更新本页完整目录、相关专题入口和引用；改变分类时同步更新 `AGENT.md`。
 3. Backlog 项目包含状态、优先级、依赖、现状问题、范围、验收与验证。状态变化时同时更新目标文档和 backlog 索引。
 4. 完成 backlog 后，登记实现提交、实际检查和未覆盖的验收，并更新现状文档。需要 GUI 或实机验收的项目不能仅凭编译成功标记完成。
@@ -53,11 +55,14 @@ docs/
 │   ├── README.md
 │   ├── development-and-testing.md
 │   ├── diagnostics-and-agent-tools.md
+│   ├── distribution-and-update-acceptance.md
+│   ├── native-self-use-acceptance.md
 │   ├── plugin-loading-and-sdk.md
 │   ├── plugin-trust-and-permissions.md
 │   ├── plugin-windows-and-sessions.md
 │   ├── services-and-host-api.md
-│   └── wails-v3-migration.md
+│   ├── wails-v3-migration.md
+│   └── windows-compatibility.md
 ├── design/
 │   └── ui-style.md
 ├── development/
@@ -70,6 +75,8 @@ docs/
 │   ├── 05-ui-and-shortcuts.md
 │   ├── 06-reference-and-checklist.md
 │   └── README.md
+├── requirements/
+│   └── developer-self-use.md
 ├── research/
 │   └── technology-direction-2026-10-02.md
 ├── reviews/

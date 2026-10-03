@@ -80,6 +80,8 @@ Windows 本地检查采用交叉编译与平台源码扫描，不等于在 Windo
 
 后续框架比较已收敛到优先推进 Wails v3；最新目标、依赖和验收由 [backlog](../backlog/README.md) 维护。当前仍是 Wails v2，下面保留修复后提出的迁移边界，不代表目标已完成。
 
+最新需求优先 [macOS 开发者自用](../requirements/developer-self-use.md)。下文原先涉及两平台的验收按新阶段拆分：macOS 自用优先，Windows 兼容、对外分发与真实自更新验收延期；具体清单和恢复条件以 backlog 为准，历史验证结果不变。
+
 1. 锁定一个已验证的 v3 Beta 版本，先恢复主窗口、资源服务、Go 绑定、原生菜单和发布构建；暂不同时重写插件格式。
 2. 引入按 ID 管理的 WindowService，明确 launcher、plugin、settings。隐藏启动器只操作启动器窗口，插件小窗继续存活。
 3. 后端管理 PluginSession 和启动上下文；每个窗口自行初始化 SDK，通过宿主交付上下文，不能依赖另一个窗口的内存 Map。

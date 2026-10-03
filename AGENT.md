@@ -8,6 +8,7 @@
 - Go 负责原生能力、命令扫描、插件安装和 SQLite 持久化；React 负责启动器、插件页与管理界面。
 - 插件提供 `executable` 和 `ui` 入口；当前 UI 插件在主窗口 iframe 中运行。
 - 下一轮优先方向是 Wails v3 迁移、插件独立小窗和开发调试优化，详见 [backlog](./docs/backlog/README.md)。这些目标尚未实现，不能作为现有 API 使用。
+- 阶段需求以 [开发者自用需求](./docs/requirements/developer-self-use.md) 为准：优先当前 macOS 开发机上的稳定使用与快速调试，Windows 兼容和对外分发任务延期。保留现有平台实现，未完成的延期项不作为自用阶段完成条件。
 - macOS 按用户要求不使用系统 Keychain；凭据当前保存为应用数据目录内的本地明文文件。Windows 仍使用 DPAPI，不要把 Secret SDK 名称解释为所有平台都加密。
 
 ## Agent 工作约束
@@ -29,6 +30,7 @@
 
 | 任务 | 首先读取 | 按需补充 |
 | --- | --- | --- |
+| 确定需求、优先级或验收范围 | [开发者自用需求](./docs/requirements/developer-self-use.md) | [Backlog](./docs/backlog/README.md) 与本次目标文档 |
 | 初次定位仓库 | [架构](./docs/architecture/architecture.md) | [功能模块](./docs/architecture/feature-modules.md) |
 | 修改绑定、资源、命令或数据机制 | [实现机制](./docs/architecture/implementation-mechanism.md) | 对应源码与 [修复记录](./docs/reviews/remediation-2026-10-03.md) |
 | 修改前端界面 | [UI 风格](./docs/design/ui-style.md) | [功能模块](./docs/architecture/feature-modules.md) |
@@ -43,6 +45,7 @@
 | 路径 | 用途 |
 | --- | --- |
 | [docs/README.md](./docs/README.md) | 文档维护规则、阅读路径和完整文件目录 |
+| [docs/requirements/](./docs/requirements/developer-self-use.md) | 项目需求、阶段范围和验收边界，不代表已经实现 |
 | [docs/architecture/](./docs/architecture/) | 当前架构、机制和功能 |
 | [docs/design/](./docs/design/) | 当前 UI 与交互规范 |
 | [docs/development/](./docs/development/) | 当前开发、构建和发布流程 |

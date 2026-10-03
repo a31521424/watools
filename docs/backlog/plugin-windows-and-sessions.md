@@ -2,7 +2,7 @@
 
 [返回 Backlog](./README.md)
 
-状态：planned。优先级：P0。依赖：[v3 窗口与绑定](./wails-v3-migration.md)、[宿主接口](./services-and-host-api.md)。目标是插件独立于启动器运行，多实例的上下文、状态与生命周期明确。
+状态：planned。优先级：P0。依赖：[v3 窗口与绑定](./wails-v3-migration.md)、[宿主接口](./services-and-host-api.md)。目标是插件独立于启动器运行，多实例的上下文、状态与生命周期明确。当前按 macOS 自用验收，Windows 适配延期。
 
 ## 现状问题
 
@@ -22,7 +22,7 @@ UI 插件由 `frontend/src/components/watools/wa-plugin.tsx` 在主窗口 iframe
 - 翻译或 JSON 等真实插件从搜索结果打开独立窗口，隐藏启动器后继续工作。
 - 至少两个实例的输入、HTTP 取消、存储、事件和计数不串用或覆盖。
 - 关闭重开、升级、禁用和卸载行为一致，没有残留请求、订阅或无界 revision 积累。
-- macOS 与 Windows 分别验收焦点、中文输入法、Esc、置顶、多屏、DPI 与关闭行为；未验证项单独列出。
+- 当前 macOS 开发机验收焦点、中文输入法、Esc、置顶、多屏、缩放与关闭行为；无对应硬件的场景记录未验证范围，Windows 专项列入 [延期任务](./windows-compatibility.md)。
 - 不能只凭会话 ID 或前端提供的 packageId 认定调用有权访问其他插件数据。
 
 ## 实施记录
