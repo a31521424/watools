@@ -51,6 +51,7 @@ go run ./cmd/pluginctl install watools.plugin.translate
 
 ## Development Notes
 
+- For an isolated macOS development installation, use `node scripts/dev.mjs plugins list|package|install [package-id...]`. Packages go to `.cache/dev/packages/`; installation shares `.cache/dev/data/` with `node scripts/dev.mjs dev`. See the [local workflow](../docs/development/local-workflow.md). Direct `go run ./cmd/pluginctl install` uses the normal installation unless data/cache overrides are supplied.
 - Package contents come only from each plugin's `plugin/` directory.
 - The generated `.wt` archive contains the files at the root of `plugin/`, not the parent directory.
 - `go run ./cmd/pluginctl install ...` uses the same backend installer logic as the app.

@@ -148,3 +148,5 @@ WaTools 不是纯静态前端资源加载模式，`/api/*` 路由由自定义 ha
 - [`pkg/db/`](../../pkg/db)
 - [`pkg/logger/`](../../pkg/logger)
 - [`internal/app/`](../../internal/app)
+
+未设置 `WATOOLS_DATA_DIR` 时，正式安装使用系统应用数据目录，并按既有流程迁移旧缓存；显式设置此变量时视为独立安装，不导入旧缓存。开发入口 `scripts/dev.mjs` 同时隔离数据和缓存，具体目录与临时检查行为见 [本地开发指南](../development/local-workflow.md)。

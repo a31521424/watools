@@ -8,6 +8,37 @@ import (
 	"watools/pkg/utils"
 )
 
+func TestExplicitDataDirectoryDoesNotImportLegacyData(t *testing.T) {
+	legacy := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(legacy, "data"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	legacyFile := filepath.Join(legacy, "data", "private.data")
+	if err := os.WriteFile(legacyFile, []byte("user-data"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(t.TempDir(), "development")
+	t.Setenv("WATOOLS_DATA_DIR", root)
+	t.Setenv("WATOOLS_CACHE_DIR", legacy)
+	if got := ProjectDataDir(); got != root {
+		t.Fatalf("explicit directory: %q", got)
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("explicit directory imported legacy data: %v, %v", entries, err)
+	}
+	if got, err := os.ReadFile(legacyFile); err != nil || string(got) != "user-data" {
+		t.Fatalf("legacy data changed: %q, %v", got, err)
+	}
+	// Resolving an explicit data directory must not even create a cache.
+	cache := filepath.Join(t.TempDir(), "unused-cache")
+	t.Setenv("WATOOLS_CACHE_DIR", cache)
+	ProjectDataDir()
+	if _, err := os.Stat(cache); !os.IsNotExist(err) {
+		t.Fatalf("explicit data directory touched the cache: %v", err)
+	}
+}
+
 func TestDataMigrationPreservesLegacyAndDoesNotOverwriteCurrent(t *testing.T) {
 	legacy, parent := t.TempDir(), t.TempDir()
 	if err := os.MkdirAll(filepath.Join(legacy, "data"), 0700); err != nil {

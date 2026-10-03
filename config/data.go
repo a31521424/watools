@@ -21,13 +21,19 @@ func ProjectDataDir() string {
 	dataDirMu.Lock()
 	defer dataDirMu.Unlock()
 	root := os.Getenv("WATOOLS_DATA_DIR")
-	if root == "" {
-		base, err := os.UserConfigDir()
-		if err != nil {
-			panic(fmt.Errorf("resolve application data directory: %w", err))
+	if root != "" {
+		// An explicit directory is a separate installation, not a migration
+		// destination. In particular, development must not import user data.
+		if err := os.MkdirAll(root, 0700); err != nil {
+			panic(fmt.Errorf("prepare explicit application data directory: %w", err))
 		}
-		root = filepath.Join(base, ProjectName())
+		return root
 	}
+	base, err := os.UserConfigDir()
+	if err != nil {
+		panic(fmt.Errorf("resolve application data directory: %w", err))
+	}
+	root = filepath.Join(base, ProjectName())
 	if err := prepareDataDir(root, ProjectCacheDir()); err != nil {
 		panic(err)
 	}

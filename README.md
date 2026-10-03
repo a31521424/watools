@@ -110,10 +110,10 @@ Start with the entry that matches the task instead of reading everything end-to-
 
 ### Prerequisites
 
-- Go `1.26.1+`
-- Node.js `18+`
-- `pnpm`
-- Wails CLI
+- Go launcher (the development entry selects `go1.26.8` from `go.mod`)
+- Node.js `22.12+`
+- `pnpm` `10.21.0`
+- Xcode Command Line Tools for macOS development
 
 ### Install and Run
 
@@ -124,27 +124,28 @@ git clone https://github.com/a31521424/watools.git
 cd watools
 ```
 
-2. Install frontend dependencies.
+2. Check the macOS environment and install locked dependencies.
 
 ```sh
-cd frontend
-pnpm install
-cd ..
+node scripts/dev.mjs doctor
+node scripts/dev.mjs setup
 ```
 
 3. Start the development app.
 
 ```sh
-wails dev
+node scripts/dev.mjs plugins install
+node scripts/dev.mjs dev
 ```
 
 4. Build a production binary.
 
 ```sh
-wails build
+node scripts/dev.mjs check
+node scripts/dev.mjs build
 ```
 
-The output binary is written to `build/bin/`.
+The output application is written to `build/bin/`. The entry uses a Wails CLI pinned to the Go module version, so a global CLI is not required. Development data, cache and plugin packages are isolated under `.cache/dev/`; checks and builds use disposable application data. See the [local development guide](./docs/development/local-workflow.md) for browser debugging, binding generation and boundaries. The unified entry currently targets macOS; existing Windows CI remains separate.
 
 ## Official Plugins
 
@@ -162,9 +163,9 @@ Current official plugins include:
 Useful plugin commands:
 
 ```sh
-go run ./cmd/pluginctl list
-go run ./cmd/pluginctl package
-go run ./cmd/pluginctl install
+node scripts/dev.mjs plugins list
+node scripts/dev.mjs plugins package
+node scripts/dev.mjs plugins install
 ```
 
 More plugin details:

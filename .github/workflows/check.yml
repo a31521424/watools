@@ -27,6 +27,9 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
         working-directory: frontend
+      - name: Verify macOS development entry
+        if: runner.os == 'macOS'
+        run: node --test scripts/dev-workflow.test.mjs
       - run: pnpm test
         working-directory: frontend
       - run: pnpm build

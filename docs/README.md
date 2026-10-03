@@ -9,7 +9,7 @@
 | 需求 | [开发者自用需求](./requirements/developer-self-use.md)：项目目标、自用场景、优先级和延期边界 |
 | 架构 | [架构](./architecture/architecture.md)、[实现机制](./architecture/implementation-mechanism.md)、[功能模块](./architecture/feature-modules.md)：说明当前实现 |
 | 设计 | [UI 风格](./design/ui-style.md)：当前界面定位、布局和交互规范 |
-| 开发 | [发布流程](./development/release-cd.md)：当前构建、发布和更新分发 |
+| 开发 | [本地开发](./development/local-workflow.md)：macOS 统一命令、隔离与调试；[发布流程](./development/release-cd.md)：当前发布和更新分发 |
 | 插件开发 | [专题索引](./plugin-development/README.md)：按需读取六个章节 |
 | Backlog | [目标索引](./backlog/README.md)：优先级、依赖、实施范围和验收标准 |
 | 调研 | [框架与语言调研](./research/technology-direction-2026-10-02.md)：保留讨论依据，最新路线以 backlog 为准 |
@@ -24,6 +24,7 @@
 - 推进优化：backlog 索引 → 本次目标文档 → 依赖和源码；不要默认启动整个 backlog。
 - 调整需求或验收：开发者自用需求 → backlog 索引 → 本次目标文档；延期平台项不混入当前阶段完成条件。
 - 修改发布：发布流程 → CI 和更新源码。
+- 启动、检查或调试：本地开发指南 → 对应任务；无宿主模拟与原生多窗口仍按 backlog 推进。
 
 ## 文档维护规则
 
@@ -66,6 +67,7 @@ docs/
 ├── design/
 │   └── ui-style.md
 ├── development/
+│   ├── local-workflow.md
 │   └── release-cd.md
 ├── plugin-development/
 │   ├── 01-llm-must-read.md

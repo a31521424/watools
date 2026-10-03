@@ -106,10 +106,10 @@ WaTools 早期主要以人工设计和人工编码的方式推进。核心架构
 
 ### 环境要求
 
-- Go `1.26.1+`
-- Node.js `18+`
-- `pnpm`
-- Wails CLI
+- Go 启动器（开发入口按 `go.mod` 选择 `go1.26.8`）
+- Node.js `22.12+`
+- `pnpm` `10.21.0`
+- macOS 开发所需的 Xcode Command Line Tools
 
 ### 安装与运行
 
@@ -120,27 +120,28 @@ git clone https://github.com/a31521424/watools.git
 cd watools
 ```
 
-2. 安装前端依赖。
+2. 检查 macOS 环境并安装锁定依赖。
 
 ```sh
-cd frontend
-pnpm install
-cd ..
+node scripts/dev.mjs doctor
+node scripts/dev.mjs setup
 ```
 
 3. 启动开发模式。
 
 ```sh
-wails dev
+node scripts/dev.mjs plugins install
+node scripts/dev.mjs dev
 ```
 
 4. 构建生产版本。
 
 ```sh
-wails build
+node scripts/dev.mjs check
+node scripts/dev.mjs build
 ```
 
-构建产物默认输出到 `build/bin/`。
+构建产物默认输出到 `build/bin/`。入口使用与 Go 模块一致的固定 Wails CLI，不需要全局安装 CLI。开发数据、缓存和插件包隔离在 `.cache/dev/`；检查与构建使用一次性应用数据。浏览器调试、绑定生成与能力边界见 [本地开发指南](./docs/development/local-workflow.md)。统一入口当前面向 macOS，Windows 保留既有 CI 与流程。
 
 ## 官方插件
 
@@ -158,9 +159,9 @@ wails build
 常用插件命令：
 
 ```sh
-go run ./cmd/pluginctl list
-go run ./cmd/pluginctl package
-go run ./cmd/pluginctl install
+node scripts/dev.mjs plugins list
+node scripts/dev.mjs plugins package
+node scripts/dev.mjs plugins install
 ```
 
 更多插件说明见：

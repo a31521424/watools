@@ -36,6 +36,7 @@
 | 修改前端界面 | [UI 风格](./docs/design/ui-style.md) | [功能模块](./docs/architecture/feature-modules.md) |
 | 开发或维护插件 | [插件开发索引](./docs/plugin-development/README.md) | 索引中的相关章节、[官方插件工具](./plugins/README.md) |
 | 修改发布和更新流程 | [发布说明](./docs/development/release-cd.md) | `.github/workflows/`、`internal/update/` |
+| 本机启动、检查、构建或插件调试 | [本地开发指南](./docs/development/local-workflow.md) | `scripts/dev.mjs`；无宿主模拟与 v3 多窗口仍在 backlog |
 | 验证已知缺陷或安全边界 | [修复记录](./docs/reviews/remediation-2026-10-03.md) | [原始审查](./docs/reviews/review-2026-10-02.md)、[证据索引](./docs/reviews/evidence/README.md) |
 | 推进下一轮优化 | [Backlog 入口](./docs/backlog/README.md) | 本次任务对应的目标文档及其依赖 |
 | 重新评估框架和语言 | [历史技术调研](./docs/research/technology-direction-2026-10-02.md) | 官方最新资料；当前推进顺序以 backlog 为准 |
@@ -48,7 +49,7 @@
 | [docs/requirements/](./docs/requirements/developer-self-use.md) | 项目需求、阶段范围和验收边界，不代表已经实现 |
 | [docs/architecture/](./docs/architecture/) | 当前架构、机制和功能 |
 | [docs/design/](./docs/design/) | 当前 UI 与交互规范 |
-| [docs/development/](./docs/development/) | 当前开发、构建和发布流程 |
+| [docs/development/](./docs/development/) | 当前本机统一任务、数据隔离、调试与发布流程 |
 | [docs/plugin-development/](./docs/plugin-development/README.md) | 插件作者与 agent 的专题指南 |
 | [docs/backlog/](./docs/backlog/README.md) | 尚未完成的目标、依赖和验收标准 |
 | [docs/research/](./docs/research/) | 有日期的调研与候选方案，不作为最终执行计划 |
