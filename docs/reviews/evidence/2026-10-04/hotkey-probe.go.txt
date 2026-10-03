@@ -1,0 +1,48 @@
+//go:build darwin && !server && acceptance
+package app
+/*
+#cgo LDFLAGS: -framework Carbon
+#import <Carbon/Carbon.h>
+#include <stdint.h>
+static OSStatus qaFireRegisteredHotkey(uintptr_t handle) {
+ EventRef event=NULL;
+ OSStatus status=CreateEvent(NULL,kEventClassKeyboard,kEventHotKeyPressed,0,kEventAttributeUserEvent,&event);
+ if(status!=noErr) return status;
+ EventHotKeyID id={.signature=0x5741544f,.id=(UInt32)handle};
+ status=SetEventParameter(event,kEventParamDirectObject,typeEventHotKeyID,sizeof(id),&id);
+ if(status==noErr)status=SendEventToEventTarget(event,GetApplicationEventTarget());
+ ReleaseEvent(event);return status;
+}
+*/
+import "C"
+import (
+ "fmt"
+ "time"
+ "github.com/wailsapp/wails/v3/pkg/application"
+)
+func AcceptanceFireRegisteredHotkey() error {
+ hm:=GetHotkeyManager()
+ hm.mu.RLock(); listener:=hm.listeners["show-hide-window"];hm.mu.RUnlock()
+ if listener==nil{return fmt.Errorf("no registered test hotkey")}
+ var status C.OSStatus
+ application.InvokeSync(func(){
+  listener.mu.Lock();defer listener.mu.Unlock()
+  hk,ok:=listener.hk.(*macHotkey);if !ok{status=-1;return}
+  status=C.qaFireRegisteredHotkey(C.uintptr_t(hk.handle))
+ })
+ if status!=0{return fmt.Errorf("Carbon test event status %d",int(status))};return nil
+}
+
+// Deliberately keep the main thread busy while a background registration queues.
+// Then run the same UnregisterAll used by ServiceShutdown before releasing it.
+func AcceptanceLifecycleInterleave() error {
+ done:=make(chan error,1)
+ application.InvokeSync(func(){
+  started:=make(chan struct{})
+  go func(){close(started);done<-GetHotkeyManager().RegisterAll()}()
+  <-started
+  time.Sleep(50*time.Millisecond)
+  GetHotkeyManager().UnregisterAll()
+ })
+ select{case err:=<-done:return err;case <-time.After(3*time.Second):return fmt.Errorf("registration did not resume after main-thread unregister")}
+}

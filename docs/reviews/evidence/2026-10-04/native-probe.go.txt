@@ -1,0 +1,241 @@
+//go:build darwin && !server && acceptance
+
+package main
+
+/*
+#cgo CFLAGS: -x objective-c
+#cgo LDFLAGS: -framework Cocoa -framework WebKit -framework ApplicationServices
+#import <Cocoa/Cocoa.h>
+#import <WebKit/WebKit.h>
+#import <ApplicationServices/ApplicationServices.h>
+#import <Carbon/Carbon.h>
+static NSArray *qaClipboardBackup = nil;
+static int qaSnapshotStatus = 0;
+static char *qaJSON(id value) {
+    NSData *data = [NSJSONSerialization dataWithJSONObject:value options:0 error:nil];
+    NSString *text = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
+    return strdup([text UTF8String]);
+}
+static WKWebView *qaFindWebView(NSView *view) {
+    if ([view isKindOfClass:[WKWebView class]]) return (WKWebView *)view;
+    for (NSView *child in [view subviews]) { WKWebView *found=qaFindWebView(child); if(found) return found; }
+    return nil;
+}
+static NSArray *qaMenus(NSMenu *menu) {
+    NSMutableArray *items=[NSMutableArray array];
+    for(NSMenuItem *item in [menu itemArray]) {
+        NSMutableDictionary *info=[NSMutableDictionary dictionaryWithDictionary:@{@"title":item.title,@"key":item.keyEquivalent,@"enabled":@(item.enabled)}];
+        if(item.submenu) info[@"children"]=qaMenus(item.submenu);
+        [items addObject:info];
+    }
+    return items;
+}
+static char *qaWindowInfo(void *handle) {
+    @autoreleasepool {
+        NSWindow *window=(NSWindow *)handle;
+        WKWebView *webview=qaFindWebView(window.contentView);
+        NSRect frame=window.frame;
+        NSMutableArray *screens=[NSMutableArray array];
+        for(NSScreen *screen in NSScreen.screens) { NSRect rect=screen.frame; [screens addObject:@{@"width":@(rect.size.width),@"height":@(rect.size.height),@"x":@(rect.origin.x),@"y":@(rect.origin.y)}]; }
+        return qaJSON(@{@"frontmostPID":@(NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier),@"opaque":@(window.opaque),@"backgroundAlpha":@([window.backgroundColor alphaComponent]),@"alpha":@(window.alphaValue),@"visible":@(window.visible),@"keyWindow":@(window.keyWindow),@"width":@(frame.size.width),@"height":@(frame.size.height),@"x":@(frame.origin.x),@"y":@(frame.origin.y),@"screenX":@(window.screen.frame.origin.x),@"screenWidth":@(window.screen.frame.size.width),@"webviewDrawsBackground":webview?[webview valueForKey:@"drawsBackground"]:@YES,@"screens":screens,@"accessibilityTrusted":@(AXIsProcessTrusted()),@"screenCapturePreflight":@(CGPreflightScreenCaptureAccess()),@"menus":qaMenus(NSApp.mainMenu)});
+    }
+}
+static int qaMenuAction(NSMenu *menu, const char *name) {
+    NSString *wanted=[NSString stringWithUTF8String:name];
+    for(NSMenuItem *item in menu.itemArray) {
+        if([item.title isEqualToString:wanted]) { [menu performActionForItemAtIndex:[menu indexOfItem:item]]; return 1; }
+        if(item.submenu && qaMenuAction(item.submenu,name)) return 1;
+    }
+    return 0;
+}
+static int qaMainMenuAction(const char *name) {return qaMenuAction(NSApp.mainMenu,name);}
+static int qaBackupClipboard() {
+    @autoreleasepool {
+        if(qaClipboardBackup) return 0;
+        NSMutableArray *items=[NSMutableArray array];
+        for(NSPasteboardItem *item in NSPasteboard.generalPasteboard.pasteboardItems) {
+            NSMutableDictionary *formats=[NSMutableDictionary dictionary];
+            for(NSPasteboardType type in item.types) { NSData *data=[item dataForType:type]; if(data) formats[type]=[NSData dataWithBytes:data.bytes length:data.length]; }
+            [items addObject:formats];
+        }
+        qaClipboardBackup=[items copy]; return 1;
+    }
+}
+static int qaRestoreClipboard() {
+    @autoreleasepool {
+        if(!qaClipboardBackup) return 0;
+        NSPasteboard *pb=NSPasteboard.generalPasteboard;
+        [pb clearContents];
+        NSMutableArray *items=[NSMutableArray array];
+        for(NSDictionary *formats in qaClipboardBackup) { NSPasteboardItem *item=[[[NSPasteboardItem alloc] init] autorelease]; for(NSString *type in formats) [item setData:formats[type] forType:type]; [items addObject:item]; }
+        if(items.count) [pb writeObjects:items];
+        BOOL same=pb.pasteboardItems.count==qaClipboardBackup.count;
+        if(same) for(NSUInteger index=0;index<qaClipboardBackup.count;index++) for(NSString *type in qaClipboardBackup[index]) if(![[pb.pasteboardItems[index] dataForType:type] isEqualToData:qaClipboardBackup[index][type]]) same=NO;
+        [qaClipboardBackup release];qaClipboardBackup=nil;return same?1:0;
+    }
+}
+static int qaClipboardFixture(const char *kind,const char *path) {
+    @autoreleasepool {
+        NSPasteboard *pb=NSPasteboard.generalPasteboard;
+        NSString *fixture=[NSString stringWithUTF8String:kind];
+        NSString *file=[NSString stringWithUTF8String:path];
+        [pb clearContents];
+        if([fixture isEqualToString:@"text"]) return [pb setString:@"watools-native-round2-text" forType:NSPasteboardTypeString]?1:0;
+        if([fixture isEqualToString:@"files"]) return [pb writeObjects:@[[NSURL fileURLWithPath:file]]]?1:0;
+        if([fixture isEqualToString:@"image"]) { NSImage *image=[[[NSImage alloc] initWithContentsOfFile:file] autorelease];return image && [pb writeObjects:@[image]]?1:0; }
+        return 0;
+    }
+}
+static char *qaDialogInfo(void *handle) {
+    @autoreleasepool {
+        NSWindow *sheet=[(NSWindow *)handle attachedSheet];
+        if(![sheet isKindOfClass:NSOpenPanel.class]) return qaJSON(@{@"openPanel":@NO});
+        NSOpenPanel *panel=(NSOpenPanel *)sheet;
+        return qaJSON(@{@"openPanel":@YES,@"multiple":@(panel.allowsMultipleSelection),@"files":@(panel.canChooseFiles),@"directories":@(panel.canChooseDirectories),@"title":panel.title});
+    }
+}
+static int qaCancelDialog(void *handle) {
+    NSWindow *sheet=[(NSWindow *)handle attachedSheet];
+    if(![sheet isKindOfClass:NSOpenPanel.class]) return 0;
+    [(NSOpenPanel *)sheet cancel:nil]; return 1;
+}
+static int qaSnapshot(void *handle,const char *path) {
+    WKWebView *webview=qaFindWebView([(NSWindow *)handle contentView]);
+    if(!webview) return 0;
+    NSString *file=[[NSString alloc] initWithUTF8String:path];qaSnapshotStatus=0;
+    [webview takeSnapshotWithConfiguration:nil completionHandler:^(NSImage *image,NSError *error) {
+        if(error || !image) qaSnapshotStatus=-1;
+        else { NSData *png=[[NSBitmapImageRep imageRepWithData:[image TIFFRepresentation]] representationUsingType:NSBitmapImageFileTypePNG properties:@{}];qaSnapshotStatus=[png writeToFile:file atomically:YES]?1:-1; }
+        [file release];
+    }];return 1;
+}
+static int qaSnapshotState() {return qaSnapshotStatus;}
+static int qaActivateLegacy(void *handle) { [NSApp activateIgnoringOtherApps:YES]; [(NSWindow *)handle makeKeyAndOrderFront:nil]; return 1; }
+static int qaFocusProcess(int pid) {
+    NSRunningApplication *target=[NSRunningApplication runningApplicationWithProcessIdentifier:pid];
+    if(!target) return 0;
+    return [target activateWithOptions:NSApplicationActivateIgnoringOtherApps]?1:0;
+}
+*/
+import "C"
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"net/http"
+	"os"
+	"path/filepath"
+	"unsafe"
+	"watools/internal/app"
+)
+
+func qaCString(value string, fn func(*C.char) int) int {
+	c := C.CString(value)
+	defer C.free(unsafe.Pointer(c))
+	return fn(c)
+}
+func qaHandle() unsafe.Pointer {
+	desktop := application.Get()
+	if desktop == nil {
+		return nil
+	}
+	window, ok := desktop.Window.GetByName("launcher")
+	if !ok {
+		return nil
+	}
+	return window.(*application.WebviewWindow).NativeWindow()
+}
+func init() {
+	go func() {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			var value any
+			err := fmt.Errorf("unknown probe route")
+			switch r.URL.Path {
+			case "/state":
+				value = application.InvokeSyncWithResult(func() json.RawMessage {
+					c := C.qaWindowInfo(qaHandle())
+					defer C.free(unsafe.Pointer(c))
+					return json.RawMessage(C.GoString(c))
+				})
+				err = nil
+			case "/hotkey/interleave":
+ err=app.AcceptanceLifecycleInterleave();value=1
+ case "/hotkey/fire":
+ err=app.AcceptanceFireRegisteredHotkey();value=1
+ case "/hotkey":
+				if r.Method == "POST" {
+					var cfg app.HotkeyConfigAPI
+					if decode := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&cfg); decode != nil {
+						err = decode
+					} else {
+						err = app.GetWaApp().UpdateHotkey(cfg)
+					}
+				} else {
+					err = nil
+				}
+				value = map[string]any{"configs": app.GetWaApp().GetHotkeys(), "registered": app.GetHotkeyManager().IsRegistered("show-hide-window")}
+			case "/menu":
+				value = application.InvokeSyncWithResult(func() int {
+					return qaCString(r.URL.Query().Get("title"), func(c *C.char) int { return int(C.qaMainMenuAction(c)) })
+				})
+				err = nil
+			case "/clipboard/backup":
+				value = application.InvokeSyncWithResult(func() int { return int(C.qaBackupClipboard()) })
+				err = nil
+			case "/clipboard/restore":
+				value = application.InvokeSyncWithResult(func() int { return int(C.qaRestoreClipboard()) })
+				err = nil
+			case "/clipboard/fixture":
+				kind := r.URL.Query().Get("kind")
+				fixture := filepath.Join(os.Getenv("WATOOLS_QA_FIXTURES"), "clipboard.txt")
+				if kind == "image" {
+					fixture = filepath.Join(os.Getenv("WATOOLS_QA_FIXTURES"), "clipboard.png")
+				}
+				value = application.InvokeSyncWithResult(func() int {
+					return qaCString(kind, func(k *C.char) int {
+						return qaCString(fixture, func(p *C.char) int { return int(C.qaClipboardFixture(k, p)) })
+					})
+				})
+				err = nil
+			case "/dialog":
+				value = application.InvokeSyncWithResult(func() json.RawMessage {
+					c := C.qaDialogInfo(qaHandle())
+					defer C.free(unsafe.Pointer(c))
+					return json.RawMessage(C.GoString(c))
+				})
+				err = nil
+			case "/dialog/cancel":
+				value = application.InvokeSyncWithResult(func() int { return int(C.qaCancelDialog(qaHandle())) })
+				err = nil
+			case "/snapshot":
+				value = application.InvokeSyncWithResult(func() int {
+					return qaCString(filepath.Join(os.Getenv("WATOOLS_QA_FIXTURES"), "launcher.png"), func(c *C.char) int { return int(C.qaSnapshot(qaHandle(), c)) })
+				})
+				err = nil
+			case "/snapshot/state":
+				value = application.InvokeSyncWithResult(func() int { return int(C.qaSnapshotState()) })
+				err = nil
+			case "/activate":
+ value = application.InvokeSyncWithResult(func() int {return int(C.qaActivateLegacy(qaHandle()))});err=nil
+ case "/focus":
+				var target struct{ PID int }
+				if decode := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&target); decode != nil {
+					err = decode
+				} else {
+					value = application.InvokeSyncWithResult(func() int { return int(C.qaFocusProcess(C.int(target.PID))) })
+					err = nil
+				}
+			}
+			if err != nil {
+				w.WriteHeader(400)
+				json.NewEncoder(w).Encode(map[string]any{"error": err.Error(), "state": value})
+				return
+			}
+			json.NewEncoder(w).Encode(value)
+		})
+		http.ListenAndServe("127.0.0.1:9248", mux)
+	}()
+}

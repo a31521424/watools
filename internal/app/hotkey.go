@@ -50,19 +50,25 @@ func (c *HotkeyConfig) ParseHotkey() ([]hotkey.Modifier, hotkey.Key, error) {
 	return modifiers, *pureKey, nil
 }
 
+type registeredHotkey interface {
+	Register() error
+	Unregister() error
+	Keydown() <-chan hotkey.Event
+}
+
 type HotkeyListener struct {
 	OnTrigger func()
 	Modifiers []hotkey.Modifier
 	Key       hotkey.Key
 	ID        string
 	mu        sync.Mutex
-	hk        *hotkey.Hotkey
+	hk        registeredHotkey
 	quit      chan struct{}
 }
 
 // Each listener captures its own channels. Unregister cannot replace the state
 // read by a goroutine belonging to an earlier registration.
-func (l *HotkeyListener) listen(hk *hotkey.Hotkey, quit <-chan struct{}) {
+func (l *HotkeyListener) listen(hk registeredHotkey, quit <-chan struct{}) {
 	for {
 		select {
 		case <-quit:
@@ -83,12 +89,16 @@ func (l *HotkeyListener) listen(hk *hotkey.Hotkey, quit <-chan struct{}) {
 	}
 }
 func (l *HotkeyListener) Register() error {
+	return runHotkeyLifecycle(l.register)
+}
+
+func (l *HotkeyListener) register() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.hk != nil {
 		return fmt.Errorf("hotkey is already registered")
 	}
-	hk := hotkey.New(l.Modifiers, l.Key)
+	hk := newPlatformHotkey(l.Modifiers, l.Key)
 	if err := hk.Register(); err != nil {
 		return err
 	}
@@ -99,6 +109,10 @@ func (l *HotkeyListener) Register() error {
 	return nil
 }
 func (l *HotkeyListener) Unregister() error {
+	return runHotkeyLifecycle(l.unregister)
+}
+
+func (l *HotkeyListener) unregister() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.hk == nil {

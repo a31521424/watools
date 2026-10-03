@@ -47,7 +47,7 @@ func main() {
 		Frameless:        true,
 		BackgroundType:   application.BackgroundTypeTransparent,
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
-		Mac:              application.MacWindow{TitleBar: application.MacTitleBarHidden},
+		Mac:              application.MacWindow{TitleBar: application.MacTitleBarHidden, Backdrop: application.MacBackdropTransparent},
 	})
 	service.ConfigureDesktop(desktop, window)
 	var ready sync.Once

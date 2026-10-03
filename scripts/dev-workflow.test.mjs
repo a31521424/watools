@@ -188,6 +188,8 @@ test('build uses disposable data and preserves development data', macOS, t => {
     assert.equal(result.status, 0, result.stderr);
     assert.equal(existsSync(path.dirname(result.calls.at(-1).data)), false);
     assert.equal(existsSync(path.join(f.root, '.cache/dev')), false);
+    const compile = result.calls.find(call => call.tool === 'go' && call.args[0] === 'build');
+    assert.equal(compile.args[compile.args.indexOf('-tags') + 1], 'production,private_mac_apis');
 });
 
 test('binding generation bootstraps assets and runs before the frontend build and removes executable bits without changing generated content', macOS, t => {
@@ -260,16 +262,18 @@ test('unknown tasks and plugin output overrides fail before invoking tools', mac
 
 
 test('debug build keeps the public output path and development bundles stay isolated', macOS, t => {
-    for (const [task, args, output] of [
+    for (const [task, args, output, server] of [
         ['build', ['--debug'], 'build/bin/watools.app'],
         ['dev-build', [], '.cache/dev/bin/watools.dev.app'],
+        ['dev-build', [], '.cache/dev/bin/watools.browser.app', true],
     ]) {
-        const f = fixture(t);
+        const f = fixture(t, server ? {WATOOLS_BROWSER: '1'} : {});
         const result = f.run(task, ...args);
         assert.equal(result.status, 0, result.stderr);
         const build = result.calls.find(call => call.tool === 'go' && call.args[0] === 'build');
         assert.equal(build.args[build.args.indexOf('-o') + 1], path.join(f.root, output, 'Contents/MacOS/watools'));
         assert.equal(build.args.includes('-gcflags=all=-l'), true);
+        assert.equal(build.args[build.args.indexOf('-tags') + 1], server ? 'server' : 'private_mac_apis');
     }
 });
 

@@ -1,0 +1,43 @@
+Date: 2026-10-04 (Asia/Taipei)
+Baseline: 99fb0c6; current uncommitted fixes at acceptance time.
+Host: macOS 26.6.2 arm64; Wails Go/CLI v3.0.0-beta.27 / npm 3.0.0-beta.27 / Go 1.26.8.
+Method: own native test .app with production,private_mac_apis,mcp,acceptance tags and temporary Go overlay.
+Probe files are not compiled into the normal app. Official Wails MCP is optional, loopback only.
+Database/plugin revisions copied from isolated v2 acceptance backup; real credentials excluded.
+All original pasteboard items/formats held only in memory, restored and compared; never logged.
+No computer use. No physical keyboard/IME, accessibility grant, screen recording grant or display hotplug.
+
+Findings fixed and reproduced in the native app:
+- MacBackdropTransparent alone used a no-op public Wails macOS implementation: private_mac_apis is required at pinned beta.27.
+- Best-effort NSApp.activate left own launcher visible without keyboard focus even with cooperative activation in a diagnostic run; activateIgnoringOtherApps restored focus.
+- Synthetic composing Escape cleared input; composition guard now preserves it (actual Chinese candidate UI still pending).
+- Upstream hotkey library Carbon options=0 allowed shared registrations; independent exclusive reservation now reports conflict -9878 and restores old config.
+
+- Independent review found background-lock/main-thread shutdown inversion; all hotkey lifecycle entry points now dispatch before acquiring mutexes.
+
+Final native run: exit status 0.
+Each native Refresh/Reload now independently calls GetPluginsApi and asserts an array of six installed plugins before recording bindingRecovered.
+nativeWindow {"accessibilityTrusted": 0, "screenCapturePreflight": false, "opaque": false, "x": 742, "screens": [{"y": 0, "width": 2560, "height": 1440, "x": 0}, {"y": 458, "width": 1512, "height": 982, "x": -1512}], "width": 1075, "keyWindow": true, "y": 1214, "alpha": 1, "visible": true, "height": 64, "screenX": 0, "screenWidth": 2560, "backgroundAlpha": 0, "webviewDrawsBackground": false}
+mainThreadShutdownInterleave {"cycles": 10, "backgroundRegisterThenMainThreadUnregisterReturned": true}
+initialHotkey {"configs": [{"id": "show-hide-window", "name": "Show/Hide Window", "hotkey": "ctrl+alt+shift+k"}], "registered": true}
+conflictResponse {"httpStatus": 400, "error": "show-hide-window: failed to register hotkey (macOS status -9878; the key may be in use)", "state": {"configs": [{"id": "show-hide-window", "name": "Show/Hide Window", "hotkey": "ctrl+alt+shift+k"}], "registered": true}}
+hotkeyConflictRollback {"reportedError": true, "originalConfigRestored": true, "originalRegistrationRestored": true}
+hotkeyPersistence {"updatedThenRestored": true}
+focusReturn {"cycles": 3, "helperToLauncherToHelper": true, "cooperativeActivationYield": false, "physicalHotkey": false}
+registeredCarbonCallback {"syntheticAppTargetEvent": true, "showThenHide": true, "globalPhysicalInput": false}
+clipboard-text {"fileMatches": false, "hasFiles": false, "hasImage": false, "imagePresent": false, "kind": "text", "textMatches": true}
+clipboard-image {"fileMatches": false, "hasFiles": false, "hasImage": true, "imagePresent": true, "kind": "image", "textMatches": false}
+clipboard-files {"fileMatches": true, "hasFiles": true, "hasImage": false, "imagePresent": false, "kind": "files", "textMatches": false}
+filePasteUI {"fileAttachmentVisible": true}
+syntheticComposition {"compositionEscapePreservesInput": true}
+localCredentials {"roundTrip": true, "fileMode": "0600", "directoryMode": "0700", "writeFailureReported": true, "secretAbsentFromLogs": true, "probeRemoved": true}
+nativeMenu-Refresh {"nativeAction": true, "webviewReloaded": true, "bindingRecovered": true}
+nativeMenu-Reload {"nativeAction": true, "webviewReloaded": true, "bindingRecovered": true}
+nativeInstallDialog {"openPanel": true, "multiple": true, "title": "Open", "files": true, "directories": false}
+nativeDialogCancel {"returnedNormally": true, "pluginRevisionsUnchanged": true}
+twoScreenPositioning {"secondaryWidth": 1512, "negativeOriginX": -1512, "centered": true, "hotplugTested": false, "physicalDrag": false}
+nativeResize {"width": 1000, "frameworkResize": true, "physicalResize": false}
+ownWebviewSnapshot {"saved": true}
+clipboardRestored {"allOriginalFormatsVerified": true}
+nativeQuitAndHotkeyRelease {"exitCode": 0, "configuredKeyAvailableToOtherProcess": true}
+{"rapidNativeQuit": [{"cycle": 1, "exitCode": 0, "concurrentUpdates": 16, "responsesReturned": 16, "connectionsClosedDuringQuit": 0}, {"cycle": 2, "exitCode": 0, "concurrentUpdates": 16, "responsesReturned": 16, "connectionsClosedDuringQuit": 0}, {"cycle": 3, "exitCode": 0, "concurrentUpdates": 16, "responsesReturned": 16, "connectionsClosedDuringQuit": 0}, {"cycle": 4, "exitCode": 0, "concurrentUpdates": 16, "responsesReturned": 16, "connectionsClosedDuringQuit": 0}], "clipboardModified": false}

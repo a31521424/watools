@@ -84,3 +84,8 @@ var keyMap = map[string]hotkey.Key{
 	"f20":      hotkey.KeyF20,
 }
 
+func newPlatformHotkey(modifiers []hotkey.Modifier, key hotkey.Key) registeredHotkey {
+	return hotkey.New(modifiers, key)
+}
+
+func runHotkeyLifecycle(operation func() error) error { return operation() }

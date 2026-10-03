@@ -264,6 +264,7 @@ export function WaPluginManagement() {
 
     useEffect(() => {
         const handleHotkey = (e: KeyboardEvent) => {
+            if (e.isComposing || e.keyCode === 229) return
             if (e.key === 'Escape') {
                 navigate('/')
             }

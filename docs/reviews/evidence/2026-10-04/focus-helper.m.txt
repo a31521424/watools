@@ -1,0 +1,32 @@
+#import <Cocoa/Cocoa.h>
+#import <Carbon/Carbon.h>
+static EventHotKeyRef reservedKey = NULL;
+int main(int argc, const char *argv[]) {
+    @autoreleasepool {
+        NSString *root=[NSString stringWithUTF8String:argv[1]];
+        [NSApplication sharedApplication];
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+        NSWindow *window=[[NSWindow alloc] initWithContentRect:NSMakeRect(40,80,360,180) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable backing:NSBackingStoreBuffered defer:NO];
+        window.title=@"WaTools v3 验收焦点参考";
+        NSTextField *label=[NSTextField labelWithString:@"仅用于验证焦点返回，不读取用户应用内容。"];
+        label.frame=NSMakeRect(20,60,320,55);label.lineBreakMode=NSLineBreakByWordWrapping;
+        [window.contentView addSubview:label];
+        [window orderFront:nil];
+        [NSTimer scheduledTimerWithTimeInterval:0.1 repeats:YES block:^(NSTimer *timer) {
+            NSString *commandFile=[root stringByAppendingPathComponent:@"helper-command"];
+            NSString *command=[NSString stringWithContentsOfFile:commandFile encoding:NSUTF8StringEncoding error:nil];
+            if(!command) return;
+            [[NSFileManager defaultManager] removeItemAtPath:commandFile error:nil];
+            OSStatus status=0;
+            if([command isEqualToString:@"activate"]) {[window makeKeyAndOrderFront:nil];[NSApp activateIgnoringOtherApps:YES];}
+            if([command hasPrefix:@"yield:"]) {NSRunningApplication *target=[NSRunningApplication runningApplicationWithProcessIdentifier:[[command substringFromIndex:6] intValue]];if(@available(macOS 14.0,*)) [NSApp yieldActivationToApplication:target];}
+            if(([command isEqualToString:@"reserve"] || [command isEqualToString:@"reserve-k"]) && !reservedKey) {EventHotKeyID ident={'WAQA',1};status=RegisterEventHotKey(([command isEqualToString:@"reserve-k"]?kVK_ANSI_K:kVK_ANSI_L),controlKey|optionKey|shiftKey,ident,GetApplicationEventTarget(),kEventHotKeyExclusive,&reservedKey);}
+            if([command isEqualToString:@"release"] && reservedKey) {status=UnregisterEventHotKey(reservedKey);reservedKey=NULL;}
+            NSData *state=[NSJSONSerialization dataWithJSONObject:@{@"command":command,@"reserved":@(reservedKey!=NULL),@"status":@(status),@"pid":@(NSProcessInfo.processInfo.processIdentifier)} options:0 error:nil];
+            [state writeToFile:[root stringByAppendingPathComponent:@"helper-state.json"] atomically:YES];
+            if([command isEqualToString:@"stop"]) {if(reservedKey)UnregisterEventHotKey(reservedKey);[NSApp terminate:nil];}
+        }];
+        [NSApp run];
+    }
+    return 0;
+}

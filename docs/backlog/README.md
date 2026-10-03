@@ -12,7 +12,7 @@
 | [服务与宿主接口整理](./services-and-host-api.md) | P0 | planned | v3 基础壳可运行；作为迁移中的独立步骤推进 |
 | [插件会话与独立小窗](./plugin-windows-and-sessions.md) | P0 | planned | v3 窗口、绑定和宿主接口 |
 | [开发工作流与测试](./development-and-testing.md) | P0 | in-progress | 基础入口与数据隔离已实施；模拟适配与原生检查仍依赖后续目标 |
-| [macOS 自用原生验收](./native-self-use-acceptance.md) | P0 | planned | 先验证当前基线，迁移与小窗实现后重复关键场景 |
+| [macOS 自用原生验收](./native-self-use-acceptance.md) | P0 | in-progress | v3 原生回归已推进；物理输入法、快捷键及完整场景待验 |
 | [插件加载与 SDK](./plugin-loading-and-sdk.md) | P1 | planned | 宿主接口、会话与调用边界 |
 | [日志诊断与 Agent 工具](./diagnostics-and-agent-tools.md) | P1 | planned | 日志约定可先做；MCP 与窗口诊断依赖 v3 |
 | [插件信任与权限边界](./plugin-trust-and-permissions.md) | P1 | planned | 威胁模型可先明确；执行依赖 SDK 与会话边界 |
@@ -42,11 +42,11 @@ P0 为当前自用阶段核心目标，P1 为自用开发体验增强，P2 为�
 
 | 原总结中的补充事项 | 明确归属 | 当前安排 |
 | --- | --- | --- |
-| 原生 GUI、输入法、快捷键、剪贴板、对话框和插件重载 | [macOS 自用验收](./native-self-use-acceptance.md) | P0 planned |
+| 原生 GUI、输入法、快捷键、剪贴板、对话框和插件重载 | [macOS 自用验收](./native-self-use-acceptance.md) | P0 in-progress |
 | Windows 快捷方式参数、工作目录、快捷键和 DPAPI | [Windows 验收](./windows-compatibility.md) | P2 deferred |
 | 真实更新替换、重启、失败恢复、签名与公证 | [分发与更新验收](./distribution-and-update-acceptance.md) | P2 deferred |
 | 实际运行新增 CI | [开发工作流](./development-and-testing.md) | 本地与 macOS 优先；Windows 部分延期，不为触发 CI 自动推送 |
-| 重新打包安装旧官方插件 | [macOS 自用验收](./native-self-use-acceptance.md) | P0 planned，先在独立测试目录执行 |
+| 重新打包安装旧官方插件 | [macOS 自用验收](./native-self-use-acceptance.md) | P0 in-progress，继续在独立测试目录执行 |
 
 ## 完成记录与关联材料
 

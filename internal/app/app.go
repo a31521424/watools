@@ -218,6 +218,10 @@ func (a *WaApp) GetHotkeys() []HotkeyConfigAPI {
 
 // UpdateHotkey updates a hotkey configuration (Wails binding method)
 func (a *WaApp) UpdateHotkey(apiConfig HotkeyConfigAPI) error {
+	return runHotkeyLifecycle(func() error { return a.updateHotkey(apiConfig) })
+}
+
+func (a *WaApp) updateHotkey(apiConfig HotkeyConfigAPI) error {
 	a.hotkeyUpdateMu.Lock()
 	defer a.hotkeyUpdateMu.Unlock()
 	hm := GetHotkeyManager()

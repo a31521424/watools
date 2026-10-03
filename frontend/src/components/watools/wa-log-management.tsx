@@ -395,6 +395,7 @@ export function WaLogManagement() {
 
     useEffect(() => {
         const handleHotkey = (event: KeyboardEvent) => {
+            if (event.isComposing || event.keyCode === 229) return
             if (event.key === "Escape") {
                 navigate("/")
             }

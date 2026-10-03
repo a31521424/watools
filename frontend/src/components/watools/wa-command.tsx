@@ -210,6 +210,7 @@ export const WaCommand = () => {
 
     useEffect(() => {
         const handleHotkey = (e: KeyboardEvent) => {
+            if (e.isComposing || e.keyCode === 229) return
             if (e.key === "Escape") {
                 e.preventDefault()
                 e.stopPropagation()

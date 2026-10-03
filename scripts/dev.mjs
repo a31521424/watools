@@ -245,7 +245,7 @@ async function main() {
                 await go('test', './...');
                 await go('test', '-tags', 'server', './internal/app', './internal/api');
                 await go('vet', './...');
-                await go('build', '-tags', 'production', './...');
+                await go('build', '-tags', 'production,private_mac_apis', './...');
                 break;
             case 'check-race':
                 await pnpm('build');

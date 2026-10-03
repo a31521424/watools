@@ -10,7 +10,7 @@ export async function buildMacBundle({root, run, wails, debug = false, developme
     const contents = path.join(bundle, 'Contents');
     mkdirSync(path.join(contents, 'MacOS'), {recursive: true});
     mkdirSync(path.join(contents, 'Resources'), {recursive: true});
-    await run('go', ['build', ...(debug ? ['-gcflags=all=-l', ...(server ? ['-tags', 'server'] : [])] : ['-tags', 'production', '-trimpath', '-ldflags=-w -s']), '-buildvcs=false', '-o', path.join(contents, 'MacOS/watools'), '.']);
+    await run('go', ['build', ...(debug ? ['-gcflags=all=-l', '-tags', server ? 'server' : 'private_mac_apis'] : ['-tags', 'production,private_mac_apis', '-trimpath', '-ldflags=-w -s']), '-buildvcs=false', '-o', path.join(contents, 'MacOS/watools'), '.']);
     const icon = path.join(output, 'icons.icns');
     await wails('generate', 'icons', '-input', 'build/appicon.png', '-macfilename', icon, '-windowsfilename', path.join(output, 'icon.ico'));
     copyFileSync(icon, path.join(contents, 'Resources/icons.icns'));

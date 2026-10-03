@@ -63,6 +63,51 @@ test('all JSON and query keys survive serialization as data', () => {
 
 module.exports = {loadTS, tick};
 
+function windowKeyHandler(file, globals) {
+    const source = ts.createSourceFile(file, fs.readFileSync(path.join(root, file), 'utf8'),
+        ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    let initializer;
+    function visit(node) {
+        if (ts.isVariableDeclaration(node) && node.name.getText(source) === 'handleHotkey') {
+            initializer = node.initializer.getText(source);
+        }
+        ts.forEachChild(node, visit);
+    }
+    visit(source);
+    assert.ok(initializer, `keyboard handler missing in ${file}`);
+    const context = {...globals, exports: {}};
+    const output = ts.transpileModule(`exports.handle = ${initializer};`, {
+        compilerOptions: {target: ts.ScriptTarget.ES2022},
+    }).outputText;
+    vm.runInNewContext(output, context);
+    return context.exports.handle;
+}
+
+test('IME candidate keys leave launcher input and plugin/management routes intact', async () => {
+    for (const name of ['wa-command', 'wa-plugin', 'wa-plugin-management', 'wa-log-management']) {
+        const actions = [];
+        const handler = windowKeyHandler(`frontend/src/components/watools/${name}.tsx`, {
+            getIsPanelOpen: () => true, getCanClearAssets: () => true,
+            clearValue: () => actions.push('clear'), navigate: () => actions.push('navigate'),
+            inputRef: {current: {focus: () => actions.push('focus')}},
+            Promise, flushApplicationUsage: async () => {}, flushPluginUsage: async () => {},
+            HideOrShowAppApi: () => actions.push('hide'),
+        });
+        for (const key of ['Escape', 'Tab', 'Backspace']) {
+            for (const composition of [{isComposing: true, keyCode: 0}, {isComposing: false, keyCode: 229}]) {
+                handler({key, ...composition, preventDefault: () => actions.push('prevent'),
+                    stopPropagation: () => actions.push('stop')});
+                assert.deepEqual(actions, [], `${name}: ${key} must remain available to the IME`);
+            }
+        }
+        handler({key: 'Escape', isComposing: false, keyCode: 27,
+            preventDefault() {}, stopPropagation() {}});
+        await tick();
+        assert.deepEqual(actions, [name === 'wa-command' ? 'clear' : 'navigate'],
+            `${name}: ordinary Escape must retain its existing behavior`);
+    }
+});
+
 
 test('a disabled plugin loads its entry on enable; writes during flush remain durable', async () => {
     let releaseFirst;

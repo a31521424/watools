@@ -1,0 +1,34 @@
+import pathlib,subprocess,os,time,json,urllib.request,concurrent.futures
+qa=pathlib.Path('/private/tmp/watools-v3-native-round2')
+env=dict(os.environ,WATOOLS_DATA_DIR=str(qa/'data'),WATOOLS_CACHE_DIR=str(qa/'cache'),WATOOLS_QA_FIXTURES=str(qa/'fixtures'),WAILS_MCP_HOST='127.0.0.1',WAILS_MCP_PORT='9247')
+def probe(route,data=None):
+ req=urllib.request.Request('http://127.0.0.1:9248'+route,data=json.dumps(data).encode() if data else None,headers={'Content-Type':'application/json'})
+ with urllib.request.urlopen(req,timeout=2) as r:return json.load(r)
+def update(i):
+ try:probe('/hotkey',{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+'+('k' if i%2==0 else 'l')});return 'returned'
+ except Exception:return 'closedDuringQuit'
+results=[]
+for cycle in range(4):
+ with open(qa/('rapid-exit-'+str(cycle)+'.log'),'w') as log:
+  proc=subprocess.Popen(['.cache/v3-native-round2/watools-qa.app/Contents/MacOS/watools'],env=env,stdout=log,stderr=subprocess.STDOUT)
+  try:
+   deadline=time.monotonic()+12
+   while True:
+    try:
+     if probe('/hotkey')['registered']:break
+    except Exception:pass
+    assert time.monotonic()<deadline,'startup timed out';time.sleep(.1)
+   with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+    futures=[pool.submit(update,i) for i in range(16)]
+    time.sleep(.02)
+    try:probe('/menu?title=Quit%20watools')
+    except Exception:pass
+    assert proc.wait(timeout=8)==0,'nonzero native exit'
+    outcomes=[f.result(timeout=3) for f in futures]
+   results.append({'cycle':cycle+1,'exitCode':0,'concurrentUpdates':len(outcomes),'responsesReturned':outcomes.count('returned'),'connectionsClosedDuringQuit':outcomes.count('closedDuringQuit')})
+  finally:
+   if proc.poll() is None:
+    proc.terminate()
+    try:proc.wait(timeout=3)
+    except subprocess.TimeoutExpired:proc.kill();proc.wait()
+print(json.dumps({'rapidNativeQuit':results,'clipboardModified':False},ensure_ascii=False))

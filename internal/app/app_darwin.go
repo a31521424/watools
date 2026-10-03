@@ -82,11 +82,9 @@ package app
        NSWindow *window = (NSWindow *)handle;
 
        [app unhide:nil];
-       if (@available(macOS 14.0, *)) {
-           [app activate];
-       } else {
-           [app activateIgnoringOtherApps:YES];
-       }
+       // This is an explicit launcher invocation. NSApp.activate is best-effort
+       // and can leave a visible launcher without keyboard focus on macOS 14+.
+       [app activateIgnoringOtherApps:YES];
 
        if (window != nil) {
            [window orderFront:nil];

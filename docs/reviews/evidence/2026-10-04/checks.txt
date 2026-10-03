@@ -1,0 +1,23 @@
+Date: 2026-10-04
+Checks run on current source with isolated application data/cache; no user data directory.
+
+node --test scripts/dev-workflow.test.mjs: exit 0, 16/16 passed.
+pnpm --dir frontend test: exit 0, 12/12 passed (new IME handler regression included).
+pnpm --dir frontend build: exit 0, TypeScript and Vite passed.
+go test -race ./...: exit 0, all packages passed.
+go vet ./...: exit 0.
+go test -tags server ./internal/app ./internal/api: exit 0.
+node scripts/dev.mjs build: exit 0; current arm64 production,private_mac_apis .app built and ad-hoc signed.
+codesign --verify --deep --strict build/bin/watools.app: exit 0.
+otool LC_BUILD_VERSION: platform macOS, minos 12.0, sdk 27.0.
+git diff --check: exit 0.
+
+Independent cross reviews complete:
+- Native/backend review found main-thread shutdown lock inversion; fixed, re-reviewed with no remaining blocker.
+- Reviewer independently passed go test -race ./internal/app and go test -tags server ./internal/app after the lifecycle fix.
+- Workflow/frontend reviewer independently passed 16 workflow, 12 frontend and tsc --noEmit checks, with no code blocker.
+- Final native regression includes 10 background-register/main-thread-unregister interleavings and 4 rounds of 16 concurrent config updates plus real AppKit Quit; all native exits were 0.
+- Final archive/index review: 9 evidence files and full docs directory agree; 258 relative links resolve.
+- Archive reviewer identified a missing per-menu binding assertion; both Refresh/Reload now call GetPluginsApi and assert six plugins. Full native regression re-ran with exit 0 after this change.
+
+Residual checks: actual physical global keys/Chinese candidate UI, first system grants, physical drag/resize and display hotplug. Backlog remains in-progress.

@@ -27,6 +27,8 @@
 
 主窗口是透明无边框 WebviewWindow，macOS 位置与焦点桥接接收该窗口的 NativeWindow 句柄，不再查找任意 key/main window。原生菜单改为 v3 menu roles；插件安装文件对话框明确附着主窗口。
 
+macOS 全局快捷键使用 Carbon 独占注册，生命周期入口先调度到 AppKit 主线程再取得锁，注册与移除在主线程完成，避免退出清理的锁反转。占用冲突会返回错误，现有配置更新流程恢复旧配置与注册；注册的事件处理器随快捷键释放。Windows 仍使用原有 hotkey 库。启动器显式呼出使用 `activateIgnoringOtherApps:YES`，避免 macOS 14+ 的 best-effort `activate` 留下可见但没有键盘焦点的窗口；隐藏时仍按原有逻辑交还先前应用。
+
 插件继续注入 `window.runtime` 兼容对象，由 `frontend/src/lib/legacy-runtime.ts` 将旧名称转换为 v3 API，包含旧剪贴板成功布尔值、窗口尺寸 `{w,h}` 与事件可变参数。常用日志走显式宿主方法；v3 framework 自动调用日志过滤 args/result。这个兼容对象不是完整 v2 运行时或不可信插件沙箱，具体支持边界见插件指南。
 
 ## 命令系统机制

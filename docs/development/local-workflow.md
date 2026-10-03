@@ -42,6 +42,8 @@ node scripts/dev.mjs dev
 
 macOS 打包由 `scripts/mac-bundle.mjs` 按 v3 原生模板组装：Go 二进制、CLI 图标、plist 与 codesign。项目版本和作者仍由 `wails.json` 提供；该文件现在仅存项目元数据，v3 CLI 不读取其中的 v2 构建配置。模板保留原 bundle ID `com.wails.watools`。构建不自动 tidy；调整依赖后显式整理并审查 go.mod/go.sum。绑定生成文件位于 `frontend/bindings/`，修改源后重新生成，不能手改输出。
 
+macOS 原生开发和 debug 构建带 `private_mac_apis`，生产构建带 `production,private_mac_apis`。固定 Beta.27 的公开 macOS 实现不会关闭 WKWebView 背景绘制；启动器同时配置 `MacBackdropTransparent`，通过该 tag 恢复透明边角。这沿用现有自用应用的 WebKit 私有属性能力，不能据此宣称符合 App Store 审核要求。浏览器构建只带 `server`，不启用该原生能力。
+
 ## 数据与取消
 
 ```text

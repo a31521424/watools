@@ -108,6 +108,16 @@ docs/
 │   │   │   ├── watools-final-vuln-windows.txt
 │   │   │   ├── watools-final-wails-build.txt
 │   │   │   └── watools-final-windows-build.txt
+│   │   ├── 2026-10-04/
+│   │   │   ├── README.md
+│   │   │   ├── checks.txt
+│   │   │   ├── focus-helper.m.txt
+│   │   │   ├── hotkey-probe.go.txt
+│   │   │   ├── launcher.png
+│   │   │   ├── native-acceptance.txt
+│   │   │   ├── native-harness.py.txt
+│   │   │   ├── native-probe.go.txt
+│   │   │   └── rapid-exit.py.txt
 │   │   └── README.md
 │   ├── remediation-2026-10-03.md
 │   └── review-2026-10-02.md

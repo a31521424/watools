@@ -163,6 +163,10 @@ func (hm *HotkeyManager) GetAllConfigs() []HotkeyConfig {
 }
 
 func (hm *HotkeyManager) RegisterAll() error {
+	return runHotkeyLifecycle(hm.registerAll)
+}
+
+func (hm *HotkeyManager) registerAll() error {
 	hm.registrationMu.Lock()
 	defer hm.registrationMu.Unlock()
 	// Get WaApp instance first
@@ -234,11 +238,15 @@ func (hm *HotkeyManager) RegisterAll() error {
 }
 
 func (hm *HotkeyManager) UnregisterAll() {
-	hm.registrationMu.Lock()
-	defer hm.registrationMu.Unlock()
-	if err := hm.unregisterAll(); err != nil {
+	if err := runHotkeyLifecycle(hm.unregisterAllLocked); err != nil {
 		logger.Error(err, "Failed to unregister hotkeys")
 	}
+}
+
+func (hm *HotkeyManager) unregisterAllLocked() error {
+	hm.registrationMu.Lock()
+	defer hm.registrationMu.Unlock()
+	return hm.unregisterAll()
 }
 
 func (hm *HotkeyManager) unregisterAll() error {

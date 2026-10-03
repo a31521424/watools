@@ -1,0 +1,181 @@
+import os,subprocess,time,pathlib,json,urllib.request,urllib.error,hashlib,stat,concurrent.futures
+import urllib.request,json,sys
+URL='http://127.0.0.1:9247/mcp'
+def call(name,args):
+ req=urllib.request.Request(URL,data=json.dumps({'jsonrpc':'2.0','id':1,'method':'tools/call','params':{'name':name,'arguments':args}}).encode(),headers={'Content-Type':'application/json'})
+ r=json.load(urllib.request.urlopen(req,timeout=35))
+ if r.get('error'):raise RuntimeError(r['error'])
+ result=r['result']
+ if result.get('isError'):raise RuntimeError(result['content'])
+ return json.loads(result['content'][0]['text'])
+
+import types,re
+m=types.SimpleNamespace(call=call)
+src=pathlib.Path('frontend/bindings/watools/internal/coordinator/waappcoordinator.ts').read_text()
+ids={name:int(num) for name,num in re.findall(r'export function (\w+)\([^\n]+\{\n\s+return \$Call.ByID\((\d+)',src)}
+def js(code):
+    result=m.call('js_eval',{'window':'launcher','js':code})
+    return result
+setup='''window.__migrationCall = async (methodID,args=[]) => {const r=await fetch(window.location.origin+'/wails/runtime',{method:'POST',headers:{'Content-Type':'application/json','x-wails-client-id':'migration-qa','x-wails-window-name':'launcher'},body:JSON.stringify({object:0,method:0,args:{'call-id':crypto.randomUUID(),methodID,args}})});if(!r.ok)throw Error(await r.text());return r.headers.get('Content-Type')?.includes('application/json')?await r.json():await r.text();}; return {ready:!!window.runtime};'''
+
+qa=pathlib.Path('/private/tmp/watools-v3-native-round2')
+base='http://127.0.0.1:9248'
+def probe(route,data=None):
+ req=urllib.request.Request(base+route,data=json.dumps(data).encode() if data is not None else None,headers={'Content-Type':'application/json'})
+ try:
+  with urllib.request.urlopen(req,timeout=10) as r:return json.load(r)
+ except urllib.error.HTTPError as e:return {'httpStatus':e.code,**json.load(e)}
+def jscode(code,timeout=5000):return m.call('js_eval',{'window':'launcher','js':code,'timeout_ms':timeout})
+def wait(fn,timeout=12):
+ deadline=time.monotonic()+timeout
+ while True:
+  try:
+   value=fn()
+   if value:return value
+  except Exception:
+   if time.monotonic()>deadline:raise
+  if time.monotonic()>deadline:raise RuntimeError('probe condition timed out: '+json.dumps(probe('/state')))
+  time.sleep(.1)
+def record(name,value):print(name,json.dumps(value,ensure_ascii=False),flush=True)
+def helper(action):
+ state=qa/'helper-state.json'
+ state.unlink(missing_ok=True)
+ (qa/'helper-command').write_text(action)
+ return wait(lambda:json.loads(state.read_text()) if state.exists() else None)
+def apijs(name,args=[]):return 'await window.__migrationCall('+str(ids[name])+','+json.dumps(args)+')'
+def ready():
+ probe('/state');jscode(setup);return True
+(qa/'data/hotkeys/config.json').write_text(json.dumps([{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+k'}]))
+logs=[];processes=[];clipboardSaved=False
+try:
+ for name,binary,extra in [
+  ('host','.cache/v3-native-round2/watools-qa.app/Contents/MacOS/watools',{'WATOOLS_DATA_DIR':str(qa/'data'),'WATOOLS_CACHE_DIR':str(qa/'cache'),'WATOOLS_QA_FIXTURES':str(qa/'fixtures'),'WATOOLS_LOG_LEVEL':'debug','WAILS_MCP_HOST':'127.0.0.1','WAILS_MCP_PORT':'9247','WAILS_MCP_HIDE_CURSOR':'1'}),
+  ('helper','.cache/v3-native-round2/focus.app/Contents/MacOS/focus',{}),
+ ]:
+  log=open(qa/(name+'.log'),'w');logs.append(log)
+  proc=subprocess.Popen([binary]+([str(qa)] if name=='helper' else []),env=dict(os.environ,**extra),stdout=log,stderr=subprocess.STDOUT);processes.append(proc)
+ wait(ready)
+ assert probe('/clipboard/backup')==1;clipboardSaved=True
+ assert probe('/clipboard/fixture?kind=text')==1
+ jscode('const e=document.querySelector("input[role=combobox]");if(e){const s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set;s.call(e,"");e.dispatchEvent(new Event("input",{bubbles:true}));}return {safeInput:true};')
+ state=probe('/state');record('nativeWindow',state)
+ assert not state['opaque'] and state['backgroundAlpha']==0 and not state['webviewDrawsBackground']
+ for i in range(10):assert probe('/hotkey/interleave')==1
+ record('mainThreadShutdownInterleave',{'cycles':10,'backgroundRegisterThenMainThreadUnregisterReturned':True})
+ hotkey=probe('/hotkey');record('initialHotkey',hotkey);assert hotkey['registered']
+ reserved=helper('reserve');assert reserved['reserved'] and reserved['status']==0
+ collision=probe('/hotkey',{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+l'})
+ record('conflictResponse',collision)
+ assert collision.get('httpStatus')==400 and collision['state']['configs'][0]['hotkey']=='ctrl+alt+shift+k' and collision['state']['registered']
+ record('hotkeyConflictRollback',{'reportedError':True,'originalConfigRestored':True,'originalRegistrationRestored':True})
+ assert helper('release')['status']==0
+ updated=probe('/hotkey',{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+l'})
+ assert updated['registered'] and updated['configs'][0]['hotkey']=='ctrl+alt+shift+l'
+ assert json.loads((qa/'data/hotkeys/config.json').read_text())[0]['hotkey']=='ctrl+alt+shift+l'
+ probe('/hotkey',{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+k'})
+ record('hotkeyPersistence',{'updatedThenRestored':True})
+ helperpid=processes[1].pid
+ for i in range(3):
+  helper('activate');wait(lambda:probe('/state')['frontmostPID']==helperpid)
+  wait(lambda:not probe('/state')['visible'])
+  jscode('return '+apijs('HideOrShowAppApi')+';')
+  wait(lambda:probe('/state')['frontmostPID']==processes[0].pid and probe('/state')['keyWindow'])
+  jscode('return '+apijs('HideAppApi')+';')
+  wait(lambda:probe('/state')['frontmostPID']==helperpid and not probe('/state')['visible'])
+ record('focusReturn',{'cycles':3,'helperToLauncherToHelper':True,'cooperativeActivationYield':False,'physicalHotkey':False})
+ assert probe('/hotkey/fire')==1
+ wait(lambda:probe('/state')['keyWindow'] and probe('/state')['frontmostPID']==processes[0].pid)
+ assert probe('/hotkey/fire')==1
+ wait(lambda:not probe('/state')['visible'] and probe('/state')['frontmostPID']==helperpid)
+ record('registeredCarbonCallback',{'syntheticAppTargetEvent':True,'showThenHide':True,'globalPhysicalInput':False})
+ jscode('return '+apijs('HideOrShowAppApi')+';');wait(lambda:probe('/state')['keyWindow'])
+ # Focus native host again for clipboard and UI tests.
+ wait(lambda:probe('/state')['visible'])
+ for kind in ['text','image','files']:
+  assert probe('/clipboard/fixture?kind='+kind)==1
+  value=jscode('const c='+apijs('GetClipboardContentApi')+';return {kind:c.contentType,textMatches:c.text==="watools-native-round2-text",hasImage:c.hasImage,imagePresent:!!c.imageBase64,hasFiles:c.hasFiles,fileMatches:c.files?.[0]==='+json.dumps(str(qa/'fixtures/clipboard.txt'))+'};')
+  assert value['kind']==kind
+  assert value[{'text':'textMatches','image':'imagePresent','files':'fileMatches'}[kind]]
+  record('clipboard-'+kind,value)
+ # Synthetic paste event: native clipboard discovery plus actual React handler.
+ value=jscode('const e=document.querySelector("input[role=combobox]");e.focus();e.dispatchEvent(new ClipboardEvent("paste",{bubbles:true,cancelable:true,clipboardData:new DataTransfer()}));await new Promise(r=>setTimeout(r,200));return {fileAttachmentVisible:document.body.innerText.includes("clipboard.txt")};')
+ record('filePasteUI',value)
+ assert value['fileAttachmentVisible']
+ assert probe('/clipboard/fixture?kind=text')==1
+ value=jscode('const e=document.querySelector("input[role=combobox]");const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set;setter.call(e,"nihao-qa");e.dispatchEvent(new Event("input",{bubbles:true}));await new Promise(r=>setTimeout(r,100));e.dispatchEvent(new CompositionEvent("compositionstart",{bubbles:true,data:"nihao"}));e.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,cancelable:true,key:"Escape",isComposing:true}));await new Promise(r=>setTimeout(r,200));return {compositionEscapePreservesInput:e.value==="nihao-qa"};')
+ record('syntheticComposition',value)
+ assert value['compositionEscapePreservesInput']
+ jscode('const e=document.querySelector("input[role=combobox]");e.dispatchEvent(new CompositionEvent("compositionend",{bubbles:true,data:""}));return {ok:true};')
+ # Local credentials exercised through the actual native binding, with synthetic data only.
+ marker='watools-native-round2-synthetic-secret'
+ jscode('return '+apijs('SetPluginSecretApi',['watools.plugin.calculator','qa-round2',marker])+';')
+ value=jscode('return {roundTrip:('+apijs('GetPluginSecretApi',['watools.plugin.calculator','qa-round2'])+')==='+json.dumps(marker)+'};')
+ assert value['roundTrip']
+ secretfile=qa/'data/secrets'/(hashlib.sha256(b'watools.plugin.calculator\0qa-round2').hexdigest()+'.local')
+ assert stat.S_IMODE(secretfile.stat().st_mode)==0o600 and stat.S_IMODE(secretfile.parent.stat().st_mode)==0o700
+ secretfile.unlink();secretfile.mkdir() # Deterministic isolated filesystem failure, no privilege trick.
+ value=jscode('try{'+apijs('SetPluginSecretApi',['watools.plugin.calculator','qa-round2',marker])+';return {failureReported:false};}catch(e){return {failureReported:true};}')
+ assert value['failureReported'];secretfile.rmdir()
+ jscode('return '+apijs('DeletePluginSecretApi',['watools.plugin.calculator','qa-round2'])+';')
+ assert not any(marker in p.read_text(errors='ignore') for p in (qa/'cache/logs').glob('*.log'))
+ record('localCredentials',{'roundTrip':True,'fileMode':'0600','directoryMode':'0700','writeFailureReported':True,'secretAbsentFromLogs':True,'probeRemoved':True})
+ # AppKit menu callbacks, not DOM key events.
+ for menu in ['Refresh','Reload']:
+  jscode('window.__qaMenuMarker=true;return {ok:true};')
+  assert probe('/menu?title='+menu)==1
+  time.sleep(.5)
+  wait(lambda:jscode('return {reset:window.__qaMenuMarker===undefined};',1500)['reset'])
+  wait(ready)
+  binding=jscode('const p='+apijs('GetPluginsApi')+';return {array:Array.isArray(p),count:p.length};')
+  assert binding['array'] and binding['count']==6
+  record('nativeMenu-'+menu,{'nativeAction':True,'webviewReloaded':True,'bindingRecovered':True})
+ # Real NSOpenPanel attached to launcher; cancel without editing data.
+ before=jscode('const p='+apijs('GetPluginsApi')+';return p.map(x=>({id:x.packageId,url:x.homeUrl}));')
+ with concurrent.futures.ThreadPoolExecutor() as pool:
+  pending=pool.submit(jscode,'return '+apijs('InstallPluginByFileDialogApi')+';',25000)
+  dialog=wait(lambda:(lambda x:x if x.get('openPanel') else None)(probe('/dialog')))
+  record('nativeInstallDialog',dialog)
+  assert dialog['multiple'] and dialog['files'] and not dialog['directories']
+  assert probe('/dialog/cancel')==1
+  pending.result(timeout=10)
+ after=jscode('const p='+apijs('GetPluginsApi')+';return p.map(x=>({id:x.packageId,url:x.homeUrl}));')
+ assert before==after;record('nativeDialogCancel',{'returnedNormally':True,'pluginRevisionsUnchanged':True})
+ # Move this window using the official runtime, then exercise existing show positioning.
+ original=probe('/state')
+ m.call('window_control',{'window':'launcher','action':'set_position','x':-1300,'y':120})
+ wait(lambda:probe('/state')['screenX']==-1512)
+ jscode('return '+apijs('HideAppApi')+';')
+ jscode('return '+apijs('HideOrShowAppApi')+';')
+ secondary=probe('/state')
+ assert secondary['screenX']==-1512
+ assert abs((secondary['x']+1512)-(1512-secondary['width'])/2)<2
+ record('twoScreenPositioning',{'secondaryWidth':1512,'negativeOriginX':-1512,'centered':True,'hotplugTested':False,'physicalDrag':False})
+ m.call('window_control',{'window':'launcher','action':'set_position','x':int(original['x']),'y':int(1440-original['y']-original['height'])})
+ m.call('window_control',{'window':'launcher','action':'set_size','width':1000,'height':80})
+ wait(lambda:probe('/state')['width']==1000)
+ record('nativeResize',{'width':1000,'frameworkResize':True,'physicalResize':False})
+ # Capture only this WKWebView after replacing all input with an explicit fixture.
+ jscode('const e=document.querySelector("input[role=combobox]");if(e){const s=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set;s.call(e,"");e.dispatchEvent(new Event("input",{bubbles:true}));}return {safeInput:true};')
+ time.sleep(.3);assert probe('/snapshot')==1;wait(lambda:probe('/snapshot/state')!=0)
+ assert probe('/snapshot/state')==1;record('ownWebviewSnapshot',{'saved':True})
+ assert probe('/clipboard/restore')==1;clipboardSaved=False
+ record('clipboardRestored',{'allOriginalFormatsVerified':True})
+ try:probe('/menu?title=Quit%20watools')
+ except Exception as e:
+  if type(e).__name__!='RemoteDisconnected':raise
+ assert processes[0].wait(timeout=12)==0
+ released=helper('reserve-k');assert released['status']==0 and released['reserved']
+ record('nativeQuitAndHotkeyRelease',{'exitCode':0,'configuredKeyAvailableToOtherProcess':True})
+ helper('release')
+finally:
+ if clipboardSaved:
+  try:record('cleanupClipboardRestore',{'allOriginalFormatsVerified':probe('/clipboard/restore')==1})
+  except Exception:record('cleanupClipboardRestore',{'failed':True})
+ if len(processes)>1:
+  try:helper('stop')
+  except Exception:pass
+ for proc in reversed(processes):
+  if proc.poll() is None:proc.terminate()
+  try:proc.wait(timeout=8)
+  except subprocess.TimeoutExpired:proc.kill();proc.wait()
+ for log in logs:log.close()
