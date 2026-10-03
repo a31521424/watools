@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
@@ -18,11 +17,6 @@ import (
 	"github.com/samber/mo"
 )
 
-var (
-	launchAppInstance *WaLaunchApp
-	launchAppOnce     sync.Once
-)
-
 type WaLaunchApp struct {
 	notify            func()
 	ctx               context.Context
@@ -35,12 +29,7 @@ type WaLaunchApp struct {
 	watchManager      watcher.AppWatchManager
 }
 
-func GetWaLaunch() *WaLaunchApp {
-	launchAppOnce.Do(func() {
-		launchAppInstance = &WaLaunchApp{}
-	})
-	return launchAppInstance
-}
+func NewWaLaunch() *WaLaunchApp { return &WaLaunchApp{} }
 
 func (w *WaLaunchApp) OnStartup(ctx context.Context, notify func()) {
 	w.notify = notify
@@ -192,8 +181,7 @@ func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
 	return commands
 }
 
-func (w *WaLaunchApp) GetApplicationCommands() []interface{} {
-	var commands []interface{}
+func (w *WaLaunchApp) GetApplicationCommands() []*models.ApplicationCommand {
 	var runners []models.CommandRunner
 
 	apps := lo.UniqBy(w.getApplicationCommands(), func(app *models.ApplicationCommand) string {
@@ -203,20 +191,14 @@ func (w *WaLaunchApp) GetApplicationCommands() []interface{} {
 		return app.Path
 	})
 	runners = append(runners, lo.Map(apps, func(app *models.ApplicationCommand, _ int) models.CommandRunner { return app })...)
-	commands = append(commands, lo.Map(apps, func(app *models.ApplicationCommand, _ int) interface{} {
-		var m map[string]interface{}
-		data, _ := json.Marshal(app)
-		_ = json.Unmarshal(data, &m)
-		return m
-	})...)
 
 	w.runnersMu.Lock()
 	w.applicationRunner = runners
 	w.runnersMu.Unlock()
-	return commands
+	return apps
 }
 
-func (w *WaLaunchApp) GetOperationCommands() []interface{} {
+func (w *WaLaunchApp) GetOperationCommands() []*models.OperationCommand {
 	var runners []models.CommandRunner
 
 	operations := operator.GetOperations()
@@ -228,12 +210,7 @@ func (w *WaLaunchApp) GetOperationCommands() []interface{} {
 	w.runnersMu.Lock()
 	w.operationRunner = runners
 	w.runnersMu.Unlock()
-	return lo.Map(uniqueOperations, func(operation *models.OperationCommand, _ int) interface{} {
-		var m map[string]interface{}
-		data, _ := json.Marshal(operation)
-		_ = json.Unmarshal(data, &m)
-		return m
-	})
+	return uniqueOperations
 }
 
 func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string, triggerCategory models.CommandCategory) error {

@@ -108,29 +108,30 @@ func ResolveInstalledPlugin(base, packageID string) (string, string, error) {
 	return filepath.Join(root, "versions", current.Revision), current.Revision, nil
 }
 
-func (p *PluginState) GetFullInfo() map[string]interface{} {
-	mapData := map[string]interface{}{
-		"packageId": p.PackageID, "enabled": p.Enabled, "usedCount": p.UsedCount,
-		"lastUsedAt": p.LastUsedAt, "homeUrl": p.getPluginHomeUrl(),
+// PluginInfo is the public listing contract. Storage remains private to the SDK.
+type PluginInfo struct {
+	PluginMetadata
+	Enabled    bool       `json:"enabled"`
+	LastUsedAt *time.Time `json:"lastUsedAt"`
+	UsedCount  int64      `json:"usedCount"`
+	HomeURL    string     `json:"homeUrl"`
+	LoadError  string     `json:"loadError,omitempty"`
+}
+
+func (p *PluginState) GetFullInfo() PluginInfo {
+	info := PluginInfo{PluginMetadata: PluginMetadata{PackageID: p.PackageID}, Enabled: p.Enabled, UsedCount: p.UsedCount, HomeURL: p.getPluginHomeUrl()}
+	if t, ok := p.LastUsedAt.Get(); ok {
+		info.LastUsedAt = &t
 	}
 	metadata, err := p.GetMetadata()
 	if err != nil {
 		logger.Error(err, "Failed to get plugin metadata")
-		mapData["name"] = p.PackageID
-		mapData["loadError"] = "插件元数据损坏，请重新安装或卸载"
-		return mapData
+		info.Name = p.PackageID
+		info.LoadError = "插件元数据损坏，请重新安装或卸载"
+		return info
 	}
-	mapData, err = utils.MergeStructToMap([]interface{}{
-		mapData,
-		metadata,
-		map[string]interface{}{
-			"homeUrl": p.getPluginHomeUrl(),
-		},
-	})
-	if err != nil {
-		logger.Error(err, "Failed to marshal plugin state")
-	}
-	return mapData
+	info.PluginMetadata = *metadata
+	return info
 }
 
 func (p *PluginState) GetJsEntryUrl() string {

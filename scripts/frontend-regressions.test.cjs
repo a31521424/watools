@@ -91,7 +91,7 @@ test('IME candidate keys leave launcher input and plugin/management routes intac
             clearValue: () => actions.push('clear'), navigate: () => actions.push('navigate'),
             inputRef: {current: {focus: () => actions.push('focus')}},
             Promise, flushApplicationUsage: async () => {}, flushPluginUsage: async () => {},
-            HideOrShowAppApi: () => actions.push('hide'),
+            host: {HideOrShowAppApi: () => actions.push('hide')},
         });
         for (const key of ['Escape', 'Tab', 'Backspace']) {
             for (const composition of [{isComposing: true, keyCode: 0}, {isComposing: false, keyCode: 229}]) {
@@ -252,7 +252,7 @@ test('v2 plugin runtime preserves clipboard booleans, window sizes and variadic 
                 Emit: async (name, data) => callbacks.get(name)?.({name, data}),
                 Off: (...names) => names.forEach(name => callbacks.delete(name)), OffAll: () => callbacks.clear()},
         },
-        '../../bindings/watools/internal/coordinator/waappcoordinator': {LogFrontendApi: async () => {}},
+        '@/api/host': {host: {LogFrontendApi: async () => {}, GetLauncherSizeApi: async () => ({width:920, height:64})}},
     });
     assert.equal(target, 'launcher');
     assert.equal(await runtime.ClipboardSetText('probe'), true);
@@ -269,4 +269,115 @@ test('v2 plugin runtime preserves clipboard booleans, window sizes and variadic 
     await runtime.EventsEmit('probe', 'ignored');
     assert.equal(observations.length, 3);
     assert.deepEqual(cancelled, ['probe']);
+});
+
+test('mock Host API and plugin SDK preserve scoped JSON, nulls and disabled-plugin errors', async () => {
+    const errors = loadTS('frontend/src/api/host/errors.ts');
+    const {createMockHost} = loadTS('frontend/src/api/host/mock.ts', {'./errors': errors}, {URL, TextEncoder});
+    const host = createMockHost();
+    const {createWaToolsApi} = loadTS('frontend/src/api/api.ts', {'@/api/host': {host}});
+    const sdk = createWaToolsApi('watools.plugin.mock');
+    const value = JSON.parse('{"__proto__":"data","nested":[1,null]}');
+    await sdk.StorageSet('probe', value);
+    value.nested.push('changed');
+    assert.equal(JSON.stringify(await sdk.StorageGet('probe')), '{"__proto__":"data","nested":[1,null]}');
+    await sdk.StorageSet('probe', null);
+    assert.equal(await sdk.StorageGet('probe'), null);
+    assert.equal(JSON.stringify(await sdk.StorageKeys()), '["probe"]');
+    await assert.rejects(sdk.StorageSet('missing', undefined), error => error.code === 'INVALID_ARGUMENT');
+    await sdk.SecretSet('key', 'synthetic-value');
+    assert.equal(await sdk.SecretGet('key'), 'synthetic-value');
+    await host.TogglePluginApi('watools.plugin.mock', false);
+    await assert.rejects(sdk.StorageGet('probe'), error => error.code === 'PLUGIN_DISABLED');
+    await assert.rejects(sdk.SecretGet('key'), error => error.code === 'PLUGIN_DISABLED');
+    assert.equal((await host.GetPluginsApi())[0].enabled, false);
+    await host.TogglePluginApi('watools.plugin.mock', true);
+    await sdk.StorageClear();
+    assert.equal(JSON.stringify(await sdk.StorageKeys()), '[]');
+    await sdk.SecretRemove('key');
+    assert.equal(await sdk.SecretGet('key'), '');
+    const another = createMockHost();
+    assert.equal(JSON.stringify(await another.ListPluginStorageKeysApi({packageId:'watools.plugin.mock'})), '[]');
+    assert.equal((await sdk.HttpProxy({url:'https://example.invalid', method:'GET'})).status_code, 200);
+    await assert.rejects(sdk.OpenFolder('/mock'), error => error.code === 'UNAVAILABLE');
+});
+
+test('Host API usage validates the complete batch and returns independent snapshots', async () => {
+    const errors = loadTS('frontend/src/api/host/errors.ts');
+    const {createMockHost} = loadTS('frontend/src/api/host/mock.ts', {'./errors': errors}, {URL, TextEncoder});
+    const host = createMockHost();
+    const valid = {id:'mock-app', lastUsedAt:'2026-10-04T00:00:00Z', usedCount:2};
+    for (const usedCount of [-1, 1.5, undefined, 1e12+1]) {
+        await assert.rejects(host.UpdateApplicationUsageApi([valid, {...valid, usedCount}]), error => error.code === 'INVALID_ARGUMENT');
+        assert.equal((await host.GetApplicationCommandsApi())[0].usedCount, 0);
+    }
+    await host.UpdateApplicationUsageApi([valid]);
+    const snapshot = await host.GetApplicationCommandsApi(); snapshot[0].usedCount = 99;
+    assert.equal((await host.GetApplicationCommandsApi())[0].usedCount, 2);
+    await assert.rejects(host.HttpProxyApi({url:'https://example.invalid', timeout:1.5}), error => error.code === 'INVALID_ARGUMENT');
+    await assert.rejects(host.HttpProxyApi({url:'file:///tmp/data'}), error => error.code === 'INVALID_ARGUMENT');
+});
+
+test('Wails error normalization retains context and displayable codes without raw transport messages', async () => {
+    const {withHostErrors, HostError} = loadTS('frontend/src/api/host/errors.ts');
+    const original = new Error('raw internal transport details', {cause:{code:'TIMEOUT',message:'操作超时，请重试',operation:'system.http'}});
+    const host = withHostErrors({request:async () => {throw original}});
+    await assert.rejects(host.request(), error => error instanceof HostError && error.code === 'TIMEOUT' && error.operation === 'system.http' && error.message === '操作超时，请重试' && error.cause === original);
+    const broken = withHostErrors({request:async () => {throw new Error('private raw data')}});
+    await assert.rejects(broken.request(), error => error.code === 'TRANSPORT_ERROR' && !error.message.includes('private'));
+});
+
+test('generated bindings stay confined to the Wails adapter and both adapters cover every public method', () => {
+    const errors = loadTS('frontend/src/api/host/errors.ts');
+    const {createMockHost} = loadTS('frontend/src/api/host/mock.ts', {'./errors': errors}, {URL, TextEncoder});
+    const host = createMockHost();
+    const bound = fs.readdirSync(path.join(root, 'frontend/bindings/watools/internal/host')).filter(name => name.endsWith('service.ts')).flatMap(name => {
+        const text = fs.readFileSync(path.join(root, 'frontend/bindings/watools/internal/host',name),'utf8');
+        return [...text.matchAll(/export function (\w+)\(/g)].map(match => match[1]);
+    });
+    assert.deepEqual(Object.keys(host).sort(), bound.sort());
+    function check(directory) {
+        for (const entry of fs.readdirSync(directory, {withFileTypes:true})) {
+            const file = path.join(directory, entry.name);
+            if (entry.isDirectory()) check(file);
+            else if (/\.tsx?$/.test(file) && file !== path.join(root,'frontend/src/api/host/wails.ts')) {
+                assert.ok(!fs.readFileSync(file,'utf8').includes('bindings/watools/'), `${file} bypasses Host API`);
+            }
+        }
+    }
+    check(path.join(root,'frontend/src'));
+});
+
+test('mock rejects null mutations, oversized UTF-8 bodies and impossible calendar dates like the real host', async () => {
+    const errors = loadTS('frontend/src/api/host/errors.ts');
+    const {createMockHost} = loadTS('frontend/src/api/host/mock.ts', {'./errors': errors}, {URL, TextEncoder});
+    const host = createMockHost();
+    const id = 'watools.plugin.mock';
+    await host.SetPluginSecretApi(id, 'key', 'synthetic-original');
+    for (const enabled of [null, 'false', 0]) await assert.rejects(host.TogglePluginApi(id, enabled), error => error.code === 'INVALID_ARGUMENT');
+    await assert.rejects(host.SetPluginSecretApi(id, 'key', null), error => error.code === 'INVALID_ARGUMENT');
+    assert.equal((await host.GetPluginsApi())[0].enabled, true);
+    assert.equal(await host.GetPluginSecretApi(id, 'key'), 'synthetic-original');
+    for (const body of ['x'.repeat(4*1024*1024+1), '中'.repeat(1400000)]) {
+        await assert.rejects(host.HttpProxyApi({url:'https://example.invalid', body}), error => error.code === 'INVALID_ARGUMENT');
+    }
+    for (const lastUsedAt of ['2026-02-30T00:00:00Z', '2026-04-31T00:00:00Z']) {
+        await assert.rejects(host.UpdatePluginUsageApi([{packageId:id,lastUsedAt,usedCount:1}]), error => error.code === 'INVALID_ARGUMENT');
+    }
+    await host.UpdatePluginUsageApi([{packageId:id,lastUsedAt:'2024-02-29T00:00:00Z',usedCount:1}]);
+    assert.equal((await host.GetPluginsApi())[0].usedCount, 1);
+});
+
+test('mock launcher sizing uses Host API and preserves the legacy runtime size shape', async () => {
+    const errors = loadTS('frontend/src/api/host/errors.ts');
+    const {createMockHost} = loadTS('frontend/src/api/host/mock.ts', {'./errors': errors}, {URL, TextEncoder});
+    const host = createMockHost();
+    const {legacyRuntime: runtime} = loadTS('frontend/src/lib/legacy-runtime.ts', {
+        '@wailsio/runtime': {Application:{},Browser:{},Clipboard:{},Events:{},Screens:{},System:{},Window:{Get:()=>({Size:()=>{throw Error('must not call Wails in mock mode')}})}},
+        '@/api/host': {host},
+    });
+    await runtime.WindowSetSize(920,760);
+    assert.equal(JSON.stringify(await runtime.WindowGetSize()), '{"w":920,"h":760}');
+    await assert.rejects(host.SetLauncherSizeApi(0,760), error => error.code === 'INVALID_ARGUMENT');
+    assert.equal(JSON.stringify(await runtime.WindowGetSize()), '{"w":920,"h":760}');
 });

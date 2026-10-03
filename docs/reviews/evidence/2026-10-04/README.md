@@ -27,3 +27,11 @@
 两位独立 sub-agent 交叉 review 已完成。原生审查发现并关闭退出锁反转风险：所有快捷键生命周期入口先进入 AppKit 主线程，再取得锁；十轮交错清理与四轮并发更新/原生 Quit 均通过。工作流/前端审查未发现阻塞问题。独立审查不代表残留物理验收已完成。
 
 归档复核补齐每次 Refresh/Reload 后的实际 `GetPluginsApi` 调用和六个插件断言，再次完整原生回归通过；`bindingRecovered` 有对应绑定返回证据。完整文档索引与九个材料文件一致，258 个相对链接检查通过。
+
+
+## 服务与宿主接口整理（2026-10-04）
+
+- [服务验收摘要](./services-acceptance.txt)：七个服务/37 个方法、18 个前端回归、Go/race/vet/生产构建、绑定重复生成、无 Go mock 页面、原生 RPC 与双 agent 交叉复审。
+- [原生契约脚本](./services-native-harness.py.txt)：历史验证脚本；读取当前生成 ID，通过 Wails 自带 MCP 操作自己的 QA WebView。使用 fresh 临时数据、9257 loopback、两个已打包的官方插件和专用 `.cache/host-native/watools-qa.app`，不读真实凭据，不输出剪贴板。复现需先按当前构建环境准备带 `mcp,private_mac_apis` tags 的 ad-hoc 测试 bundle，不能指向正式安装。
+
+两名独立 sub agent 发现的 null 参数、mock 窗口尺寸和校验差异已修复并复查；原生存储 null/空串传输问题也已关闭。服务目标完成，其他原生/多窗口/分发验收仍按各自 backlog 记录。

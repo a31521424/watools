@@ -1,0 +1,90 @@
+import os,subprocess,time,pathlib,json,urllib.request,re,signal,tempfile
+qa=pathlib.Path(tempfile.mkdtemp(prefix='watools-host-native-'));root=pathlib.Path.cwd()
+(qa/'data/hotkeys').mkdir(parents=True)
+(qa/'data/hotkeys/config.json').write_text(json.dumps([{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+k'}]))
+url='http://127.0.0.1:9257/mcp'
+def call(name,args):
+ req=urllib.request.Request(url,data=json.dumps({'jsonrpc':'2.0','id':1,'method':'tools/call','params':{'name':name,'arguments':args}}).encode(),headers={'Content-Type':'application/json'})
+ result=json.load(urllib.request.urlopen(req,timeout=20))['result']
+ if result.get('isError'):raise RuntimeError(result['content'])
+ return json.loads(result['content'][0]['text'])
+def js(code):return call('js_eval',{'window':'launcher','js':code,'timeout_ms':8000})
+def record(name,value):print(name,json.dumps(value,ensure_ascii=False),flush=True)
+ids={}
+for p in (root/'frontend/bindings/watools/internal/host').glob('*service.ts'):
+ ids.update({name:int(n) for name,n in re.findall(r'export function (\w+)\([^\n]*\{\n\s+return \$Call.ByID\((\d+)',p.read_text())})
+assert len(ids)==37,len(ids)
+setup='''window.__contractCall=async(methodID,args=[])=>{const response=await fetch(window.location.origin+'/wails/runtime',{method:'POST',headers:{'Content-Type':'application/json','x-wails-client-id':'contract-qa','x-wails-window-name':'launcher'},body:JSON.stringify({object:0,method:0,args:{'call-id':crypto.randomUUID(),methodID,args}})});const value=response.headers.get('Content-Type')?.includes('application/json')?await response.json():await response.text();return response.ok?{ok:true,value}:{ok:false,error:value};};return {ready:!!document.querySelector('input[role=combobox]')};'''
+def api(name,args=[]):return js('return await window.__contractCall('+str(ids[name])+','+json.dumps(args)+');')
+def good(name,args=[]):
+ r=api(name,args);assert r['ok'],(name,r);return r['value']
+def bad(name,args,code='INVALID_ARGUMENT'):
+ r=api(name,args);assert not r['ok'] and r['error']['cause']['code']==code,(name,r);return {'kind':r['error']['kind'],'code':r['error']['cause']['code']}
+log=open(qa/'host.log','w')
+proc=subprocess.Popen([str(root/'.cache/host-native/watools-qa.app/Contents/MacOS/watools')],env=dict(os.environ,WATOOLS_DATA_DIR=str(qa/'data'),WATOOLS_CACHE_DIR=str(qa/'cache'),WAILS_MCP_HOST='127.0.0.1',WAILS_MCP_PORT='9257',WAILS_MCP_HIDE_CURSOR='1'),stdout=log,stderr=subprocess.STDOUT)
+try:
+ deadline=time.monotonic()+30
+ while True:
+  try:
+   if js(setup)['ready']:break
+  except Exception:
+   if proc.poll() is not None:raise RuntimeError('native process exited '+str(proc.returncode))
+  if time.monotonic()>deadline:raise RuntimeError('native runtime readiness timeout')
+  time.sleep(.2)
+ record('registeredBindings',{'services':7,'methods':len(ids),'launcherReady':True})
+ good('InstallPluginApi',[str(root/'.cache/dev/packages/watools.plugin.calculator.wt')])
+ good('InstallPluginApi',[str(root/'.cache/dev/packages/watools.plugin.textstats.wt')])
+ plugins=good('GetPluginsApi');assert len(plugins)==2 and all('storage' not in p for p in plugins)
+ id='watools.plugin.calculator';key={'packageId':id,'key':'contract'}
+ good('SetPluginStorageKeyApi',[{**key,'value':{'test':True,'version':3}}]);assert good('GetPluginStorageKeyApi',[key])=={'test':True,'version':3}
+ good('SetPluginStorageKeyApi',[{**key,'value':''}]);assert good('GetPluginStorageKeyApi',[key])==''
+ good('SetPluginStorageKeyApi',[{**key,'value':None}]);assert good('GetPluginStorageKeyApi',[key]) is None and 'contract' in good('ListPluginStorageKeysApi',[{'packageId':id}])
+ record('typedStorage',{'objectRoundTrip':True,'emptyStringRoundTrip':True,'nullRoundTrip':True,'missingValue':bad('SetPluginStorageKeyApi',[key])})
+ good('SetPluginSecretApi',[id,'synthetic-contract','synthetic-contract-value'])
+ record('rejectNull',{'toggle':bad('TogglePluginApi',[id,None]),'secret':bad('SetPluginSecretApi',[id,'synthetic-contract',None])})
+ assert good('GetPluginSecretApi',[id,'synthetic-contract'])=='synthetic-contract-value' and next(p for p in good('GetPluginsApi') if p['packageId']==id)['enabled']
+ record('nullPreservesState',True)
+ record('typedArguments',{'fractionalUsage':bad('UpdatePluginUsageApi',[[{'packageId':id,'lastUsedAt':'2026-10-04T00:00:00Z','usedCount':1.5}]]),'missingCount':bad('UpdatePluginUsageApi',[[{'packageId':id,'lastUsedAt':'2026-10-04T00:00:00Z'}]]),'invalidDate':bad('UpdatePluginUsageApi',[[{'packageId':id,'lastUsedAt':'2026-02-30T00:00:00Z','usedCount':2}]]),'headerType':bad('HttpProxyApi',[{'url':'https://example.invalid','headers':{'Accept':4}}]),'timeoutType':bad('HttpProxyApi',[{'url':'https://example.invalid','timeout':1.5}])})
+ good('UpdatePluginUsageApi',[[{'packageId':id,'lastUsedAt':'2026-10-04T00:00:00Z','usedCount':3}]])
+ assert next(p for p in good('GetPluginsApi') if p['packageId']==id)['usedCount']==3
+ good('TogglePluginApi',[id,False]);record('disabledStorage',bad('GetPluginStorageKeyApi',[key],'PLUGIN_DISABLED'))
+ good('TogglePluginApi',[id,True]);
+ asset=next(p for p in good('GetPluginsApi') if p['packageId']==id)['homeUrl']+'/app.js'
+ record('injectedAssetState',js('const r=await fetch('+json.dumps(asset)+');return {status:r.status,javascript:(r.headers.get("Content-Type")||"").includes("javascript")};'))
+ good('DeletePluginStorageKeyApi',[key]);good('DeletePluginSecretApi',[id,'synthetic-contract'])
+ record('logs',{'directory':bool(good('GetLogDirectoryApi')),'filesArray':isinstance(good('ListLogFilesApi'),list),'queryTyped':isinstance(good('QueryLogsApi',[{'limit':10}])['records'],list)})
+ record('nativeWindowSize',good('GetLauncherSizeApi'))
+ bad('SetLauncherSizeApi',[0,64]);good('SetLauncherSizeApi',[920,64]);assert good('GetLauncherSizeApi')['width']==920
+ good('HideAppApi');good('HideOrShowAppApi');record('windowCalls',{'resize':True,'hideShow':True})
+ js('window.history.pushState({}, "", "/plugin-management");window.dispatchEvent(new PopStateEvent("popstate"));return {location:window.location.pathname};')
+ deadline=time.monotonic()+10
+ while True:
+  try:
+   ready=js(setup)['ready'];p=good('GetPluginsApi')
+   if len(p)==2 and js('return {path:window.location.pathname};')['path']=='/plugin-management':break
+  except Exception:pass
+  if time.monotonic()>deadline:raise RuntimeError('navigation binding recovery timeout')
+  time.sleep(.2)
+ record('nativeNavigation',{'bindingRecovered':True,'pluginCount':len(p)})
+ js('window.__contractReloadMarker=true;setTimeout(()=>window.location.reload(),100);return {reloadScheduled:true};')
+ deadline=time.monotonic()+12
+ while True:
+  try:
+   js(setup)
+   state=js('return {reset:window.__contractReloadMarker===undefined,path:window.location.pathname};')
+   p=good('GetPluginsApi')
+   if state['reset'] and len(p)==2 and state['path']=='/plugin-management':break
+  except Exception:pass
+  if time.monotonic()>deadline:raise RuntimeError('reload binding recovery timeout')
+  time.sleep(.2)
+ record('nativeReload',{'contextReset':True,'bindingRecovered':True,'pluginCount':len(p)})
+ try:js('setTimeout(()=>window.runtime.Quit(),150);return {quitScheduled:true};')
+ except RuntimeError as e:
+  if 'application shutting down' not in str(e):raise
+ proc.wait(timeout=12);record('nativeExit',proc.returncode);assert proc.returncode==0
+finally:
+ if proc.poll() is None:
+  proc.terminate()
+  try:proc.wait(timeout=5)
+  except subprocess.TimeoutExpired:proc.kill();proc.wait()
+ log.close()

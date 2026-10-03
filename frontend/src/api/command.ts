@@ -1,6 +1,6 @@
 import {ApplicationCommandType, CommandGroupType, OperationCommandType} from "@/schemas/command";
 import {isContainNonAscii, toPinyin, toPinyinInitial} from "@/lib/search";
-import {GetApplicationCommandsApi, GetOperatorCommandsApi, UpdateApplicationUsageApi} from "../../bindings/watools/internal/coordinator/waappcoordinator";
+import {host} from "@/api/host"
 
 const dedupeBy = <T>(items: T[], getKey: (item: T) => string): T[] => {
     const uniqueItems = new Map<string, T>()
@@ -14,7 +14,7 @@ const dedupeBy = <T>(items: T[], getKey: (item: T) => string): T[] => {
 }
 
 export const getApplicationCommands = async (): Promise<CommandGroupType<ApplicationCommandType>> => {
-    const commands = await GetApplicationCommandsApi()
+    const commands = await host.GetApplicationCommandsApi()
 
     let filterCommands: ApplicationCommandType[] = []
     filterCommands = dedupeBy(commands.map(command => ({
@@ -32,7 +32,7 @@ export const getApplicationCommands = async (): Promise<CommandGroupType<Applica
 }
 
 export const getOperationCommands = async (): Promise<CommandGroupType<OperationCommandType>> => {
-    const commands = await GetOperatorCommandsApi()
+    const commands = await host.GetOperatorCommandsApi()
 
     let filterCommands: OperationCommandType[] = []
     filterCommands = dedupeBy(commands.map(command => ({
@@ -55,5 +55,5 @@ export const updateApplicationUsage = async (usageUpdates: Array<{
         usedCount: update.usedCount
     }))
 
-    await UpdateApplicationUsageApi(updates)
+    await host.UpdateApplicationUsageApi(updates)
 }

@@ -4,7 +4,7 @@ import {useLocation} from "wouter"
 import {Button} from "@/components/ui/button"
 import {cn} from "@/lib/utils"
 import {checkForUpdates, downloadUpdate, installUpdate, type InstallResult, type UpdateInfo} from "@/api/update"
-import {OpenFolder} from "../../../bindings/watools/internal/coordinator/waappcoordinator"
+import {host} from "@/api/host"
 import {BrowserOpenURL} from "@/lib/legacy-runtime"
 
 const SURFACE_STYLE = {
@@ -135,7 +135,7 @@ export function WaUpdateManagement() {
             const result: InstallResult = await installUpdate(updateInfo.downloadedPath)
             setLastActionMessage(result.message || "安装流程已启动")
             if (result.requiresManualInstall && result.openPath) {
-                await OpenFolder(result.openPath)
+                await host.OpenFolder(result.openPath)
             }
         } catch (nextError) {
             setError(nextError instanceof Error ? nextError.message : "安装更新失败")
@@ -260,7 +260,7 @@ export function WaUpdateManagement() {
                                     打开 Release
                                 </Button>
                                 {updateInfo?.downloadedPath && (
-                                    <Button variant="ghost" onClick={() => void OpenFolder(updateInfo.downloadedPath)}>
+                                    <Button variant="ghost" onClick={() => void host.OpenFolder(updateInfo.downloadedPath)}>
                                         <FolderOpen className="mr-2 h-4 w-4"/>
                                         打开下载位置
                                     </Button>

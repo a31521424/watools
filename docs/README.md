@@ -24,7 +24,7 @@
 - 推进优化：backlog 索引 → 本次目标文档 → 依赖和源码；不要默认启动整个 backlog。
 - 调整需求或验收：开发者自用需求 → backlog 索引 → 本次目标文档；延期平台项不混入当前阶段完成条件。
 - 修改发布：发布流程 → CI 和更新源码。
-- 启动、检查或调试：本地开发指南 → 对应任务；无宿主模拟与原生多窗口仍按 backlog 推进。
+- 启动、检查或调试：本地开发指南 → 对应任务；可选 Host API 固定场景见本地开发指南；原生多窗口仍按 backlog 推进。
 
 ## 文档维护规则
 
@@ -117,7 +117,9 @@ docs/
 │   │   │   ├── native-acceptance.txt
 │   │   │   ├── native-harness.py.txt
 │   │   │   ├── native-probe.go.txt
-│   │   │   └── rapid-exit.py.txt
+│   │   │   ├── rapid-exit.py.txt
+│   │   │   ├── services-acceptance.txt
+│   │   │   └── services-native-harness.py.txt
 │   │   └── README.md
 │   ├── remediation-2026-10-03.md
 │   └── review-2026-10-02.md

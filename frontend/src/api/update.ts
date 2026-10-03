@@ -1,20 +1,16 @@
-import {
-    CheckForUpdatesApi,
-    DownloadUpdateApi,
-    InstallUpdateApi,
-} from "../../bindings/watools/internal/coordinator/waappcoordinator"
-import {UpdateInfo, InstallResult} from "../../bindings/watools/internal/update/models"
+import {host} from "@/api/host"
+import type {UpdateInfo, InstallResult} from "@/api/host"
 
 export type {UpdateInfo, InstallResult}
 
 export async function checkForUpdates(): Promise<UpdateInfo> {
-    return UpdateInfo.createFrom(await CheckForUpdatesApi())
+    return host.CheckForUpdatesApi()
 }
 
 export async function downloadUpdate(): Promise<UpdateInfo> {
-    return UpdateInfo.createFrom(await DownloadUpdateApi())
+    return host.DownloadUpdateApi()
 }
 
 export async function installUpdate(downloadedPath: string): Promise<InstallResult> {
-    return InstallResult.createFrom(await InstallUpdateApi(downloadedPath))
+    return host.InstallUpdateApi(downloadedPath)
 }

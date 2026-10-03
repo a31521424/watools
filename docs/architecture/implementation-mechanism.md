@@ -8,22 +8,27 @@
 
 ## Wails 绑定机制
 
-当前前后端桥接以 [`internal/coordinator/coordinator.go`](../../internal/coordinator/coordinator.go) 为单一出口。
+当前桥接由 [`internal/host/`](../../internal/host/) 中七个领域服务承担：
 
-实际含义：
+| 服务 | 职责 |
+| --- | --- |
+| AppService | 呼出/隐藏、剪贴板读取、快捷键状态、launcher 尺寸与环境初始化 |
+| CommandService | 应用扫描、命令触发、使用统计与 watcher 生命周期 |
+| PluginService | 插件列表、入口、安装/停用/卸载与统计；注入文件选择回调 |
+| StorageService | packageId 范围内的 JSON 存储与凭据；与资源路由共享插件实例 |
+| SystemService | 文件夹、图片与可取消 HTTP 请求；关闭时取消请求 |
+| UpdateService | 检查/下载/安装更新；注入退出回调 |
+| LogService | 日志目录、查询与前端日志 |
 
-- `main.go` 只注册 `WaAppCoordinator` v3 服务
-- 前端不会直接绑定 `internal/app`、`internal/plugin` 或其他业务包
-- 新的前端可调用能力，必须先在业务模块实现，再由 coordinator 暴露
+`main.go` 显式构造 command、plugin、api、update 实例，注入菜单、资源状态检查、事件、文件对话框和退出边界。Wails 按声明顺序启动服务，按逆序关闭；AppService 首先初始化环境。App 与 HotkeyManager 仍共享原有 native 单例，SQLite、目录配置和 secrets 仍是进程级资源，本轮没有声称消除所有全局状态。launcher 尺寸使用小型 `WindowGeometry` 接口，可在无事件循环的测试中替换。
 
-典型扩展步骤：
+请求使用具名 DTO：统计时间/次数、HTTP、日志查询、存储的 packageId/key 均由生成绑定提供类型。统计整批校验后才写入；缺失次数、非整数、无效时间、`enabled: null` 和凭据 `value: null` 返回 `INVALID_ARGUMENT`。存储值保留动态 JSON，允许显式 null，缺失 value 被拒绝；读取返回 RawMessage，避免 Wails 把 nil 响应与空字符串混淆。统一错误提供 code/message/operation，Go `Unwrap` 保留底层原因，展示文本与传输外层错误不包含原始凭据或请求内容。
 
-1. 在对应后端模块实现能力
-2. 在 coordinator 增加对外方法
-3. 必要时补前端 `api/` 封装
-4. 更新前端 store、schema 或组件
+前端 [`api/host/contracts.ts`](../../frontend/src/api/host/contracts.ts) 是稳定业务契约，只有 [`api/host/wails.ts`](../../frontend/src/api/host/wails.ts) 接触生成路径。该适配器转换窗口/命令/日志类型与 Wails 错误；mock 同样实现 HostAPI，使用独立内存固定场景。旧插件 SDK 名称、packageId 闭包、Storage 值与 HTTP `status_code` 保持兼容；旧 `internal/coordinator` 生成路径及方法 ID 已删除，直接依赖内部绑定的调用方必须迁移，内部路径不属于插件 SDK。
 
-当前固定 Wails v3 Beta.27，前端通过 `frontend/bindings/watools/internal/coordinator/waappcoordinator` 调用自动生成的方法；配套 npm runtime 固定同版本。coordinator 使用 `ServiceStartup/ServiceShutdown` 管理数据库、扫描、插件与 API 的生命周期。启动前注入 App 和 launcher 窗口引用；窗口存在后执行尺寸定位与快捷键注册。命令 watcher 接收通知回调，coordinator 将通知发到 v3 事件总线。
+扩展能力时：在业务模块实现 → 在对应领域服务校验/暴露 → 运行 `node scripts/dev.mjs bindings` → 更新 HostAPI 与两个适配器 → 迁移调用方并补关键契约回归。禁止手改生成文件。
+
+当前固定 Wails v3 Beta.27 与同版 npm runtime。启动前配置 launcher 窗口，WindowRuntimeReady 后定位并注册快捷键；命令 watcher 通过注入回调发出 `watools.applicationChanged`。
 
 主窗口是透明无边框 WebviewWindow，macOS 位置与焦点桥接接收该窗口的 NativeWindow 句柄，不再查找任意 key/main window。原生菜单改为 v3 menu roles；插件安装文件对话框明确附着主窗口。
 
@@ -118,7 +123,7 @@ Storage 使用 packageId 区分数据归属。当前采用可信插件模型，�
 
 ## 更新机制
 
-更新能力由 [`internal/update/`](../../internal/update) 与 coordinator 暴露接口组成。
+更新能力由 [`internal/update/`](../../internal/update) 与 UpdateService 暴露接口组成。
 
 当前流程：
 

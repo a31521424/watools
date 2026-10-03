@@ -1,0 +1,55 @@
+Date: 2026-10-04 (Asia/Taipei)
+Baseline: e1902e9; implementation and evidence in the same feature commit.
+Host: macOS 26.6.2 arm64; Go 1.26.8; Wails Go/CLI/npm v3.0.0-beta.27.
+No computer use. All DB/cache/secrets are temporary; only synthetic credential values used.
+Default dev/browser flow preserved. Windows and distribution are deferred.
+
+Final automated checks: all exit 0.
+- node scripts/dev.mjs check: 16 workflow regressions, 18 frontend regressions,
+  TypeScript/Vite, go test ./..., server app/API tests, go vet ./...,
+  go build -tags production,private_mac_apis ./....
+- node scripts/dev.mjs check-race: frontend build and go test -race ./....
+- node scripts/dev.mjs bindings repeated: 23 generated TS files byte-identical.
+- No exported service lifecycle/configuration methods leaked into generated calls;
+  7 services, 37 business methods; only wails.ts imports generated application bindings.
+
+Independent review by two subagents, then fixes and independent re-review:
+- Reject null Toggle bool and null SecretSet value, preserving state/credentials.
+- Route launcher size through HostAPI; mock has no real Window.Size call.
+- Mock rejects invalid bool/string, oversized UTF-8 HTTP body and impossible RFC3339 calendar dates.
+- Native RPC found nil storage response conflated null with empty string; RawMessage fixes it.
+- Both reviewers report no remaining commit blockers; native reviewer also exercised actual
+  Wails BoundMethod.Call in an isolated server-tag temporary test without an event loop.
+
+Headless browser: agent-browser CLI, standalone Vite on 127.0.0.1:9259 with
+VITE_WATOOLS_HOST=mock; no Go host. Search displayed the fixed example application;
+plugin manager showed 1 enabled plugin, switch changed it to disabled/0 enabled.
+Page errors empty; captured requests contain no /wails/runtime calls.
+A first sandbox-created browser daemon could not launch Chrome; a fresh isolated daemon
+started with an approved headless shell launch. No user browser session used.
+Mock supports business fixtures and launcher geometry, not all legacy native runtime calls.
+
+Native: own ad-hoc signed .cache/host-native/watools-qa.app, tags mcp,private_mac_apis,
+official Wails MCP listening on loopback 9257. No overlays or physical keyboard input.
+Two old SDK-compatible official .wt packages installed into fresh temporary directories.
+The harness schedules page reload and quit before its own JS response becomes unavailable.
+MCP scalar-path decoding was corrected to use object results; an early harness timeout
+was not a service defect. Native results below came from the final successful run.
+
+registeredBindings {"services": 7, "methods": 37, "launcherReady": true}
+typedStorage {"objectRoundTrip": true, "emptyStringRoundTrip": true, "nullRoundTrip": true, "missingValue": {"kind": "RuntimeError", "code": "INVALID_ARGUMENT"}}
+rejectNull {"toggle": {"kind": "RuntimeError", "code": "INVALID_ARGUMENT"}, "secret": {"kind": "RuntimeError", "code": "INVALID_ARGUMENT"}}
+nullPreservesState true
+typedArguments {"fractionalUsage": {"kind": "TypeError", "code": "INVALID_ARGUMENT"}, "missingCount": {"kind": "RuntimeError", "code": "INVALID_ARGUMENT"}, "invalidDate": {"kind": "TypeError", "code": "INVALID_ARGUMENT"}, "headerType": {"kind": "TypeError", "code": "INVALID_ARGUMENT"}, "timeoutType": {"kind": "TypeError", "code": "INVALID_ARGUMENT"}}
+disabledStorage {"kind": "RuntimeError", "code": "PLUGIN_DISABLED"}
+injectedAssetState {"javascript": true, "status": 200}
+logs {"directory": true, "filesArray": true, "queryTyped": true}
+nativeWindowSize {"height": 54, "width": 920}
+windowCalls {"resize": true, "hideShow": true}
+nativeNavigation {"bindingRecovered": true, "pluginCount": 2}
+nativeReload {"contextReset": true, "bindingRecovered": true, "pluginCount": 2}
+nativeExit 0
+
+Scope boundaries: this service/API target passed native binding and lifecycle smoke.
+Physical IME/global hotkeys, full GUI/native scenarios, plugin multiwindow sessions,
+Windows and actual updater replacement remain in their separate backlog targets.

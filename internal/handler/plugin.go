@@ -16,6 +16,10 @@ import (
 )
 
 func pluginRoute(res http.ResponseWriter, req *http.Request) {
+	pluginRouteWithState(res, req, plugin.GetWaPlugin().IsEnabled)
+}
+
+func pluginRouteWithState(res http.ResponseWriter, req *http.Request, isEnabled func(string) bool) {
 	pluginBasePath := filepath.Join(config.ProjectDataDir(), "plugins")
 	relativePath := strings.TrimPrefix(req.URL.Path, "/api/plugin/")
 	if relativePath == req.URL.Path {
@@ -29,7 +33,7 @@ func pluginRoute(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !plugin.GetWaPlugin().IsEnabled(packageID) {
+	if isEnabled == nil || !isEnabled(packageID) {
 		http.NotFound(res, req)
 		return
 	}

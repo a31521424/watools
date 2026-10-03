@@ -1,8 +1,8 @@
-import {GetClipboardContentApi} from "../../bindings/watools/internal/coordinator/waappcoordinator";
+import {host} from "@/api/host"
 import {AppClipboardContent, AppClipboardContentType} from "@/schemas/app";
 
 export const getClipboardContent = async (): Promise<AppClipboardContent | null> => {
-    const content = await GetClipboardContentApi()
+    const content = await host.GetClipboardContentApi()
     if (!content || content.contentType === "empty") {
         return null
     }

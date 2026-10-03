@@ -38,6 +38,67 @@ export class LogFileInfo {
     }
 }
 
+export class LogQuery {
+    "files": string[];
+    "keyword": string;
+    "levels": string[];
+    "sources": string[];
+    "pluginIds": string[];
+    "cursor": string;
+    "limit": number;
+
+    /** Creates a new LogQuery instance. */
+    constructor($$source: Partial<LogQuery> = {}) {
+        if (!("files" in $$source)) {
+            this["files"] = [];
+        }
+        if (!("keyword" in $$source)) {
+            this["keyword"] = "";
+        }
+        if (!("levels" in $$source)) {
+            this["levels"] = [];
+        }
+        if (!("sources" in $$source)) {
+            this["sources"] = [];
+        }
+        if (!("pluginIds" in $$source)) {
+            this["pluginIds"] = [];
+        }
+        if (!("cursor" in $$source)) {
+            this["cursor"] = "";
+        }
+        if (!("limit" in $$source)) {
+            this["limit"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new LogQuery instance from a string or object.
+     */
+    static createFrom($$source: any = {}): LogQuery {
+        const $$createField0_0 = $$createType0;
+        const $$createField2_0 = $$createType0;
+        const $$createField3_0 = $$createType0;
+        const $$createField4_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("files" in $$parsedSource) {
+            $$parsedSource["files"] = $$createField0_0($$parsedSource["files"]);
+        }
+        if ("levels" in $$parsedSource) {
+            $$parsedSource["levels"] = $$createField2_0($$parsedSource["levels"]);
+        }
+        if ("sources" in $$parsedSource) {
+            $$parsedSource["sources"] = $$createField3_0($$parsedSource["sources"]);
+        }
+        if ("pluginIds" in $$parsedSource) {
+            $$parsedSource["pluginIds"] = $$createField4_0($$parsedSource["pluginIds"]);
+        }
+        return new LogQuery($$parsedSource as Partial<LogQuery>);
+    }
+}
+
 export class LogQueryResult {
     "records": LogRecord[];
     "nextCursor"?: string;
@@ -67,9 +128,9 @@ export class LogQueryResult {
      * Creates a new LogQueryResult instance from a string or object.
      */
     static createFrom($$source: any = {}): LogQueryResult {
-        const $$createField0_0 = $$createType1;
-        const $$createField2_0 = $$createType2;
-        const $$createField3_0 = $$createType2;
+        const $$createField0_0 = $$createType2;
+        const $$createField2_0 = $$createType0;
+        const $$createField3_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("records" in $$parsedSource) {
             $$parsedSource["records"] = $$createField0_0($$parsedSource["records"]);
@@ -140,7 +201,7 @@ export class LogRecord {
 }
 
 // Private type creation functions
-const $$createType0 = LogRecord.createFrom;
-const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = $Create.Array($Create.Any);
+const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = LogRecord.createFrom;
+const $$createType2 = $Create.Array($$createType1);
 const $$createType3 = $Create.Map($Create.Any, $Create.Any);

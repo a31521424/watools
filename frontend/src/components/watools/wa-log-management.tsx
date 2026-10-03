@@ -18,7 +18,7 @@ import {Sheet, SheetContent} from "@/components/ui/sheet"
 import {cn} from "@/lib/utils"
 import {getLogDirectory, listLogFiles, queryLogs} from "@/api/log"
 import {LogFileInfo, LogRecord} from "@/schemas/log"
-import {OpenFolder} from "../../../bindings/watools/internal/coordinator/waappcoordinator"
+import {host} from "@/api/host"
 
 const SURFACE_STYLE = {
     "--bg": "#eef2f6",
@@ -447,7 +447,7 @@ export function WaLogManagement() {
         if (!logDirectory) {
             return
         }
-        void OpenFolder(logDirectory)
+        void host.OpenFolder(logDirectory)
     }
 
     const handleLoadMore = async () => {

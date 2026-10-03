@@ -69,6 +69,8 @@ SIGINT/SIGTERM 转发到独立任务进程组，取消后即使子命令返回�
 
 `browser` 使用 v3 `server` build tag，不是固定数据模拟。页面和 `/wails/runtime` 必须来自 9246 宿主；仅打开 9245 Vite 页面无法调用 Go。服务器强制绑定 loopback，事件由 Wails WebSocket 桥接。浏览器可验证真实插件加载、存储、搜索、接口和热更新；框架在 server 模式的原生窗口、剪贴板和对话框能力不能作为桌面验收。server 的自动剪贴板读取返回空内容，宿主呼出/隐藏为空操作，图片剪贴板写入明确报不支持，避免进入没有 AppKit 主线程的 Cocoa 桥接。使用 `dev` 验证这些原生能力。
 
-浏览器/桌面检查不混写：源码测试不等于 WebKit 交互，合成键盘事件不等于物理全局快捷键或真实输入法。迁移验收中可临时用 Wails 官方 `mcp` build tag 检查原生 WebView；默认产物没有 MCP 服务。完整 Go 断点流程、无宿主固定数据模拟、插件多窗口与远端 macOS CI 仍在对应 backlog。
+可选的无 Go 固定场景：`VITE_WATOOLS_HOST=mock pnpm --dir frontend dev --host 127.0.0.1 --port 9259`，打开该 Vite 地址。默认 `dev` / `browser` 仍按原流程连接真实 Go。mock 实例提供固定命令/插件/更新/HTTP 结果、独立 JSON/凭据内存存储和 launcher 尺寸，可通过 `createMockHost(options)` 注入空列表、禁用等数据，`setHostAPI` 替换测试调用实现。mock 不载入或执行真实插件模块，原生安装、文件对话框、图片剪贴板、下载/安装更新返回 `UNAVAILABLE`；旧 runtime 的其余原生窗口、文本剪贴板和 BrowserOpenURL 仍是兼容 Wails API，未纳入 mock。固定场景不能作为原生能力或权限隔离验收。
+
+浏览器/桌面检查不混写：源码测试不等于 WebKit 交互，合成键盘事件不等于物理全局快捷键或真实输入法。迁移验收中可临时用 Wails 官方 `mcp` build tag 检查原生 WebView；默认产物没有 MCP 服务。完整 Go 断点流程、插件多窗口与远端 macOS CI 仍在对应 backlog。
 
 实际版本、命令与验收边界见 [v3 迁移记录](../backlog/wails-v3-migration.md) 和 [开发工作流记录](../backlog/development-and-testing.md)。

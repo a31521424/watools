@@ -1,25 +1,11 @@
-import {
-    CopyBase64ImageToClipboard,
-    HttpProxyApi,
-    CancelHttpProxyApi,
-    GetPluginSecretApi,
-    SetPluginSecretApi,
-    DeletePluginSecretApi,
-    OpenFolder,
-    SaveBase64Image,
-    GetPluginStorageKeyApi,
-    SetPluginStorageKeyApi,
-    DeletePluginStorageKeyApi,
-    ClearPluginStorageApi,
-    ListPluginStorageKeysApi
-} from "../../bindings/watools/internal/coordinator/waappcoordinator";
+import {host} from "@/api/host"
 
 export type WaToolsApi = {
-    OpenFolder: typeof OpenFolder;
-    SaveBase64Image: typeof SaveBase64Image;
-    CopyBase64ImageToClipboard: typeof CopyBase64ImageToClipboard;
-    HttpProxy: typeof HttpProxyApi;
-    CancelHttpProxy: typeof CancelHttpProxyApi;
+    OpenFolder: typeof host.OpenFolder;
+    SaveBase64Image: typeof host.SaveBase64Image;
+    CopyBase64ImageToClipboard: typeof host.CopyBase64ImageToClipboard;
+    HttpProxy: typeof host.HttpProxyApi;
+    CancelHttpProxy: typeof host.CancelHttpProxyApi;
     SecretGet: (key: string) => Promise<string>;
     SecretSet: (key: string, value: string) => Promise<void>;
     SecretRemove: (key: string) => Promise<void>;
@@ -32,19 +18,19 @@ export type WaToolsApi = {
 
 // Factory function to create WaToolsApi with explicit packageId
 export const createWaToolsApi = (packageId: string): WaToolsApi => ({
-    OpenFolder,
-    SaveBase64Image,
-    CopyBase64ImageToClipboard,
-    HttpProxy: HttpProxyApi,
-    CancelHttpProxy: CancelHttpProxyApi,
-    SecretGet: key => GetPluginSecretApi(packageId,key),
-    SecretSet: (key,value) => SetPluginSecretApi(packageId,key,value),
-    SecretRemove: key => DeletePluginSecretApi(packageId,key),
-    StorageGet: (key: string) => GetPluginStorageKeyApi({packageId, key}),
-    StorageSet: (key: string, value: any) => SetPluginStorageKeyApi({packageId, key, value}),
-    StorageRemove: (key: string) => DeletePluginStorageKeyApi({packageId, key}),
-    StorageClear: () => ClearPluginStorageApi({packageId}),
-    StorageKeys: () => ListPluginStorageKeysApi({packageId}),
+    OpenFolder: value => host.OpenFolder(value),
+    SaveBase64Image: value => host.SaveBase64Image(value),
+    CopyBase64ImageToClipboard: value => host.CopyBase64ImageToClipboard(value),
+    HttpProxy: request => host.HttpProxyApi(request),
+    CancelHttpProxy: id => host.CancelHttpProxyApi(id),
+    SecretGet: key => host.GetPluginSecretApi(packageId,key),
+    SecretSet: (key,value) => host.SetPluginSecretApi(packageId,key,value),
+    SecretRemove: key => host.DeletePluginSecretApi(packageId,key),
+    StorageGet: (key: string) => host.GetPluginStorageKeyApi({packageId, key}) as Promise<any>,
+    StorageSet: (key: string, value: any) => host.SetPluginStorageKeyApi({packageId, key, value}),
+    StorageRemove: (key: string) => host.DeletePluginStorageKeyApi({packageId, key}),
+    StorageClear: () => host.ClearPluginStorageApi({packageId}),
+    StorageKeys: () => host.ListPluginStorageKeysApi({packageId}),
 })
 
 // Default instance for main window (empty packageId)

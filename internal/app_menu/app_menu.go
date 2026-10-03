@@ -5,17 +5,17 @@ import (
 	"watools/internal/app"
 )
 
-func GetWatoolsMenu() *application.Menu {
+func GetWatoolsMenu(waApp *app.WaApp) *application.Menu {
 	menu := application.NewMenu()
 	menu.AddRole(application.AppMenu)
 	menu.AddRole(application.EditMenu)
 	menu.AddRole(application.WindowMenu)
 	view := menu.AddSubmenu("View")
 	view.Add("Reload").SetAccelerator("CmdOrCtrl+Shift+r").OnClick(func(_ *application.Context) {
-		app.GetWaApp().ReloadAPP()
+		waApp.ReloadAPP()
 	})
 	view.Add("Refresh").SetAccelerator("CmdOrCtrl+r").OnClick(func(_ *application.Context) {
-		app.GetWaApp().Reload()
+		waApp.Reload()
 	})
 	return menu
 }

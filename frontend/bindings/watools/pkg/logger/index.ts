@@ -3,6 +3,7 @@
 
 export {
     LogFileInfo,
+    LogQuery,
     LogQueryResult,
     LogRecord
 } from "./models.js";

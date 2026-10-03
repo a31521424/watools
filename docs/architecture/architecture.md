@@ -76,15 +76,12 @@ WaTools 是一个以 Wails 为壳的桌面应用，核心分为 5 层：
 典型运行链路如下：
 
 1. `main.go` 初始化配置与日志，并启动 Wails
-2. `WaAppCoordinator` 在 `Startup` 时初始化 app、command、plugin 等模块
-3. 前端通过 `frontend/bindings` 调用 coordinator 暴露的方法
-4. coordinator 将请求分发到具体子模块
+2. `internal/host/` 七个领域服务按职责启动模块；command、plugin、api、update 实例在入口显式构造
+3. 前端通过 `api/host` 稳定契约调用真实 Wails 适配器或独立内存 mock
+4. 对应服务验证 typed DTO，再调用业务模块；存储与插件资源路由共享同一状态实例
 5. 前端 `stores` 和 `components` 根据返回结果渲染命令项、插件页与管理页
 
-这意味着 coordinator 是稳定边界：
-
-- 前端与后端之间的接口变更应优先从这里收口
-- 新能力应先落到业务模块，再由 coordinator 暴露
+接口扩展从对应领域服务收口，同时更新自动生成绑定和两个 Host API 实现。只有 Wails 适配器依赖生成路径；插件继续使用按 packageId 创建的 SDK。具体服务、错误与保留的进程级资源见 [实现机制](./implementation-mechanism.md)。
 
 ## 关键数据流
 

@@ -5,7 +5,7 @@ import {cn} from "@/lib/utils";
 import {CommandType} from "@/schemas/command";
 import {useWindowFocus} from "@/hooks/useWindowFocus";
 import {PluginCommandEntry, usePluginItems} from "@/components/watools/wa-plugin-item";
-import {HideAppApi, HideOrShowAppApi, TriggerCommandApi,} from "../../../bindings/watools/internal/coordinator/waappcoordinator";
+import {host} from "@/api/host"
 import {useAppStore, usePluginStore} from "@/stores";
 import {Logger} from "@/lib/logger";
 import {useLocation} from "wouter";
@@ -65,11 +65,11 @@ export const WaCommand = () => {
 
     const onTriggerCommand = useCallback((command: CommandType) => {
         setExecutionError(null)
-        TriggerCommandApi(command.triggerId, command.category).then(async () => {
+        host.TriggerCommandApi(command.triggerId, command.category).then(async () => {
             if (command.category === "Application" && "id" in command && typeof command.id === "string") await updateApplicationUsage(command.id)
             clearValue()
             void Promise.allSettled([flushApplicationUsage(), flushPluginUsage()]).finally(() => {
-                void HideAppApi()
+                void host.HideAppApi()
             })
         }).catch(error => { Logger.error(`命令执行失败: ${error}`); setExecutionError(`命令执行失败：${String(error)}`) })
     }, [clearValue, flushApplicationUsage, flushPluginUsage, updateApplicationUsage])
@@ -100,7 +100,7 @@ export const WaCommand = () => {
                 })
                 clearValue()
                 await Promise.allSettled([flushApplicationUsage(), flushPluginUsage()])
-                void HideAppApi()
+                void host.HideAppApi()
             } catch (error) {
                 Logger.error(`Failed to execute plugin command: ${error}`)
                 setExecutionError(`插件执行失败：${String(error)}`)
@@ -203,7 +203,7 @@ export const WaCommand = () => {
                 return
             }
             void Promise.allSettled([flushApplicationUsage(), flushPluginUsage()]).finally(() => {
-                void HideAppApi()
+                void host.HideAppApi()
             })
         }
     })
@@ -218,7 +218,7 @@ export const WaCommand = () => {
                     clearValue()
                 } else {
                     void Promise.allSettled([flushApplicationUsage(), flushPluginUsage()]).finally(() => {
-                        void HideOrShowAppApi()
+                        void host.HideOrShowAppApi()
                     })
                 }
             } else if (e.key === "Tab") {

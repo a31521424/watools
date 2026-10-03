@@ -1,4 +1,4 @@
-import {GetLogDirectoryApi, ListLogFilesApi, QueryLogsApi} from "../../bindings/watools/internal/coordinator/waappcoordinator"
+import {host} from "@/api/host"
 import {LogFileInfo, LogQuery, LogRecord, QueryLogsResult} from "@/schemas/log"
 
 const normalizeLogRecord = (record: Partial<LogRecord>): LogRecord => ({
@@ -18,11 +18,11 @@ const normalizeLogRecord = (record: Partial<LogRecord>): LogRecord => ({
 })
 
 export const getLogDirectory = async (): Promise<string> => {
-    return GetLogDirectoryApi()
+    return host.GetLogDirectoryApi()
 }
 
 export const listLogFiles = async (): Promise<LogFileInfo[]> => {
-    const files = await ListLogFilesApi()
+    const files = await host.ListLogFilesApi()
     return (files || []).map((file: Partial<LogFileInfo>) => ({
         name: file.name || "",
         path: file.path || "",
@@ -32,7 +32,7 @@ export const listLogFiles = async (): Promise<LogFileInfo[]> => {
 }
 
 export const queryLogs = async (query: LogQuery): Promise<QueryLogsResult> => {
-    const result = await QueryLogsApi(query)
+    const result = await host.QueryLogsApi(query)
 
     return {
         records: Array.isArray(result?.records)

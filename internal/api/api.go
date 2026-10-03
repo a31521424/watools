@@ -16,11 +16,6 @@ import (
 	"time"
 )
 
-var (
-	waApiInstance *WaApi
-	waApiOnce     sync.Once
-)
-
 type WaApi struct {
 	httpClient *http.Client
 	requestMu  sync.Mutex
@@ -30,15 +25,8 @@ type WaApi struct {
 	requests   map[string]context.CancelFunc
 }
 
-func GetWaApi() *WaApi {
-	waApiOnce.Do(func() {
-		waApiInstance = &WaApi{
-			httpClient: &http.Client{
-				Timeout: 30 * time.Second,
-			},
-		}
-	})
-	return waApiInstance
+func NewWaApi() *WaApi {
+	return &WaApi{httpClient: &http.Client{Timeout: 30 * time.Second}}
 }
 
 func (a *WaApi) SaveBase64Image(base64Data string) (string, error) {
@@ -211,78 +199,4 @@ func (a *WaApi) HttpProxy(req HttpProxyRequest) (*HttpProxyResponse, error) {
 		}
 	}
 	return &HttpProxyResponse{StatusCode: response.StatusCode, Headers: headers, Body: string(body)}, nil
-}
-
-// Plugin Storage API
-
-// PluginStorageGetRequest represents a get storage request
-type PluginStorageGetRequest struct {
-	PackageID string `json:"packageId"`
-	Key       string `json:"key"`
-}
-
-// PluginStorageSetRequest represents a set storage request
-type PluginStorageSetRequest struct {
-	PackageID string      `json:"packageId"`
-	Key       string      `json:"key"`
-	Value     interface{} `json:"value"`
-}
-
-// PluginStorageGet retrieves a value from plugin storage
-func (a *WaApi) PluginStorageGet(req PluginStorageGetRequest) (interface{}, error) {
-	if req.PackageID == "" {
-		return nil, fmt.Errorf("packageId cannot be empty")
-	}
-	if req.Key == "" {
-		return nil, fmt.Errorf("key cannot be empty")
-	}
-
-	// Will be injected by coordinator
-	return nil, fmt.Errorf("not implemented - must be called through coordinator")
-}
-
-// PluginStorageSet sets a value in plugin storage
-func (a *WaApi) PluginStorageSet(req PluginStorageSetRequest) error {
-	if req.PackageID == "" {
-		return fmt.Errorf("packageId cannot be empty")
-	}
-	if req.Key == "" {
-		return fmt.Errorf("key cannot be empty")
-	}
-
-	// Will be injected by coordinator
-	return fmt.Errorf("not implemented - must be called through coordinator")
-}
-
-// PluginStorageRemove removes a key from plugin storage
-func (a *WaApi) PluginStorageRemove(req PluginStorageGetRequest) error {
-	if req.PackageID == "" {
-		return fmt.Errorf("packageId cannot be empty")
-	}
-	if req.Key == "" {
-		return fmt.Errorf("key cannot be empty")
-	}
-
-	// Will be injected by coordinator
-	return fmt.Errorf("not implemented - must be called through coordinator")
-}
-
-// PluginStorageClear clears all storage for a plugin
-func (a *WaApi) PluginStorageClear(packageID string) error {
-	if packageID == "" {
-		return fmt.Errorf("packageId cannot be empty")
-	}
-
-	// Will be injected by coordinator
-	return fmt.Errorf("not implemented - must be called through coordinator")
-}
-
-// PluginStorageKeys returns all keys in plugin storage
-func (a *WaApi) PluginStorageKeys(packageID string) ([]string, error) {
-	if packageID == "" {
-		return nil, fmt.Errorf("packageId cannot be empty")
-	}
-
-	// Will be injected by coordinator
-	return nil, fmt.Errorf("not implemented - must be called through coordinator")
 }

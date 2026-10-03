@@ -1,5 +1,5 @@
 import {Application, Browser, Clipboard, Events, Screens, System, Window} from '@wailsio/runtime'
-import {LogFrontendApi} from '../../bindings/watools/internal/coordinator/waappcoordinator'
+import {host} from "@/api/host"
 
 // The v2 runtime shape used by existing trusted plugins. Calls are anchored to
 // the launcher; iframe consumers must not resolve an arbitrary current window.
@@ -7,8 +7,8 @@ const launcher = Window.Get('launcher')
 export const BrowserOpenURL = (url: string) => Browser.OpenURL(url)
 export const ClipboardGetText = () => Clipboard.Text()
 export const ClipboardSetText = async (text: string): Promise<boolean> => { await Clipboard.SetText(text); return true }
-export const WindowGetSize = async () => { const size = await launcher.Size(); return {w: size.width, h: size.height} }
-export const WindowSetSize = (width: number, height: number) => launcher.SetSize(width, height)
+export const WindowGetSize = async () => { const size = await host.GetLauncherSizeApi(); return {w: size.width, h: size.height} }
+export const WindowSetSize = (width: number, height: number) => host.SetLauncherSizeApi(width, height)
 const callbackData = (callback: (...data: any[]) => void) => (event: Events.WailsEvent) => callback(...(event.data == null ? [] : Array.isArray(event.data) ? event.data : [event.data]))
 export const EventsOn = (name: string, callback: (...data: any[]) => void) => Events.On(name, callbackData(callback))
 export const EventsOnce = (name: string, callback: (...data: any[]) => void) => Events.Once(name, callbackData(callback))
@@ -16,10 +16,10 @@ export const EventsOnMultiple = (name: string, callback: (...data: any[]) => voi
 export const EventsEmit = (name: string, ...data: any[]) => Events.Emit(name, data)
 export const EventsOff = (name: string, ...names: string[]) => Events.Off(name, ...names)
 export const EventsOffAll = () => Events.OffAll()
-export const LogDebug = (message: string) => LogFrontendApi('debug', message)
-export const LogInfo = (message: string) => LogFrontendApi('info', message)
-export const LogError = (message: string) => LogFrontendApi('error', message)
-export const LogWarning = (message: string) => LogFrontendApi('warn', message)
+export const LogDebug = (message: string) => host.LogFrontendApi('debug', message)
+export const LogInfo = (message: string) => host.LogFrontendApi('info', message)
+export const LogError = (message: string) => host.LogFrontendApi('error', message)
+export const LogWarning = (message: string) => host.LogFrontendApi('warn', message)
 
 export const legacyRuntime = {
  BrowserOpenURL, ClipboardGetText, ClipboardSetText, WindowGetSize, WindowSetSize,

@@ -7,10 +7,15 @@ import (
 
 type WaHandler struct {
 	http.Handler
+	isEnabled func(string) bool
 }
 
-func NewWaHandler() *WaHandler {
-	return &WaHandler{}
+func NewWaHandler(selectors ...func(string) bool) *WaHandler {
+	var enabled func(string) bool
+	if len(selectors) > 0 {
+		enabled = selectors[0]
+	}
+	return &WaHandler{isEnabled: enabled}
 }
 
 func (w *WaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -23,7 +28,7 @@ func (w *WaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if strings.HasPrefix(url, "/api/application-icon") {
 		applicationIconRoute(res, req)
 	} else if strings.HasPrefix(url, "/api/plugin") {
-		pluginRoute(res, req)
+		pluginRouteWithState(res, req, w.isEnabled)
 	} else {
 		http.NotFound(res, req)
 	}
@@ -31,8 +36,8 @@ func (w *WaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // WithAssets keeps the revision-aware API routes alongside the embedded shell.
 // Wails' own runtime routes are handled before this application handler.
-func WithAssets(assets http.Handler) http.Handler {
-	api := NewWaHandler()
+func WithAssets(assets http.Handler, selectors ...func(string) bool) http.Handler {
+	api := NewWaHandler(selectors...)
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/api" || strings.HasPrefix(req.URL.Path, "/api/") {
 			api.ServeHTTP(res, req)

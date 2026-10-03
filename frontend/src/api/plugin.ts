@@ -1,12 +1,5 @@
 import {Plugin} from "@/schemas/plugin"
-import {
-    GetPluginJsEntryUrlApi,
-    GetPluginsApi,
-    UpdatePluginUsageApi,
-    InstallPluginApi,
-    UninstallPluginApi,
-    TogglePluginApi
-} from "../../bindings/watools/internal/coordinator/waappcoordinator"
+import {host} from "@/api/host"
 import {sanitizePluginEntries} from "@/lib/plugin";
 
 const normalizeStringList = (value: unknown): string[] => {
@@ -31,11 +24,11 @@ const dedupePluginsByPackageId = (plugins: Plugin[]): Plugin[] => {
 }
 
 export const getPlugins = async (): Promise<Plugin[]> => {
-    const pluginsData = await GetPluginsApi()
+    const pluginsData = await host.GetPluginsApi()
 
     let plugins: Plugin[] = []
     if (pluginsData) {
-        plugins = pluginsData.filter(plugin => plugin && typeof plugin.packageId === 'string' && plugin.packageId).map((plugin: any) => ({
+        plugins = pluginsData.filter(plugin => plugin && typeof plugin.packageId === 'string' && plugin.packageId).map(plugin => ({
             packageId: plugin.packageId,
             name: plugin.name || '',
             description: plugin.description || '',
@@ -89,7 +82,7 @@ export const loadPluginEntries = async (plugin: Plugin): Promise<void> => {
     let timer: ReturnType<typeof setTimeout> | undefined
     try {
         const pending = (async () => {
-            const entryUrl = await GetPluginJsEntryUrlApi(plugin.packageId)
+            const entryUrl = await host.GetPluginJsEntryUrlApi(plugin.packageId)
             if (!entryUrl) throw new Error('插件入口不存在或已停用')
             const module = await import(/* @vite-ignore */ entryUrl)
             if (!Array.isArray(module.default)) throw new Error('插件入口格式无效')
@@ -118,17 +111,17 @@ export const updatePluginUsage = async (updates: Array<{ packageId: string; last
         lastUsedAt: update.lastUsedAt.toISOString(),
         usedCount: update.usedCount
     }));
-    return UpdatePluginUsageApi(formattedUpdates);
+    return host.UpdatePluginUsageApi(formattedUpdates);
 }
 
 export const installPlugin = async (wtFilePath: string) => {
-    return InstallPluginApi(wtFilePath)
+    return host.InstallPluginApi(wtFilePath)
 }
 
 export const uninstallPlugin = async (packageId: string) => {
-    return UninstallPluginApi(packageId)
+    return host.UninstallPluginApi(packageId)
 }
 
 export const togglePlugin = async (packageId: string, enabled: boolean) => {
-    return TogglePluginApi(packageId, enabled)
+    return host.TogglePluginApi(packageId, enabled)
 }

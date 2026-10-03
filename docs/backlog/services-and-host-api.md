@@ -2,11 +2,11 @@
 
 [返回 Backlog](./README.md)
 
-状态：planned。优先级：P0。依赖：[Wails v3 基础迁移](./wails-v3-migration.md)。目标是减少重复转发与手工类型解析，让宿主能力可单独测试、前端可替换调用实现。
+状态：done。优先级：P0。依赖：[Wails v3 基础迁移](./wails-v3-migration.md)。目标是减少重复转发与手工类型解析，让宿主能力可单独测试、前端可替换调用实现。
 
 ## 现状问题
 
-`internal/coordinator/coordinator.go` 是单一绑定出口，包含转发和 `map[string]interface{}` 参数转换；部分模块依赖全局单例与 Wails context。`frontend/src/api/` 直接引用生成绑定。browser 模式已支持真实 Go 服务，固定场景模拟与可替换 Host API 尚未实施。
+实施前 `internal/coordinator/coordinator.go` 是单一绑定出口，包含转发和 `map[string]interface{}` 参数转换；部分模块依赖全局单例与 Wails context。`frontend/src/api/` 直接引用生成绑定。实施前 browser 模式支持真实 Go 服务，固定场景模拟与可替换 Host API 尚未实施。
 
 ## 实施范围
 
@@ -26,4 +26,12 @@
 
 ## 实施记录
 
-尚未开始本目标的服务拆分。当前已经使用 v3 coordinator 单一服务出口，不应提前引用计划中的独立领域服务或可替换 Host API。
+2026-10-04 已拆分七个领域服务，移除 coordinator 与 API 中未实现的重复存储出口；显式创建业务实例，并让插件服务、存储与资源路由共享实例。命令和插件列表返回具名响应；typed DTO 拒绝缺失次数、分数、无效日期和有破坏性的 null 参数。JSON storage 与凭据 SDK 保持兼容，Go 底层错误可 Unwrap，传输与展示错误统一 code/message/operation。
+
+前端 HostAPI 与 Wails/mock 两个实现完成，只有真实适配器引用生成路径，插件 SDK、legacy runtime 尺寸与所有管理页调用方已迁移。mock 使用固定场景独立内存状态；其余 legacy runtime 原生能力不属于本项模拟范围。App/hotkey、DB/config/secrets 仍保留必要进程级共享资源，未进行无职责的全仓接口化。
+
+实现提交：包含本记录的 `feat: split domain services and add typed host API`。
+
+最终验收：16 个工作流回归、18 个前端回归、Go 全包与 race、server 变体、vet、生产构建通过；23 个生成 TS 文件重复生成完全一致。无 Go 的 headless mock 搜索与插件开关通过。真实 macOS WebView 的 37 个绑定、两种旧官方插件安装、JSON/凭据、无效参数拒绝、共享资产状态、日志、窗口尺寸/显隐、SPA 导航、Reload 后恢复和正常退出通过。双 agent 独立 review → 修复 → 回归 → 独立复审无阻塞。发现并修复 nil 响应与空字符串混淆，RawMessage 保持 JSON null；凭据覆盖/插件停用拒绝 null 并保持原值。
+
+证据见 [验收摘要](../reviews/evidence/2026-10-04/services-acceptance.txt) 和 [材料入口](../reviews/evidence/2026-10-04/README.md)。插件多窗口、完整原生输入法/快捷键及 Windows/分发验收继续归属各自目标。

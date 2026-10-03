@@ -9,7 +9,7 @@
 | 目标 | 优先级 | 状态 | 依赖 |
 | --- | --- | --- | --- |
 | [Wails v3 迁移](./wails-v3-migration.md) | P0 | in-progress | 固定 Beta.27；代码已迁移，待完成原生验收 |
-| [服务与宿主接口整理](./services-and-host-api.md) | P0 | planned | v3 基础壳可运行；作为迁移中的独立步骤推进 |
+| [服务与宿主接口整理](./services-and-host-api.md) | P0 | done | 七个领域服务/HostAPI、无 Go mock、原生绑定与独立复审通过 |
 | [插件会话与独立小窗](./plugin-windows-and-sessions.md) | P0 | planned | v3 窗口、绑定和宿主接口 |
 | [开发工作流与测试](./development-and-testing.md) | P0 | in-progress | 基础入口与数据隔离已实施；模拟适配与原生检查仍依赖后续目标 |
 | [macOS 自用原生验收](./native-self-use-acceptance.md) | P0 | in-progress | v3 原生回归已推进；物理输入法、快捷键及完整场景待验 |
@@ -19,11 +19,11 @@
 | [Windows 兼容与实机验收](./windows-compatibility.md) | P2 | deferred | 有明确 Windows 使用需求后恢复 |
 | [对外分发与自更新验收](./distribution-and-update-acceptance.md) | P2 | deferred | 有对外发布或自动升级需求后恢复 |
 
-P0 为当前自用阶段核心目标，P1 为自用开发体验增强，P2 为延期的平台与分发任务。`planned` 是待办；`in-progress` 是实施中；`deferred` 是主动延期，记录恢复条件；`blocked` 必须记录具体阻碍；`done` 必须有实际验收证据。当前没有项目标记完成。权限目标本阶段按可信自用插件验收，面向不可信第三方的完整隔离另列延期范围。
+P0 为当前自用阶段核心目标，P1 为自用开发体验增强，P2 为延期的平台与分发任务。`planned` 是待办；`in-progress` 是实施中；`deferred` 是主动延期，记录恢复条件；`blocked` 必须记录具体阻碍；`done` 必须有实际验收证据。服务与宿主接口整理已完成；其他项目按表中状态推进。权限目标本阶段按可信自用插件验收，面向不可信第三方的完整隔离另列延期范围。
 
 ## 分阶段推进
 
-2026-10-04 用户撤回低干扰 browser/test 系统能力适配与 VM runner 的新增安排，沿用现有 dev flow。下一条实施任务为 P0 **[服务与宿主接口整理](./services-and-host-api.md)**，为后续插件会话与独立小窗提供基础。
+2026-10-04 用户撤回低干扰 browser/test 系统能力适配与 VM runner 的新增安排，沿用现有 dev flow。本轮已完成 P0 **[服务与宿主接口整理](./services-and-host-api.md)**。下一条待确认任务为 P0 **[插件会话与独立小窗](./plugin-windows-and-sessions.md)**；完成服务任务不自动授权实施下一目标。
 
 1. **恢复现有能力**：固定 v3 版本，迁移启动、资源、绑定、事件与本机构建；整理必要服务，建立统一开发和检查入口，用 macOS 原生场景验证。
 2. **完整运行插件小窗**：实现宿主会话、按 ID 操作窗口和多窗口一致性；用一至两个真实插件在本机验收，不仅验证窗口创建成功。

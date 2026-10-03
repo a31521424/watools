@@ -25,9 +25,11 @@ type WaPlugin struct {
 	stateMu      sync.RWMutex // protect storage operations
 }
 
+func NewWaPlugin() *WaPlugin { return &WaPlugin{} }
+
 func GetWaPlugin() *WaPlugin {
 	waPluginOnce.Do(func() {
-		waPluginInstance = &WaPlugin{}
+		waPluginInstance = NewWaPlugin()
 	})
 	return waPluginInstance
 }
@@ -58,13 +60,13 @@ func (p *WaPlugin) loadPluginsLocked() error {
 	p.pluginStates = states
 	return nil
 }
-func (p *WaPlugin) GetPlugins() ([]map[string]interface{}, error) {
+func (p *WaPlugin) GetPlugins() ([]models.PluginInfo, error) {
 	p.stateMu.Lock()
 	defer p.stateMu.Unlock()
 	if err := p.loadPluginsLocked(); err != nil {
 		return nil, err
 	}
-	return lo.Map(p.pluginStates, func(item *models.PluginState, index int) map[string]interface{} { return item.GetFullInfo() }), nil
+	return lo.Map(p.pluginStates, func(item *models.PluginState, index int) models.PluginInfo { return item.GetFullInfo() }), nil
 }
 
 func (p *WaPlugin) GetJsEntryUrl(packageID string) string {

@@ -8,7 +8,7 @@ import {Switch} from '@/components/ui/switch'
 import {cn} from '@/lib/utils'
 import {Plugin} from '@/schemas/plugin'
 import {usePluginStore} from '@/stores/pluginStore'
-import {InstallPluginByFileDialogApi} from '../../../bindings/watools/internal/coordinator/waappcoordinator'
+import {host} from "@/api/host"
 import {BrowserOpenURL} from '@/lib/legacy-runtime'
 
 const SURFACE_STYLE = {
@@ -361,7 +361,7 @@ export function WaPluginManagement() {
 
     const handleInstallPlugin = async () => {
         try {
-            await InstallPluginByFileDialogApi()
+            await host.InstallPluginByFileDialogApi()
             await refreshPlugins()
         } catch (installError) {
             console.error('Failed to install plugin:', installError)

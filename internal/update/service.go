@@ -83,19 +83,8 @@ type Service struct {
 	verified   map[string]ManifestAsset
 }
 
-var (
-	serviceOnce sync.Once
-	serviceInst *Service
-)
-
-func GetService() *Service {
-	serviceOnce.Do(func() {
-		serviceInst = &Service{
-			client:   &http.Client{Timeout: httpTimeout, CheckRedirect: checkReleaseRedirect},
-			verified: make(map[string]ManifestAsset),
-		}
-	})
-	return serviceInst
+func NewService() *Service {
+	return &Service{client: &http.Client{Timeout: httpTimeout, CheckRedirect: checkReleaseRedirect}, verified: make(map[string]ManifestAsset)}
 }
 
 func (s *Service) Check(ctx context.Context) (UpdateInfo, error) {
