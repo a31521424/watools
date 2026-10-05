@@ -11,9 +11,9 @@ const entry = [
         type: "executable",
         subTitle: "打开 URL 或路径",
         icon: "external-link",
-        match: (context) => {
-            const trimmed = context.input.value.trim();
-            return isUrlLike(trimmed) || isPathLike(trimmed);
+        matchPreview: (context) => {
+            const head = context.input.head.trimStart();
+            return isUrlLike(head) || isPathLike(head);
         },
         execute: async (context) => {
             const trimmed = context.input.value.trim();
@@ -36,7 +36,7 @@ const entry = [
         type: "executable",
         subTitle: "复制文件路径",
         icon: "clipboard-copy",
-        match: (context) => context.input.clipboardContentType === "files",
+        matchPreview: (context) => context.input.clipboardContentType === "files",
         execute: async (context) => {
             const files = context.clipboard?.files || [];
             if (!files.length) {
@@ -49,7 +49,7 @@ const entry = [
         type: "executable",
         subTitle: "保存剪贴板图片",
         icon: "image-down",
-        match: (context) => context.input.clipboardContentType === "image",
+        matchPreview: (context) => context.input.clipboardContentType === "image",
         execute: async (context) => {
             const imageBase64 = context.clipboard?.imageBase64;
             if (!imageBase64) {

@@ -1,0 +1,17 @@
+{"case": "native-ready", "methods": 41, "realWebKit": true, "isolatedData": true}
+{"case": "automatic-launch", "choices": 5, "focusToFrameMs": 20, "inputLength": 0, "summaryLength": 71, "originLength": 2008}
+{"case": "snapshot-origin", "cacheMs": 1.0000000000002274, "exact": true, "inlineLength": 0, "length": 2008, "previewLength": 71}
+{"case": "automatic-launch", "choices": 5, "focusToFrameMs": 13, "inputLength": 0, "summaryLength": 71, "originLength": 20008}
+{"case": "launcher-capture", "saved": false}
+{"case": "snapshot-origin", "cacheMs": 0, "exact": true, "inlineLength": 0, "length": 20008, "previewLength": 71}
+{"case": "automatic-launch", "choices": 5, "focusToFrameMs": 17, "inputLength": 0, "summaryLength": 71, "originLength": 100008}
+{"case": "snapshot-origin", "cacheMs": 1, "exact": true, "inlineLength": 0, "length": 100008, "previewLength": 71}
+{"case": "automatic-launch", "choices": 5, "focusToFrameMs": 9, "inputLength": 0, "summaryLength": 71, "originLength": 1000008}
+{"case": "snapshot-origin", "cacheMs": 1, "exact": true, "inlineLength": 0, "length": 1000008, "previewLength": 71}
+{"case": "plugin-context", "clipboardExact": true, "editorExact": true, "inputExact": true, "launchToContextMs": 802, "urlLength": 121}
+{"case": "automatic-launch", "choices": 5, "focusToFrameMs": 44, "inputLength": 0, "summaryLength": 71, "originLength": 10000008}
+{"case": "snapshot-origin", "cacheMs": 1, "exact": true, "inlineLength": 0, "length": 10000008, "previewLength": 71}
+{"case": "manual-paste", "inputLength": 0, "pasteToFrameMs": 6, "summaryPresent": true}
+{"case": "copy-origin", "exact": true}
+{"case": "clipboard-restore", "restored": true}
+{"case": "cleanup", "hostStopped": true, "qaDirectory": "/var/folders/bm/bnv2nh7j36q_h3yshkg4m9dm0000gn/T/watools-clipboard-native-b4dsjvvm"}

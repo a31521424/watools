@@ -18,17 +18,9 @@ const entry = [{
     type: "ui",
     subTitle: "打开翻译面板",
     icon: "languages",
-    match: (context) => {
-        const input = context.input.value.trim();
-        if (!input) {
-            return false;
-        }
-
-        if (hasTranslationPrefix(input)) {
-            return true;
-        }
-
-        return hasTranslatableContent(input);
+    matchPreview: (context) => {
+        const head = context.input.head.trimStart();
+        return hasTranslationPrefix(head) || hasTranslatableContent(head);
     },
     file: "index.html"
 }];

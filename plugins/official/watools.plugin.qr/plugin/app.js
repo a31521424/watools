@@ -11,14 +11,7 @@ const entry = [{
     type: "ui",
     subTitle: "打开二维码工作区",
     icon: "qr-code",
-    match: (context) => {
-        const input = (context.input.value || "").trim();
-        if (!input) {
-            return false;
-        }
-
-        return triggerPattern.test(input);
-    },
+    matchPreview: (context) => context.input.clipboardContentType === "image" || triggerPattern.test(context.input.head.trim()),
     file: "index.html"
 }];
 

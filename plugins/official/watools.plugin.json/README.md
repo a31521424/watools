@@ -8,6 +8,7 @@ Official JSON editor for explicit command-triggered editing.
 - `url2params <url-or-query>` trigger support
 - `query2params <url-or-query>` and `qs2params <url-or-query>` aliases
 - launch-context passthrough into the editor
+- long JSON object/array candidates are recommended through bounded head/tail matching; selecting the UI entry imports the complete raw text without requiring a `json` prefix
 - Monaco-based primary editor with VS Code-like multi-cursor and word navigation behavior
 - path panel for current cursor path and batch extraction
 - auto-format on startup seed when the payload is a JSON object or array
@@ -27,6 +28,9 @@ Official JSON editor for explicit command-triggered editing.
 - `query2params foo=1&bar=2`
 - `qs2params https%3A%2F%2Fexample.com%3Fa%3D1`
 - when trailing content is not valid JSON, it is still passed through into the editor unchanged
+- `matchPreview` detects candidate objects/arrays from bounded head/tail brackets and explicit command prefixes; it never parses JSON during launcher matching
+- selecting “打开 JSON 编辑器” imports complete original clipboard text, then use the format button or `Cmd/Ctrl + Enter`; scalars remain supported by the editor but do not automatically match the bracket heuristic
+- clipboard text is literal input, including JSON scalar values and command-like strings; command prefixes are parsed only for typed commands and legacy seeds
 
 ## Shortcuts
 

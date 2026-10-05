@@ -956,6 +956,9 @@
     };
 
     const extractCommandSeed = (context) => {
+        if (context?.input?.valueType === "clipboard" && typeof context?.clipboard?.text === "string") {
+            return {trigger: "", payload: context.clipboard.text};
+        }
         const searchSeed = new URLSearchParams(window.location.search).get("seed");
         const seedValue = typeof searchSeed === "string" && searchSeed.trim()
             ? searchSeed
@@ -1285,8 +1288,15 @@
         }
 
         const {trigger, payload} = extractCommandSeed(context);
-        if (!trigger || !payload) {
+        if (!payload) {
             validateNow();
+            return;
+        }
+
+        if (!trigger) {
+            replaceEditorValue(payload);
+            validateNow();
+            focusEditor();
             return;
         }
 

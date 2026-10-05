@@ -34,7 +34,7 @@ const entry = [{
     type: "ui",
     subTitle: "打开插件界面",
     icon: "star",
-    match: (context) => context.input.value.startsWith('example'),
+    matchPreview: (context) => context.input.head.startsWith('example'),
     file: "index.html"
 }];
 export default entry;
@@ -133,7 +133,7 @@ const entry = [
         type: "ui" | "executable",
         subTitle: "操作描述",
         icon: "icon-name" | "🔢" | null,
-        match: (context) => boolean,
+        matchPreview: (context) => boolean, // 有界首尾与素材元数据
         file: "index.html",
         execute: async (context) => {}
     }

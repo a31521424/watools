@@ -1,6 +1,7 @@
 import {useMemo} from "react";
 import {BaseItemProps} from "@/components/watools/wa-base-item";
 import Fuse from "fuse.js";
+import {getSearchQuery} from '@/lib/input-text';
 import {WaIcon} from "@/components/watools/wa-icon";
 import {useLocation} from "wouter";
 import {compareRankableItems, RankingInputContext, RankingSelectionRecord} from "@/lib/command-ranking";
@@ -63,11 +64,12 @@ export const useAppFeatureItems = ({
     }, []);
 
     return useMemo((): BaseItemProps[] => {
-        if (!searchKey) {
+        const query = getSearchQuery(searchKey);
+        if (!query) {
             return [];
         }
 
-        const results = appFeatureFuse.search(searchKey, {limit: 5})
+        const results = appFeatureFuse.search(query, {limit: 5})
             .map((result, index) => ({
                 feature: result.item,
                 rankingMeta: {

@@ -1,0 +1,85 @@
+2026-10-06 clipboard optimization validation
+Source: working tree based on 2c6a229; final implementation described in README.md.
+Synthetic fixtures only; isolated application data/cache.
+
+PASS node scripts/dev.mjs bindings
+  Wails v3 generated bindings: 7 services, 41 public methods.
+PASS node scripts/dev.mjs plugins package
+  Rebuilt all six official plugin packages, including raw clipboard input preservation.
+PASS node scripts/dev.mjs check
+  Frontend regressions: 27 passed, 0 failed.
+  Development workflow regressions: 16 passed, 0 failed.
+  TypeScript/Vite frontend production build passed.
+  All Go tests, server-mode tests and go vet passed.
+  macOS production application build passed.
+PASS node scripts/dev.mjs check-race
+  Go race-enabled tests passed across repository packages.
+PASS go test -race ./internal/app
+  Final targeted rerun after correcting the synthetic fixture's UTF-16 length.
+PASS GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -tags production -o /private/tmp/watools-clipboard-windows.exe .
+  Go toolchain go1.26.8; Windows cross compilation only, no Windows GUI runtime validation.
+PASS native QA AppKit/WebKit run
+  Complete output in clipboard-native-results.jsonl; methodology and boundaries in README.md.
+PASS git diff --check
+PASS modified Markdown relative-link check
+
+JSON scenario follow-up (same date):
+PASS node --test scripts/frontend-regressions.test.cjs
+  28 passed, 0 failed; added raw clipboard JSON import and command compatibility coverage.
+PASS node scripts/dev.mjs plugins package watools.plugin.json
+PASS native JSON QA
+  1,100,033 UTF-16 units; entry visible; complete raw input in actual Monaco editor.
+  Format action succeeded with original payload and Unicode values preserved.
+  Output in json-native-results.jsonl; clipboard restored and host stopped.
+
+Final match-context follow-up (same date):
+PASS node scripts/dev.mjs bindings
+  Regenerated the suffix DTO; no generated files edited by hand.
+PASS node scripts/dev.mjs check
+  31 frontend regressions and 16 workflow regressions passed; frontend production build,
+  Go tests, server tests, vet and macOS production build passed.
+PASS node scripts/dev.mjs check-race
+PASS node scripts/dev.mjs plugins package
+  Six official plugins now have bounded matchPreview callbacks; legacy match remains for older hosts.
+PASS Windows production cross compilation
+PASS native match-context QA
+  Plain long text rejected by JSON candidate rule; JSON matched with 128-unit head/tail,
+  inline origin length zero; full context and actual Monaco editor remain exact after selection.
+  Formatting preserved values; original clipboard restored; host stopped.
+  Output in match-context-native-results.jsonl.
+
+Coverage includes raw whitespace/NUL/Unicode, snapshot version reuse, cache budget/TTL/release,
+concurrent reads, long manual paste, bounded search/ranking/matching, deferred launch input,
+cancelled/coalesced focus, input-state lease lifetime, stalled usage writes and raw official-plugin editors.
+
+KISS input/matcher/context refactor (current final phase):
+PASS node scripts/dev.mjs bindings: 7 services / 42 generated public methods.
+PASS node scripts/dev.mjs check: 45 frontend + 16 workflow regressions;
+  frontend build, Go/server tests, vet, macOS production compilation.
+PASS node scripts/dev.mjs check-race
+PASS Windows production cross compilation (no Windows GUI validation)
+PASS six official plugin packages rebuilt with matchPreview only
+PASS native final launcher QA: fixed origin, long automatic/manual input,
+  iframe editor equality and NUL-aware copy; clipboard restored, host stopped.
+PASS native final JSON QA: bounded candidate match, full actual Monaco import,
+  formatting values preserved; clipboard restored, host stopped.
+PASS independent final design review: no blocking findings.
+Results: launcher-refactor-native-results.jsonl / launcher-refactor-json-results.jsonl.
+
+Pre-commit full workspace review:
+FIX P1 native reader/cache shutdown lock inversion; regression covers close during
+  blocked native read, no cache resurrection and cached origin across TTL expiry.
+FIX P2 lightweight calculator candidates failing execution silently cleared input;
+  invalid expressions now reject, show error and preserve launcher input.
+FIX blur flush guard for asynchronously arriving new clipboard material.
+FIX explicit UTF-8 stdout for new Windows automatic clipboard reader.
+PASS node scripts/dev.mjs check: 45 frontend / 16 workflow regressions, build,
+  all Go tests, server tests, vet, macOS production compilation.
+PASS node scripts/dev.mjs check-race
+PASS all six official plugins packaged after calculator execution fix
+PASS Windows production cross compilation after cache/encoding fix
+PASS final native launcher QA after fixes, including NUL origin replacing a different
+  system clipboard and actual calculator rejection preserving input.
+PASS final native JSON QA after fixes: full context/editor equality and formatted values.
+  Both runs restored clipboard and stopped QA host.
+PASS final diff whitespace, Markdown relative-link and JSON/JSONL validation.

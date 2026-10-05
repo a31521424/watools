@@ -12,7 +12,7 @@ This directory is the source of truth for WaTools official plugins.
 
 - `watools.plugin.common`: open URLs and file paths, copy file paths, save clipboard images
 - `watools.plugin.calculator`: executable calculator + calculator panel with history
-- `watools.plugin.json`: explicit-trigger JSON editor with seed/paste auto-formatting, expanded preview, and minified copy
+- `watools.plugin.json`: JSON editor with bounded object/array candidate matching, seed/paste auto-formatting, expanded preview, and minified copy
 - `watools.plugin.qr`: two-pane QR workspace for seeded text generation and clipboard image decoding
 - `watools.plugin.translate`: translation panel with OS-backed API key storage
 - `watools.plugin.textstats`: explicit-trigger text statistics panel with multidimensional counts
@@ -59,4 +59,5 @@ go run ./cmd/pluginctl install watools.plugin.translate
 - UI plugins should read launch data from `window.pluginContext` and `watools:context-ready`.
 - `seed` query params and `window.inputValue` are compatibility fallbacks only. The host does not put input text in URLs.
 - Repackage and reinstall changed official plugins; updating the host alone does not replace installed plugin files.
+- Current official entries declare only `matchPreview` and require the current host. Third-party entries using legacy `match` remain supported through the host adapter.
 - Translation requires the new Secret API. macOS saves credentials in owner-only local plaintext files; Windows uses DPAPI. Host storage failures are reported without copying keys to browser storage.

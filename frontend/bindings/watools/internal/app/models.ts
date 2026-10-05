@@ -6,6 +6,55 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
+ * AutomaticClipboard contains only a bounded preview for large text. Length is
+ * measured in UTF-16 code units, matching JavaScript string.length.
+ */
+export class AutomaticClipboard {
+    "version": string;
+    "snapshotId": string;
+    "text": string;
+    "preview": string;
+    "prefix": string;
+    "suffix": string;
+    "length": number;
+
+    /** Creates a new AutomaticClipboard instance. */
+    constructor($$source: Partial<AutomaticClipboard> = {}) {
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+        if (!("snapshotId" in $$source)) {
+            this["snapshotId"] = "";
+        }
+        if (!("text" in $$source)) {
+            this["text"] = "";
+        }
+        if (!("preview" in $$source)) {
+            this["preview"] = "";
+        }
+        if (!("prefix" in $$source)) {
+            this["prefix"] = "";
+        }
+        if (!("suffix" in $$source)) {
+            this["suffix"] = "";
+        }
+        if (!("length" in $$source)) {
+            this["length"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AutomaticClipboard instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AutomaticClipboard {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new AutomaticClipboard($$parsedSource as Partial<AutomaticClipboard>);
+    }
+}
+
+/**
  * ClipboardContent contains comprehensive clipboard data with automatic type detection
  */
 export class ClipboardContent {

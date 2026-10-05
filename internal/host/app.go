@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"errors"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"watools/config"
 	"watools/internal/app"
@@ -26,6 +27,33 @@ func (s *AppService) HideOrShowAppApi()      { s.core.HideOrShowApp() }
 func (s *AppService) GetClipboardContentApi() (*app.ClipboardContent, error) {
 	v, e := s.core.GetClipboardContent()
 	return v, failure("app.clipboard", e)
+}
+func (s *AppService) SetClipboardTextApi(text string) error {
+	return failure("app.clipboardWrite", s.core.SetClipboardText(text))
+}
+func (s *AppService) GetAutomaticClipboardApi() (*app.AutomaticClipboard, error) {
+	v, e := s.core.GetAutomaticClipboard()
+	return v, failure("app.automaticClipboard", e)
+}
+func (s *AppService) GetClipboardSnapshotTextApi(id string) (string, error) {
+	if len(id) != 32 {
+		return "", invalid("剪贴板快照标识无效")
+	}
+	v, e := s.core.GetClipboardSnapshotText(id)
+	if errors.Is(e, app.ErrClipboardSnapshotExpired) {
+		return "", &Error{Code: "UNAVAILABLE", Message: "剪贴板快照已释放或过期，请重新复制文本", Operation: "app.clipboardSnapshot"}
+	}
+	return v, failure("app.clipboardSnapshot", e)
+}
+func (s *AppService) ReleaseClipboardSnapshotApi(id string) { s.core.ReleaseClipboardSnapshot(id) }
+func (s *AppService) RetainClipboardSnapshotApi(id string) error {
+	if len(id) != 32 {
+		return invalid("剪贴板快照标识无效")
+	}
+	if e := s.core.RetainClipboardSnapshot(id); e != nil {
+		return &Error{Code: "UNAVAILABLE", Message: "剪贴板快照已释放或过期，请重新复制文本", Operation: "app.clipboardSnapshot"}
+	}
+	return nil
 }
 func (s *AppService) GetHotkeyEnvironmentStatusApi() app.HotkeyEnvironmentStatus {
 	return s.core.GetHotkeyEnvironmentStatus()

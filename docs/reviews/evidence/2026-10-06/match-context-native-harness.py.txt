@@ -1,0 +1,88 @@
+import os, pathlib, json, re, subprocess, time, tempfile, urllib.request
+root = pathlib.Path.cwd()
+qa = pathlib.Path(tempfile.mkdtemp(prefix='watools-clipboard-native-'))
+(qa/'data/hotkeys').mkdir(parents=True)
+(qa/'data/hotkeys/config.json').write_text(json.dumps([{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+k'}]))
+url='http://127.0.0.1:9267/mcp'
+ids={}
+for path in (root/'frontend/bindings/watools/internal/host').glob('*service.ts'):
+    ids.update({name:int(number) for name,number in re.findall(r'export function (\w+)\([^\n]*\{\n\s+return \$Call.ByID\((\d+)',path.read_text())})
+def tool(name,args):
+    req=urllib.request.Request(url,data=json.dumps({'jsonrpc':'2.0','id':1,'method':'tools/call','params':{'name':name,'arguments':args}}).encode(),headers={'Content-Type':'application/json'})
+    response=json.load(urllib.request.urlopen(req,timeout=20))
+    if response.get('error'): raise RuntimeError(response['error'])
+    result=response['result']
+    if result.get('isError'): raise RuntimeError(result['content'])
+    return json.loads(result['content'][0]['text'])
+def js(code):
+    result=tool('js_eval',{'window':'launcher','js':'try {'+code+'} catch (error) {return {qaError: error.message}}','timeout_ms':12000})
+    if isinstance(result,dict) and result.get('qaError'):raise RuntimeError(result['qaError'])
+    return result
+def wait(fn, timeout=20):
+    deadline=time.monotonic()+timeout
+    while time.monotonic()<deadline:
+        try:
+            result=fn()
+            if result:return result
+        except Exception:
+            if host.poll() is not None:raise RuntimeError('native process exited')
+        time.sleep(.1)
+    raise RuntimeError('native readiness condition timed out')
+def record(name,result): print(json.dumps({'case':name,**result},ensure_ascii=False),flush=True)
+setup='''window.__qaCall = async (id,args=[]) => {const response=await fetch(window.location.origin+'/wails/runtime',{method:'POST',headers:{'Content-Type':'application/json','x-wails-client-id':'clipboard-qa','x-wails-window-name':'launcher'},body:JSON.stringify({object:0,method:0,args:{'call-id':crypto.randomUUID(),methodID:id,args}})});const data=response.headers.get('Content-Type')?.includes('application/json')?await response.json():await response.text();if(!response.ok)throw Error(JSON.stringify(data));return data};return !!document.querySelector('input[role=combobox]');'''
+def call(name,args=[]):return js('return await window.__qaCall('+str(ids[name])+','+json.dumps(args)+');')
+def fixture(command):
+    helper.stdin.write(json.dumps(command)+'\n');helper.stdin.flush()
+    response=json.loads(helper.stdout.readline())
+    if response.get('error'):raise RuntimeError(response)
+    return response
+def clear_input():
+    js('''if(document.querySelector('[aria-label="剪贴板文本摘要"]') || document.querySelector('input[role=combobox]').value) document.querySelector('input[role=combobox]').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));return true;''')
+log=open(qa/'host.log','w')
+host=subprocess.Popen([str(root/'.cache/clipboard-native/watools-qa.app/Contents/MacOS/watools')],env=dict(os.environ,WATOOLS_DATA_DIR=str(qa/'data'),WATOOLS_CACHE_DIR=str(qa/'cache'),WAILS_MCP_HOST='127.0.0.1',WAILS_MCP_PORT='9267',WAILS_MCP_HIDE_CURSOR='1'),stdout=log,stderr=subprocess.STDOUT)
+helper=None; saved=False
+try:
+    wait(lambda:js(setup))
+    for package in sorted((root/'.cache/dev/packages').glob('*.wt')):call('InstallPluginApi',[str(package)])
+    js('window.__qaReloadMarker=true;setTimeout(()=>location.reload(),50);return true;')
+    wait(lambda:js('return window.__qaReloadMarker!==true && !!document.querySelector(\'input[role=combobox]\');'))
+    wait(lambda:js(setup))
+    tool('window_control',{'window':'launcher','action':'show'})
+    tool('window_control',{'window':'launcher','action':'focus'})
+    clear_input()
+    helper=subprocess.Popen(['/private/tmp/watools-clipboard-helper'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+    fixture({'action':'backup'});saved=True
+    (qa/'plain.txt').write_text('plain text '*100000)
+    fixture({'action':'set','path':str(qa/'plain.txt')})
+    result=js('''window.dispatchEvent(new Event('focus'));while(!document.querySelector('[aria-label="剪贴板文本摘要"]')){await new Promise(r=>setTimeout(r,5))};await new Promise(requestAnimationFrame);return {jsonEntryAbsent:!Array.from(document.querySelectorAll('[cmdk-item]')).some(e=>e.textContent.includes('打开 JSON 编辑器')),choices:document.querySelectorAll('[cmdk-item]').length};''')
+    assert result['jsonEntryAbsent'],result
+    record('plain-candidate-filter',result)
+    clear_input()
+    origin=' \n'+json.dumps({'payload':'alpha beta '*100000,'unicode':'😀'},ensure_ascii=False,separators=(',',':'))+'\n '
+    (qa/'fixture.txt').write_text(origin)
+    fixture({'action':'set','path':str(qa/'fixture.txt')})
+    expected="' \\n'+JSON.stringify({payload:'alpha beta '.repeat(100000),unicode:'😀'})+'\\n '"
+    result=js("const start=performance.now();window.dispatchEvent(new Event('focus'));while(!document.querySelector('[aria-label=\"剪贴板文本摘要\"]')){await new Promise(r=>setTimeout(r,5));if(performance.now()-start>5000)throw Error('automatic input stalled')};await new Promise(requestAnimationFrame);const option=Array.from(document.querySelectorAll('[cmdk-item]')).find(e=>e.textContent.includes('打开 JSON 编辑器'));return {focusToFrameMs:performance.now()-start,jsonEntryVisible:!!option,inputLength:document.querySelector('input[role=combobox]').value.length};")
+    assert result['jsonEntryVisible'] and result['inputLength']==0,result
+    result['originLength']=len(origin.encode('utf-16-le'))//2
+    record('json-launcher',result)
+    view=call('GetAutomaticClipboardApi')
+    record('match-context-bridge',{'headLength':len(view['prefix'].encode('utf-16-le'))//2,'tailLength':len(view['suffix'].encode('utf-16-le'))//2,'inlineLength':len(view['text']),'length':view['length'],'bracketsExact':view['prefix'].lstrip().startswith('{') and view['suffix'].rstrip().endswith('}')})
+    assert len(view['prefix'].encode('utf-16-le'))//2<=128 and len(view['suffix'].encode('utf-16-le'))//2<=128 and view['text']==''
+
+    result=js("const start=performance.now();Array.from(document.querySelectorAll('[cmdk-item]')).find(e=>e.textContent.includes('打开 JSON 编辑器')).click();let frame,model;while(!(frame=document.querySelector('iframe')?.contentWindow)?.pluginContext || !(model=frame.monaco?.editor.getModels().find(m=>m.getLanguageId()==='json'))?.getValue()){await new Promise(r=>setTimeout(r,10));if(performance.now()-start>10000)throw Error('JSON editor stalled')};const expected="+expected+";return {launchToEditorMs:performance.now()-start,inputExact:frame.pluginContext.input.value===expected,clipboardExact:frame.pluginContext.clipboard.text===expected,editorExact:model.getValue()===expected,editorLength:model.getValue().length,urlLength:location.href.length};")
+    assert result['inputExact'] and result['clipboardExact'] and result['editorExact'],result
+    record('json-editor-origin',result)
+    result=js("const frame=document.querySelector('iframe').contentWindow;frame.document.getElementById('format-button').click();const start=performance.now();while(frame.document.getElementById('status-pill').textContent!=='已格式化'){await new Promise(r=>setTimeout(r,10));if(performance.now()-start>10000)throw Error('JSON format stalled')};const text=frame.monaco.editor.getModels().find(m=>m.getLanguageId()==='json').getValue();const value=JSON.parse(text);return {formatComplete:true,payloadExact:value.payload==='alpha beta '.repeat(100000),unicodeExact:value.unicode==='😀',formattedShape:text.startsWith('{\\n'),formatMs:performance.now()-start};")
+    assert result['formatComplete'] and result['payloadExact'] and result['unicodeExact'] and result['formattedShape'],result
+    record('json-format',result)
+finally:
+    if saved and helper and helper.poll() is None:
+        record('clipboard-restore',fixture({'action':'restore'}))
+    if helper:
+        helper.stdin.close();helper.wait(timeout=10)
+    host.terminate()
+    try:host.wait(timeout=10)
+    except subprocess.TimeoutExpired:host.kill();host.wait()
+    log.close()
+    record('cleanup',{'hostStopped':host.poll() is not None,'qaDirectory':str(qa)})

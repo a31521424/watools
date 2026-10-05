@@ -6,7 +6,7 @@ import {host} from "@/api/host"
 const launcher = Window.Get('launcher')
 export const BrowserOpenURL = (url: string) => Browser.OpenURL(url)
 export const ClipboardGetText = () => Clipboard.Text()
-export const ClipboardSetText = async (text: string): Promise<boolean> => { await Clipboard.SetText(text); return true }
+export const ClipboardSetText = async (text: string): Promise<boolean> => { await host.SetClipboardTextApi(text); return true }
 export const WindowGetSize = async () => { const size = await host.GetLauncherSizeApi(); return {w: size.width, h: size.height} }
 export const WindowSetSize = (width: number, height: number) => host.SetLauncherSizeApi(width, height)
 const callbackData = (callback: (...data: any[]) => void) => (event: Events.WailsEvent) => callback(...(event.data == null ? [] : Array.isArray(event.data) ? event.data : [event.data]))

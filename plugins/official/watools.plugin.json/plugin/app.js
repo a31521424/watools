@@ -11,13 +11,12 @@ const entry = [{
     type: "ui",
     subTitle: "打开 JSON 编辑器",
     icon: "braces",
-    match: (context) => {
-        const input = (context.input.value || "").trim();
-        if (!input) {
-            return false;
-        }
-
-        return triggerPattern.test(input);
+    matchPreview: (context) => {
+        const head = context.input.head.trimStart();
+        const tail = context.input.tail.trimEnd();
+        return (head.startsWith("{") && tail.endsWith("}"))
+            || (head.startsWith("[") && tail.endsWith("]"))
+            || triggerPattern.test(head);
     },
     file: "index.html"
 }];

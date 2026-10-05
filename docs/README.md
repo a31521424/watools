@@ -12,7 +12,7 @@
 | 开发 | [本地开发](./development/local-workflow.md)：macOS 统一命令、隔离与调试；[发布流程](./development/release-cd.md)：发布与更新机制及迁移暂停记录 |
 | 插件开发 | [专题索引](./plugin-development/README.md)：按需读取六个章节 |
 | Backlog | [目标索引](./backlog/README.md)：优先级、依赖、实施范围和验收标准 |
-| 调研 | [框架与语言调研](./research/technology-direction-2026-10-02.md)：保留讨论依据，最新路线以 backlog 为准 |
+| 调研 | [框架与语言调研](./research/technology-direction-2026-10-02.md)、[剪贴板与插件启动性能](./research/clipboard-launch-performance-2026-10-06.md)：保留讨论与实验依据，最新路线以 backlog 为准 |
 | 审查 | [原始审查](./reviews/review-2026-10-02.md)、[修复记录](./reviews/remediation-2026-10-03.md)、[证据索引](./reviews/evidence/README.md)：有日期的发现和验证边界 |
 
 ## 按需阅读
@@ -80,6 +80,7 @@ docs/
 ├── requirements/
 │   └── developer-self-use.md
 ├── research/
+│   ├── clipboard-launch-performance-2026-10-06.md
 │   └── technology-direction-2026-10-02.md
 ├── reviews/
 │   ├── evidence/
@@ -120,6 +121,20 @@ docs/
 │   │   │   ├── rapid-exit.py.txt
 │   │   │   ├── services-acceptance.txt
 │   │   │   └── services-native-harness.py.txt
+│   │   ├── 2026-10-06/
+│   │   │   ├── README.md
+│   │   │   ├── clipboard-launch-probe.cjs
+│   │   │   ├── clipboard-launch-results.json
+│   │   │   ├── clipboard-checks.txt
+│   │   │   ├── clipboard-native-harness.py.txt
+│   │   │   ├── clipboard-helper.swift.txt
+│   │   │   ├── clipboard-native-results.jsonl
+│   │   │   ├── json-native-harness.py.txt
+│   │   │   ├── json-native-results.jsonl
+│   │   │   ├── match-context-native-harness.py.txt
+│   │   │   ├── match-context-native-results.jsonl
+│   │   │   ├── launcher-refactor-native-results.jsonl
+│   │   │   └── launcher-refactor-json-results.jsonl
 │   │   └── README.md
 │   ├── remediation-2026-10-03.md
 │   └── review-2026-10-02.md

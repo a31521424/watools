@@ -5,6 +5,7 @@ export type ApplicationCommand = {triggerId: string; name: string; description: 
 export type OperationCommand = Pick<ApplicationCommand, 'triggerId' | 'name' | 'description' | 'category' | 'lastUsedAt' | 'usedCount'> & {icon: string}
 export type PluginInfo = {packageId: string; name: string; description: string; version: string; author: string; usage: string; triggerKeywords: string[] | null; usageExamples: string[] | null; shortcuts: string[] | null; notes: string[] | null; uiEnabled: boolean; entry: string; enabled: boolean; lastUsedAt: string | null; usedCount: number; homeUrl: string; loadError?: string}
 export type ClipboardContent = {contentType: string; hasText: boolean; hasImage: boolean; hasFiles: boolean; text?: string; imageBase64?: string; files?: string[]; types: string[]}
+export type AutomaticClipboard = {version: string; snapshotId: string; text: string; preview: string; prefix: string; suffix: string; length: number}
 export type HttpRequest = {url: string; method?: string; headers?: Record<string, string>; body?: string; timeout?: number; requestId?: string}
 export type HttpResponse = {status_code: number; headers: Record<string, string>; body: string; error?: string}
 export type PackageRequest = {packageId: string}
@@ -20,6 +21,11 @@ export interface HostAPI {
  HideAppApi(): Promise<void>
  HideOrShowAppApi(): Promise<void>
  GetClipboardContentApi(): Promise<ClipboardContent | null>
+ SetClipboardTextApi(text: string): Promise<void>
+ GetAutomaticClipboardApi(): Promise<AutomaticClipboard | null>
+ GetClipboardSnapshotTextApi(id: string): Promise<string>
+ ReleaseClipboardSnapshotApi(id: string): Promise<void>
+ RetainClipboardSnapshotApi(id: string): Promise<void>
  GetHotkeyEnvironmentStatusApi(): Promise<{secureEventInputEnabled: boolean; note: string}>
  GetApplicationCommandsApi(): Promise<ApplicationCommand[]>
  GetOperatorCommandsApi(): Promise<OperationCommand[]>

@@ -32,7 +32,7 @@ type ClipboardContent struct {
 }
 
 func runPowerShell(script string) (string, error) {
-	cmd := exec.Command("powershell", "-NoProfile", "-Command", script)
+	cmd := exec.Command("powershell", "-NoProfile", "-STA", "-Command", script)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("powershell failed: %w\n%s", err, output)
@@ -88,6 +88,48 @@ func (a *WaApp) positionWindowOnScreen(windowWidth int, windowHeight int) bool {
 }
 
 // ==================== Clipboard API ====================
+
+func (a *WaApp) SetClipboardText(text string) error {
+	if application.System.IsServer() {
+		return fmt.Errorf("clipboard text write is unsupported in server mode")
+	}
+	if !application.Get().Clipboard.SetText(text) {
+		return fmt.Errorf("clipboard text write failed")
+	}
+	return nil
+}
+
+func (a *WaApp) readAutomaticClipboardText(known string) (clipboardTextRead, error) {
+	if application.System.IsServer() {
+		return clipboardTextRead{version: "server", unchanged: known == "server"}, nil
+	}
+	// All clipboard calls share one STA process; version detection does not read
+	// image pixels or file paths. Known versions are quoted as JSON string data.
+	encoded, _ := json.Marshal(known)
+	script := "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); " +
+		"Add-Type -AssemblyName System.Windows.Forms; " +
+		"Add-Type 'using System.Runtime.InteropServices; public class WaClipboardVersion { [DllImport(\"user32.dll\")] public static extern uint GetClipboardSequenceNumber(); }'; " +
+		"$known = '" + strings.ReplaceAll(string(encoded), "'", "''") + "' | ConvertFrom-Json; " +
+		"for ($i=0; $i -lt 2; $i++) { " +
+		"$v=[string][WaClipboardVersion]::GetClipboardSequenceNumber(); " +
+		"if ($v -eq $known) { @{version=$v;unchanged=$true;text='';length=0}|ConvertTo-Json -Compress; exit }; " +
+		"$text=''; if (![System.Windows.Forms.Clipboard]::ContainsFileDropList() -and ![System.Windows.Forms.Clipboard]::ContainsImage()) { $text=[System.Windows.Forms.Clipboard]::GetText() }; " +
+		"if ($v -eq [string][WaClipboardVersion]::GetClipboardSequenceNumber()) { @{version=$v;unchanged=$false;text=$text;length=$text.Length}|ConvertTo-Json -Compress; exit } }; throw 'Clipboard changed during text read'"
+	out, err := runPowerShell(script)
+	if err != nil {
+		return clipboardTextRead{}, err
+	}
+	var value struct {
+		Version   string `json:"version"`
+		Text      string `json:"text"`
+		Length    int    `json:"length"`
+		Unchanged bool   `json:"unchanged"`
+	}
+	if err := json.Unmarshal([]byte(out), &value); err != nil {
+		return clipboardTextRead{}, fmt.Errorf("failed to decode clipboard text: %w", err)
+	}
+	return clipboardTextRead{version: value.Version, text: value.Text, length: value.Length, unchanged: value.Unchanged}, nil
+}
 
 // GetClipboardTypes returns available clipboard type identifiers on Windows
 func (a *WaApp) GetClipboardTypes() ([]string, error) {

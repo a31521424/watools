@@ -1,4 +1,5 @@
-import {Plugin, PluginEntry} from "@/schemas/plugin";
+import type {Plugin, PluginEntry, PluginEntryDefinition, PluginMatcher} from "@/schemas/plugin";
+import {MAX_MATCH_TEXT_EDGE_LENGTH} from '@/lib/input-text';
 
 const isNonEmptyString = (value: unknown): value is string => {
     return typeof value === "string" && value.trim().length > 0;
@@ -40,8 +41,16 @@ export const sanitizePluginEntries = async (plugin: Plugin, entries: unknown[]):
             return null;
         }
 
-        const candidate = entry as Partial<PluginEntry>;
-        if (candidate.type !== "executable" && candidate.type !== "ui") {
+        const candidate = entry as Partial<PluginEntryDefinition>;
+        let matcher: PluginMatcher;
+        if (typeof candidate.matchPreview === 'function') {
+            matcher = {kind: 'preview', match: candidate.matchPreview};
+        } else if (typeof candidate.match === 'function') {
+            const largeTextPrefixes = Array.isArray(candidate.largeTextPrefixes)
+                ? candidate.largeTextPrefixes.filter((value): value is string => typeof value === 'string' && value.length > 0 && value.length <= MAX_MATCH_TEXT_EDGE_LENGTH).slice(0, 32).map(value => value.toLowerCase())
+                : [];
+            matcher = {kind: 'legacy', match: candidate.match, largeTextPrefixes};
+        } else {
             return null;
         }
         if (!isNonEmptyString(candidate.subTitle)) {
@@ -51,37 +60,34 @@ export const sanitizePluginEntries = async (plugin: Plugin, entries: unknown[]):
             return null;
         }
 
-        if (candidate.type === "executable") {
-            if (typeof candidate.execute !== "function" || typeof candidate.match !== "function") {
-                return null;
+        switch (candidate.type) {
+            case 'executable':
+                if (typeof candidate.execute !== 'function') return null;
+                return {
+                    type: candidate.type,
+                    subTitle: candidate.subTitle,
+                    matcher,
+                    execute: candidate.execute,
+                    icon: candidate.icon,
+                };
+            case 'ui': {
+                const file = normalizePluginAssetPath(candidate.file);
+                if (!file) return null;
+                if (!await doesPluginAssetExist(`${plugin.homeUrl}/${file}`)) {
+                    console.error(`Plugin UI file not found for ${plugin.packageId}: ${file}`);
+                    return null;
+                }
+                return {
+                    type: candidate.type,
+                    subTitle: candidate.subTitle,
+                    matcher,
+                    icon: candidate.icon,
+                    file,
+                };
             }
-            return {
-                type: candidate.type,
-                subTitle: candidate.subTitle,
-                match: candidate.match,
-                execute: candidate.execute,
-                icon: candidate.icon ?? null,
-            };
+            default:
+                return null;
         }
-
-        const file = normalizePluginAssetPath(candidate.file);
-        if (!file || typeof candidate.match !== "function") {
-            return null;
-        }
-
-        const assetExists = await doesPluginAssetExist(`${plugin.homeUrl}/${file}`);
-        if (!assetExists) {
-            console.error(`Plugin UI file not found for ${plugin.packageId}: ${file}`);
-            return null;
-        }
-
-        return {
-            type: candidate.type,
-            subTitle: candidate.subTitle,
-            match: candidate.match,
-            icon: candidate.icon ?? null,
-            file,
-        };
     }));
 
     return sanitizedEntries.filter((entry): entry is PluginEntry => entry !== null);

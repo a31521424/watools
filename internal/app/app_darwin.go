@@ -175,6 +175,22 @@ package app
 
    // ==================== Clipboard C Functions ====================
 
+   // Unlike a NUL-terminated C string, this preserves embedded NUL characters.
+   // The caller keeps the UTF-8 bytes alive until this synchronous call returns.
+   static int setClipboardTextBytes(const void *bytes, size_t length) {
+       @autoreleasepool {
+           NSString *text = [[NSString alloc] initWithBytes:(bytes ? bytes : "") length:length encoding:NSUTF8StringEncoding];
+           if (text == nil) {
+               return 0;
+           }
+           NSPasteboard *board = [NSPasteboard generalPasteboard];
+           [board clearContents];
+           BOOL written = [board setString:text forType:NSPasteboardTypeString];
+           [text release];
+           return written ? 1 : 0;
+       }
+   }
+
    // Returns JSON array of available clipboard types (caller must free)
    static char* getClipboardTypes() {
        @autoreleasepool {
@@ -218,6 +234,39 @@ package app
                return NULL;
            }
            return strdup([text UTF8String]);
+       }
+   }
+
+   // Automatic focus reads only materialise text, never images or file lists.
+   // A version hit avoids asking the clipboard owner to render its data again.
+   static char* getAutomaticClipboardText(long long known, long long *version, size_t *length, size_t *bytes, int *status) {
+       @autoreleasepool {
+           NSPasteboard *board = [NSPasteboard generalPasteboard];
+           *version = (long long)[board changeCount];
+           *length = 0;
+           *bytes = 0;
+           *status = 0;
+           if (*version == known) {
+               *status = 1;
+               return NULL;
+           }
+           if ([board availableTypeFromArray:@[NSPasteboardTypeFileURL, NSPasteboardTypePNG, NSPasteboardTypeTIFF, @"public.jpeg"]]) {
+               return NULL;
+           }
+           NSString *text = [board stringForType:NSPasteboardTypeString];
+           if ((long long)[board changeCount] != *version) {
+               *status = 2;
+               return NULL;
+           }
+           if (text == nil) return NULL;
+           *length = [text length];
+           NSData *data = [text dataUsingEncoding:NSUTF8StringEncoding];
+           *bytes = [data length];
+           if (*bytes == 0) return NULL;
+           char *result = malloc(*bytes);
+           if (result == NULL) { *status = 3; return NULL; }
+           memcpy(result, [data bytes], *bytes);
+           return result;
        }
    }
 
@@ -303,6 +352,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"runtime"
+	"strconv"
 	"time"
 	"unsafe"
 	"watools/pkg/logger"
@@ -403,6 +454,59 @@ func (a *WaApp) positionWindowOnScreen(windowWidth int, windowHeight int) bool {
 }
 
 // ==================== Clipboard API ====================
+
+// SetClipboardText writes the complete UTF-8 text, including embedded NULs.
+func (a *WaApp) SetClipboardText(text string) error {
+	if application.System.IsServer() {
+		return fmt.Errorf("clipboard text write is unsupported in server mode")
+	}
+	var bytes unsafe.Pointer
+	if len(text) > 0 {
+		bytes = unsafe.Pointer(unsafe.StringData(text))
+	}
+	var written C.int
+	application.InvokeSync(func() {
+		written = C.setClipboardTextBytes(bytes, C.size_t(len(text)))
+	})
+	runtime.KeepAlive(text)
+	if written != 1 {
+		return fmt.Errorf("clipboard text write failed")
+	}
+	return nil
+}
+
+func (a *WaApp) readAutomaticClipboardText(known string) (clipboardTextRead, error) {
+	if application.System.IsServer() {
+		return clipboardTextRead{version: "server", unchanged: known == "server"}, nil
+	}
+	last := int64(-1)
+	if known != "" {
+		last, _ = strconv.ParseInt(known, 10, 64)
+	}
+	for attempt := 0; attempt < 2; attempt++ {
+		var version C.longlong
+		var length C.size_t
+		var bytes C.size_t
+		var status C.int
+		var text *C.char
+		application.InvokeSync(func() {
+			text = C.getAutomaticClipboardText(C.longlong(last), &version, &length, &bytes, &status)
+		})
+		if status == 2 {
+			continue
+		}
+		if status == 3 {
+			return clipboardTextRead{}, fmt.Errorf("clipboard text allocation failed")
+		}
+		value := clipboardTextRead{version: strconv.FormatInt(int64(version), 10), length: int(length), unchanged: status == 1}
+		if text != nil {
+			value.text = string(unsafe.Slice((*byte)(unsafe.Pointer(text)), int(bytes)))
+			C.free(unsafe.Pointer(text))
+		}
+		return value, nil
+	}
+	return clipboardTextRead{}, fmt.Errorf("clipboard changed during text read")
+}
 
 // v3 bindings run concurrently. NSPasteboard and its cached Cocoa objects
 // must be accessed on the application main thread, just like window operations.

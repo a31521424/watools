@@ -1,0 +1,19 @@
+{"case": "native-ready", "methods": 42, "realWebKit": true, "isolatedData": true}
+{"case": "automatic-launch", "choices": 2, "focusToFrameMs": 29, "inputLength": 0, "summaryLength": 71, "originLength": 2008}
+{"case": "snapshot-origin", "cacheMs": 0, "exact": true, "inlineLength": 0, "length": 2008, "previewLength": 71}
+{"case": "automatic-launch", "choices": 2, "focusToFrameMs": 17.000000000000114, "inputLength": 0, "summaryLength": 71, "originLength": 20008}
+{"case": "launcher-capture", "saved": false}
+{"case": "snapshot-origin", "cacheMs": 0, "exact": true, "inlineLength": 0, "length": 20008, "previewLength": 71}
+{"case": "copy-origin-nul", "exact": true, "originLength": 20008}
+{"case": "automatic-launch", "choices": 2, "focusToFrameMs": 19, "inputLength": 0, "summaryLength": 71, "originLength": 100008}
+{"case": "snapshot-origin", "cacheMs": 1, "exact": true, "inlineLength": 0, "length": 100008, "previewLength": 71}
+{"case": "automatic-launch", "choices": 2, "focusToFrameMs": 15, "inputLength": 0, "summaryLength": 71, "originLength": 1000008}
+{"case": "snapshot-origin", "cacheMs": 0.9999999999997726, "exact": true, "inlineLength": 0, "length": 1000008, "previewLength": 71}
+{"case": "plugin-context", "clipboardExact": true, "editorExact": true, "inputExact": true, "launchToContextMs": 807, "urlLength": 121}
+{"case": "automatic-launch", "choices": 2, "focusToFrameMs": 50, "inputLength": 0, "summaryLength": 71, "originLength": 10000008}
+{"case": "snapshot-origin", "cacheMs": 1, "exact": true, "inlineLength": 0, "length": 10000008, "previewLength": 71}
+{"case": "calculator-invalid-input", "errorVisible": true, "inputPreserved": true}
+{"case": "manual-paste", "inputLength": 0, "pasteToFrameMs": 8, "summaryPresent": true}
+{"case": "copy-origin", "exact": true}
+{"case": "clipboard-restore", "restored": true}
+{"case": "cleanup", "hostStopped": true, "qaDirectory": "/var/folders/bm/bnv2nh7j36q_h3yshkg4m9dm0000gn/T/watools-clipboard-native-234t14tt"}

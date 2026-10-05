@@ -1,0 +1,5 @@
+{"case": "json-launcher", "focusToFrameMs": 21.000000000000014, "inputLength": 0, "jsonEntryVisible": true, "originLength": 1100033}
+{"case": "json-editor-origin", "clipboardExact": true, "editorExact": true, "editorLength": 1100033, "inputExact": true, "launchToEditorMs": 284.00000000000006, "urlLength": 116}
+{"case": "json-format", "formatComplete": true, "formatMs": 121, "formattedShape": true, "payloadExact": true, "unicodeExact": true}
+{"case": "clipboard-restore", "restored": true}
+{"case": "cleanup", "hostStopped": true, "qaDirectory": "/var/folders/bm/bnv2nh7j36q_h3yshkg4m9dm0000gn/T/watools-clipboard-native-0br1t9iw"}

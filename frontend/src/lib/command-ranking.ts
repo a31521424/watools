@@ -1,4 +1,5 @@
 import {AppInput} from "@/schemas/app";
+import {getSearchQuery} from '@/lib/input-text';
 
 export type RankingSourceType = "application" | "plugin" | "operation" | "app-feature";
 
@@ -35,7 +36,7 @@ type RankableItem = {
 const RECENT_HISTORY_WINDOW = 6;
 
 export const normalizeRankingValue = (value: string) => {
-    return value.trim().toLowerCase().replace(/\s+/g, " ");
+    return getSearchQuery(value).toLowerCase().replace(/\s+/g, " ");
 };
 
 export const createRankingInputContext = (

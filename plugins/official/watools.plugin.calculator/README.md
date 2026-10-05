@@ -11,6 +11,9 @@ Official calculator plugin with two modes:
 
 ## Features
 
+- `matchPreview` checks bounded expression head/tail features without evaluating; actual calculation happens only after selection (candidate checks may accept invalid expressions)
+- invalid expressions report an execution error and keep the launcher input available for correction
+
 - direct evaluation for inputs like `2+3*4`
 - panel mode for `calc`, `calculator`, `jsq`, `计算`, `计算器`
 - auto normalization for common operator variants like `x`, `X`, `×`, `÷`

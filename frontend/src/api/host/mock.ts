@@ -1,5 +1,6 @@
 import type {ApplicationCommand, ClipboardContent, HostAPI, HttpResponse, OperationCommand, PluginInfo, UpdateInfo, Usage} from './contracts'
 import {HostError} from './errors'
+import {getTextDisplay, getTextEdges, MAX_INLINE_TEXT_LENGTH} from '@/lib/input-text'
 
 export type MockHostOptions = {
     applications?: ApplicationCommand[]
@@ -41,6 +42,10 @@ export function createMockHost(options: MockHostOptions = {}): HostAPI {
     let size = {width: 1280, height: 64}
     const storage = new Map<string, Map<string, unknown>>()
     const secrets = new Map<string, Map<string, string>>()
+    const clipboardSnapshots = new Map<string, string>()
+    let clipboard = clone(options.clipboard ?? null)
+    let clipboardVersion = 1
+    let clipboardSnapshotId = ''
     const enabled = (id: string) => {
         packageID(id)
         if (!plugins.some(p => p.packageId === id && p.enabled)) throw new HostError('PLUGIN_DISABLED', '插件未安装或已停用')
@@ -58,7 +63,31 @@ export function createMockHost(options: MockHostOptions = {}): HostAPI {
             size = {width, height}
         },
         HideAppApi: async () => {}, HideOrShowAppApi: async () => {},
-        GetClipboardContentApi: async () => clone(options.clipboard ?? null),
+        GetClipboardContentApi: async () => clone(clipboard),
+        SetClipboardTextApi: async text => {
+            if (typeof text !== 'string') invalid('剪贴板文本必须是字符串')
+            clipboard = {contentType: 'text', hasText: true, hasImage: false, hasFiles: false, text, types: ['text']}
+            clipboardVersion++
+            clipboardSnapshotId = ''
+        },
+        GetAutomaticClipboardApi: async () => {
+            const text = clipboard?.contentType === 'text' ? clipboard.text ?? '' : ''
+            if (!clipboardSnapshotId) clipboardSnapshotId = crypto.randomUUID().replaceAll('-', '')
+            clipboardSnapshots.set(clipboardSnapshotId, text)
+            while (clipboardSnapshots.size > 4) clipboardSnapshots.delete(clipboardSnapshots.keys().next().value!)
+            const edges = getTextEdges(text)
+            return {version: `mock-${clipboardVersion}`, snapshotId: clipboardSnapshotId, text: text.length <= MAX_INLINE_TEXT_LENGTH ? text : '', preview: getTextDisplay(text).displayValue, prefix: edges.head, suffix: edges.tail, length: text.length}
+        },
+        GetClipboardSnapshotTextApi: async id => {
+            if (id.length !== 32) invalid('剪贴板快照标识无效')
+            if (!clipboardSnapshots.has(id)) throw new HostError('UNAVAILABLE', '剪贴板快照已释放或过期，请重新复制文本')
+            return clipboardSnapshots.get(id)!
+        },
+        ReleaseClipboardSnapshotApi: async id => {clipboardSnapshots.delete(id)},
+        RetainClipboardSnapshotApi: async id => {
+            if (id.length !== 32) invalid('剪贴板快照标识无效')
+            if (!clipboardSnapshots.has(id)) throw new HostError('UNAVAILABLE', '剪贴板快照已释放或过期，请重新复制文本')
+        },
         GetHotkeyEnvironmentStatusApi: async () => ({secureEventInputEnabled: false, note: '固定浏览器场景，不检测系统状态'}),
         GetApplicationCommandsApi: async () => clone(applications), GetOperatorCommandsApi: async () => clone(operations),
         TriggerCommandApi: async (id, category) => {

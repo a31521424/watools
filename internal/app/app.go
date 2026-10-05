@@ -16,6 +16,7 @@ var (
 )
 
 type WaApp struct {
+	clipboard        clipboardSnapshots
 	hotkeyUpdateMu   sync.Mutex
 	desktop          *application.App
 	window           *application.WebviewWindow
@@ -143,6 +144,7 @@ func (a *WaApp) OnWindowReady() {
 }
 
 func (a *WaApp) Shutdown(ctx context.Context) {
+	a.clipboard.close()
 	a.unregisterHotkeys()
 }
 

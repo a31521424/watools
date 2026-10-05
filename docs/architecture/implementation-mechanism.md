@@ -68,6 +68,30 @@ macOS 全局快捷键使用 Carbon 独占注册，生命周期入口先调度到
 
 ## 插件系统机制
 
+### 剪贴板原文与呼出性能
+
+自动呼出走 AppService 的 `GetAutomaticClipboardApi`。macOS 在一次 AppKit 调度中检查剪贴板版本和主内容类型，只读取文本，不转换图片或读取文件列表；相同版本复用宿主内存快照。读取过程中版本变化会重试一次，避免返回混合版本的数据。Windows 保留对应接口，使用一次 STA PowerShell 调用与系统 sequence number，明确采用 UTF-8 输出；server 模式返回空素材。读取通过独立锁串行化，不持缓存锁等待原生主线程；退出可关闭缓存，晚到结果不再回写，避免退出与读取互相等待。
+
+文本长度以 UTF-16 code unit 计。2000 以内的原文直接返回；更长的文本只返回 snapshotId、版本、长度、首尾摘要和独立的首尾各最多 128 单元匹配片段，完整 origin 留在 Go 内存。选择插件或“复制原文”时才通过 `GetClipboardSnapshotTextApi` 读取固定快照，不重新读取当前剪贴板。空白、换行、Unicode 和 NUL 均保留。手动文本粘贴直接采用事件中的原文；图片、文件等素材继续走完整读取接口。
+
+文本写入统一经过 `SetClipboardTextApi`，旧插件的 `runtime.ClipboardSetText` 也使用此边界并保持成功返回 true 的兼容语义。macOS 以明确 UTF-8 字节长度同步写入 NSPasteboard，避免框架默认 C 字符串在 NUL 处截断；server 模式明确报不支持。浏览器 mock 只修改自己的合成剪贴板状态，不触碰系统剪贴板。旧 `runtime.ClipboardGetText` 仍是框架兼容接口，原文完整性保证使用上述快照读取边界。
+
+前端分别处理 show、origin 和 query：show 是有界展示，origin 是原文或宿主快照引用，query 超过 128 单元时不进入通用 Fuse 搜索和全文排名规范化。超过 2000 单元的素材以单独摘要展示，输入新查询替换当前素材，“复制原文”使用完整 origin。摘要不会作为可编辑正文或搜索关键词。
+
+启动器的唯一素材状态是 [`LauncherInput`](../../frontend/src/schemas/launcher.ts)：`inline` 持有完整 `PluginContext`，`clipboard-snapshot` 只持有 id、长度和首尾／展示元数据，没有空字符串正文占位。store 只保存素材、revision 和最近接受的剪贴板版本；展示、query、排名输入及轻量匹配在 [`launcher-input.ts`](../../frontend/src/lib/launcher-input.ts) 从同一个素材派生。首尾采样保持 Unicode surrogate pair 完整。`resolvePluginContext(input)` 是唯一原文解析边界，真实选择或复制才调用；内联内容复制可变外壳和文件数组，快照只读取捕获的 id，失败不改读当前剪贴板。
+
+宿主最多保留四个快照，正文按 64 MiB 总量预算回收旧记录；单个超过预算的当前原文仍完整保留。未续租记录两分钟后过期，定时释放缓存。前端根组件随输入状态每分钟续租，清空／替换素材时释放，路由切换不提前销毁待打开插件的源快照；关闭宿主会停止定时器并清空缓存。过期或淘汰明确报错，不以新剪贴板内容替代旧 origin。未被接受的并发 focus 结果由有界缓存自动过期，不释放其他 focus 可能正在接受的共享结果。
+
+匹配与执行使用独立类型：`matchPreview(PluginMatchContext)` 优先用于所有输入长度，只收到冻结的首尾各 128 单元、长度、来源与素材类型／文件数量，不含完整正文、图片数据、路径或宿主 API。`execute` 与 UI 收到完整 `PluginContext.input.value` 和文本 `clipboard.text`，只有真实选择时才取延迟原文。六个官方插件均接入新匹配接口；JSON 用首尾括号／命令前缀筛选候选，不解析全文；计算器只检查有界表达式特征，不在匹配时求值。无效计算候选在实际执行时抛出错误，宿主显示错误并保留输入，不按成功清空／隐藏。
+
+插件模块导出 `PluginEntryDefinition`，加载边界将其归一成内部 UI／executable 判别联合 `PluginEntry`：只有一个 `matcher`，UI 必须有 file，executable 必须有 execute。[`filterPluginEntries(entries, input)`](../../frontend/src/lib/plugin-matching.ts) 每次匹配只创建一份冻结的轻量上下文，不再传递完整 context、长度、前缀和 preview 等平行参数。
+
+旧入口兼容集中在 [`legacy-plugin-matcher.ts`](../../frontend/src/lib/legacy-plugin-matcher.ts)：短内联原文调用完整旧 matcher，每个调用都有独立可变外壳／文件数组；长文本和快照不调用旧函数，旧 UI 显式展示、旧 executable 用 `largeTextPrefixes`。新 matcher 的 false 不回退。六个官方入口现在只声明 `matchPreview`，重打包的新版插件需要当前宿主；外部旧插件仍可加载。片段边缘空白太长时可能漏推荐，不冒充全文校验。入口缓存与使用统计分离，统计更新只影响排序。可信 matcher 仍可能故意阻塞；完整声明式 SDK 和 Worker 改造仍属于独立 backlog。
+
+触发时固定素材与 revision／focus generation，原文解析完成后和串行 executable 真正开始时均检查取消。执行、统计 flush、失焦或空输入 Escape 的延迟操作均不能清空／隐藏新输入；旧异步失败也不会在新输入上展示错误。iframe ready 仅按原 revision 清空；ready 前取消仍保留启动器源素材。缺少 launchId 的直接 UI 路由遇到延迟素材时明确提示从启动器选择，不交付假的空正文。
+
+本轮验证与边界见 [2026-10-06 证据](../reviews/evidence/2026-10-06/README.md)。
+
 插件机制集中在 [`internal/plugin/`](../../internal/plugin)。
 
 ### 安装与状态
@@ -96,6 +120,8 @@ UI 插件页由 [`frontend/src/components/watools/wa-plugin.tsx`](../../frontend
 - `watools:context-ready` 事件
 
 这意味着插件正确读取上下文的方式应优先依赖 `window.pluginContext` 与 `watools:context-ready`，而不是依赖兼容字段。
+
+路由只带 launchId，正文只在内存中交付。启动快照复制对象外壳和文件数组，共享字符串，避免 JSON 编解码；每个 iframe 文档收到独立外壳。快照固定在一次路由会话中，加载、重载和源输入清空均不改写原文。使用统计提交不阻塞打开；ready、失败、取消和路由切换释放相应记录，未领取记录五分钟后由定时器清理，并限制数量与保守估计的正文总量。
 
 ### executable 插件执行
 

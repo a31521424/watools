@@ -13,21 +13,31 @@ import * as app$0 from "../app/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
-export function GetClipboardContentApi(): $CancellablePromise<app$0.ClipboardContent | null> {
-    return $Call.ByID(2933620392).then(($result: any) => {
+export function GetAutomaticClipboardApi(): $CancellablePromise<app$0.AutomaticClipboard | null> {
+    return $Call.ByID(3767669652).then(($result: any) => {
         return $$createType1($result);
     });
 }
 
+export function GetClipboardContentApi(): $CancellablePromise<app$0.ClipboardContent | null> {
+    return $Call.ByID(2933620392).then(($result: any) => {
+        return $$createType3($result);
+    });
+}
+
+export function GetClipboardSnapshotTextApi(id: string): $CancellablePromise<string> {
+    return $Call.ByID(1064441536, id);
+}
+
 export function GetHotkeyEnvironmentStatusApi(): $CancellablePromise<app$0.HotkeyEnvironmentStatus> {
     return $Call.ByID(4036608260).then(($result: any) => {
-        return $$createType2($result);
+        return $$createType4($result);
     });
 }
 
 export function GetLauncherSizeApi(): $CancellablePromise<$models.WindowSize> {
     return $Call.ByID(2994499026).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType5($result);
     });
 }
 
@@ -39,12 +49,26 @@ export function HideOrShowAppApi(): $CancellablePromise<void> {
     return $Call.ByID(287962724);
 }
 
+export function ReleaseClipboardSnapshotApi(id: string): $CancellablePromise<void> {
+    return $Call.ByID(332643796, id);
+}
+
+export function RetainClipboardSnapshotApi(id: string): $CancellablePromise<void> {
+    return $Call.ByID(2570739122, id);
+}
+
+export function SetClipboardTextApi(text: string): $CancellablePromise<void> {
+    return $Call.ByID(1767232100, text);
+}
+
 export function SetLauncherSizeApi(width: number, height: number): $CancellablePromise<void> {
     return $Call.ByID(540259374, width, height);
 }
 
 // Private type creation functions
-const $$createType0 = app$0.ClipboardContent.createFrom;
+const $$createType0 = app$0.AutomaticClipboard.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = app$0.HotkeyEnvironmentStatus.createFrom;
-const $$createType3 = $models.WindowSize.createFrom;
+const $$createType2 = app$0.ClipboardContent.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = app$0.HotkeyEnvironmentStatus.createFrom;
+const $$createType5 = $models.WindowSize.createFrom;

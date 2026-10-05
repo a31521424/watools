@@ -1,0 +1,50 @@
+import AppKit
+import Foundation
+import CoreGraphics
+let board = NSPasteboard.general
+var backup: [[String: Data]] = []
+var lastFixture: String? = nil
+while let line = readLine() {
+    do {
+        let command = try JSONSerialization.jsonObject(with: Data(line.utf8)) as! [String: String]
+        var response: [String: Any] = [:]
+        switch command["action"]! {
+        case "backup":
+            backup = (board.pasteboardItems ?? []).map { item in
+                var result: [String: Data] = [:]
+                for type in item.types { if let data = item.data(forType: type) { result[type.rawValue] = data } }
+                return result
+            }
+            response = ["saved": true]
+        case "set":
+            let text = String(decoding: try Data(contentsOf: URL(fileURLWithPath: command["path"]!)), as: UTF8.self)
+            board.clearContents()
+            guard board.setString(text, forType: .string) else { throw NSError(domain: "fixture", code: 1) }
+            lastFixture = text
+            response = ["version": String(board.changeCount), "length": (text as NSString).length]
+        case "window":
+            let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+            let pid = Int(command["pid"]!)!
+            let window = windows.first { ($0[kCGWindowOwnerPID as String] as? Int) == pid && ($0[kCGWindowLayer as String] as? Int) == 0 }
+            response = ["windowId": window?[kCGWindowNumber as String] ?? 0]
+        case "expect":
+            lastFixture = String(decoding: try Data(contentsOf: URL(fileURLWithPath: command["path"]!)), as: UTF8.self)
+            response = ["expected": true]
+        case "restore":
+            if board.string(forType: .string) == lastFixture {
+                board.clearContents()
+                let items = backup.map { values -> NSPasteboardItem in
+                    let item = NSPasteboardItem()
+                    for (type, data) in values { item.setData(data, forType: NSPasteboard.PasteboardType(type)) }
+                    return item
+                }
+                if !items.isEmpty { board.writeObjects(items) }
+                response = ["restored": true]
+            } else { response = ["restored": false, "reason": "clipboard changed outside the fixture"] }
+        default: response = ["error": "unknown command"]
+        }
+        let data = try JSONSerialization.data(withJSONObject: response, options: [.sortedKeys])
+        print(String(decoding: data, as: UTF8.self))
+        fflush(stdout)
+    } catch { print("{\"error\":\"clipboard fixture failed\"}"); fflush(stdout) }
+}

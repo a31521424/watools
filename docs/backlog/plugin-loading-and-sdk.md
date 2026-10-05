@@ -8,6 +8,10 @@
 
 启用插件的入口在主页面动态 import，matcher 与搜索共享执行环境。`frontend/src/lib/plugin-execution.ts` 为兼容全局 `window.watools` 串行执行；UI 插件直接注入宿主 runtime。本地改动缺少完整开发加载和诊断流程。
 
+2026-10-06 的 [剪贴板优化](../architecture/implementation-mechanism.md#剪贴板原文与呼出性能)已增加 `matchPreview` 有界元数据上下文，六个官方插件匹配与完整执行上下文分开；旧入口保留有界兼容路径，并优化启动快照交付。它没有实施本目标中的完整 manifest SDK、按需代码加载或 Worker；本目标仍为 planned。
+
+同日后续整理把启动器状态收敛为内联／快照 `LauncherInput`，加载边界统一规范化 matcher，旧适配集中维护，真实执行仅通过一个原文解析边界。它属于现有调用链与类型重构，不标记本 backlog 的其他目标完成。
+
 ## 实施范围
 
 - 优先从 manifest 读取声明式搜索规则，执行或打开时加载代码；旧函数 matcher 通过明确兼容路径维护。

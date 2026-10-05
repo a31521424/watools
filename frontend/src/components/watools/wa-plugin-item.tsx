@@ -1,10 +1,13 @@
-import {useMemo} from "react";
+import {useMemo, useRef} from "react";
 import {usePluginStore} from "@/stores";
-import {PluginContext, PluginEntry} from "@/schemas/plugin";
+import {PluginEntry} from "@/schemas/plugin";
 import {WaIcon} from "@/components/watools/wa-icon";
-import {AppClipboardContent, AppInput} from "@/schemas/app";
+import type {LauncherInput} from '@/schemas/launcher';
 import {BaseItemProps} from "@/components/watools/wa-base-item";
 import {compareRankableItems, RankingInputContext, RankingSelectionRecord} from "@/lib/command-ranking";
+import {filterPluginEntries} from '@/lib/plugin-matching';
+import {hasLauncherInput} from '@/lib/launcher-input';
+import {MAX_INLINE_TEXT_LENGTH} from '@/lib/input-text';
 
 export type PluginCommandEntry = PluginEntry & {
     packageId: string;
@@ -14,16 +17,14 @@ export type PluginCommandEntry = PluginEntry & {
 }
 
 type UsePluginItemsParams = {
-    input: AppInput;
-    clipboard: AppClipboardContent | null;
+    input: LauncherInput;
     rankingContext: RankingInputContext;
     rankingHistory: RankingSelectionRecord[];
-    onTriggerPluginCommand: (entry: PluginCommandEntry, context: PluginContext) => void;
+    onTriggerPluginCommand: (entry: PluginCommandEntry) => void;
 }
 
 export const usePluginItems = ({
     input,
-    clipboard,
     rankingContext,
     rankingHistory,
     onTriggerPluginCommand
@@ -34,7 +35,14 @@ export const usePluginItems = ({
         return getEnabledPlugins();
     }, [plugins]);
 
+    const entryCache = useRef<{sources: typeof enabledPlugins; entries: PluginCommandEntry[]} | null>(null);
+
     const allPluginEntries = useMemo(() => {
+        const previous = entryCache.current;
+        if (previous && previous.sources.length === enabledPlugins.length && enabledPlugins.every((plugin, index) => {
+            const old = previous.sources[index];
+            return plugin.packageId === old.packageId && plugin.entry === old.entry && plugin.name === old.name && plugin.homeUrl === old.homeUrl;
+        })) return previous.entries;
         const entries: PluginCommandEntry[] = [];
         enabledPlugins.forEach(plugin => {
             plugin.entry.forEach((entry, index) => {
@@ -47,28 +55,15 @@ export const usePluginItems = ({
                 });
             });
         });
+        entryCache.current = {sources: enabledPlugins, entries};
         return entries;
     }, [enabledPlugins]);
+    const pluginById = useMemo(() => new Map(enabledPlugins.map(plugin => [plugin.packageId, plugin])), [enabledPlugins]);
 
-    // Create context object once
-    const context: PluginContext = useMemo(() => ({
-        input,
-        clipboard,
-    }), [input, clipboard]);
+    const matchedEntries = useMemo(() => hasLauncherInput(input) ? filterPluginEntries(allPluginEntries, input) : [], [input, allPluginEntries]);
+    const textLength = input.kind === 'clipboard-snapshot' ? input.snapshot.length : input.context.input.value.length;
 
     return useMemo((): BaseItemProps[] => {
-        if ((!input.value && !input.clipboardContentType) || allPluginEntries.length === 0) {
-            return [];
-        }
-
-        const matchedEntries = allPluginEntries.filter(entry => {
-            try {
-                return entry.match(context);
-            } catch (error) {
-                console.error(`Plugin match error for ${entry.packageId}:`, error);
-                return false;
-            }
-        });
 
         const uniqueEntries = new Map<string, PluginCommandEntry>();
         for (const entry of matchedEntries) {
@@ -80,11 +75,11 @@ export const usePluginItems = ({
         const sortedEntries = Array.from(uniqueEntries.values())
             .map((entry, index) => ({
                 entry,
-                plugin: enabledPlugins.find(p => p.packageId === entry.packageId),
+                plugin: pluginById.get(entry.packageId),
                 rankingMeta: {
                     source: "plugin" as const,
-                    usedCount: enabledPlugins.find(p => p.packageId === entry.packageId)?.usedCount || 0,
-                    lastUsedAt: enabledPlugins.find(p => p.packageId === entry.packageId)?.lastUsedAt || null,
+                    usedCount: pluginById.get(entry.packageId)?.usedCount || 0,
+                    lastUsedAt: pluginById.get(entry.packageId)?.lastUsedAt || null,
                     sourceOrder: index,
                 }
             }))
@@ -108,7 +103,7 @@ export const usePluginItems = ({
                 return a.entry.subTitle.localeCompare(b.entry.subTitle);
             });
 
-        return sortedEntries.slice(0, 3).map(({entry, plugin, rankingMeta}) => ({
+        return (textLength > MAX_INLINE_TEXT_LENGTH ? sortedEntries : sortedEntries.slice(0, 3)).map(({entry, plugin, rankingMeta}) => ({
                 id: entry.triggerId,
                 triggerId: entry.triggerId,
                 title: entry.subTitle,
@@ -118,8 +113,8 @@ export const usePluginItems = ({
                 subtitle: entry.pluginName,
                 badge: entry.type,
                 onSelect: () => {
-                    onTriggerPluginCommand(entry, context);
+                    onTriggerPluginCommand(entry);
                 }
             }));
-    }, [input, clipboard, allPluginEntries, onTriggerPluginCommand, context, enabledPlugins, rankingContext, rankingHistory]);
+    }, [matchedEntries, onTriggerPluginCommand, pluginById, textLength, rankingContext, rankingHistory]);
 };

@@ -536,6 +536,9 @@
     };
 
     const extractSeedText = (context) => {
+        if (context?.input?.valueType === "clipboard" && typeof context.clipboard?.text === "string") {
+            return context.clipboard.text;
+        }
         const searchSeed = new URLSearchParams(window.location.search).get("seed");
         if (typeof searchSeed === "string" && searchSeed.trim()) {
             return stripTriggerPrefix(searchSeed);

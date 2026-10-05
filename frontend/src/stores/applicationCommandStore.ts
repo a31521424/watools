@@ -5,6 +5,7 @@ import {getApplicationCommands, updateApplicationUsage} from "@/api/command";
 import {EventsOn} from "@/lib/legacy-runtime";
 import Fuse, {IFuseOptions} from "fuse.js";
 import {Logger} from "@/lib/logger";
+import {getSearchQuery} from '@/lib/input-text';
 
 export const WaApplicationCommandFuseConfig: IFuseOptions<ApplicationCommandType> = {
     threshold: 0.15,
@@ -129,12 +130,13 @@ export const useApplicationCommandStore = create<ApplicationCommandStore>((set, 
     }
 
     const searchCommands = (searchKey: string, limit: number = 5): ApplicationCommandType[] => {
+        const query = getSearchQuery(searchKey)
         const {fuse} = get()
-        if (!fuse || !searchKey.trim()) {
+        if (!fuse || !query) {
             return []
         }
 
-        return fuse.search(searchKey, {limit}).map(result => result.item)
+        return fuse.search(query, {limit}).map(result => result.item)
     }
 
     const updateCommandUsage = async (commandId: string) => {

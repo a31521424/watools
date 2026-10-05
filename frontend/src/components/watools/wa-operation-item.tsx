@@ -3,6 +3,7 @@ import {CommandType, OperationCommandType} from "@/schemas/command";
 import {getOperationCommands} from "@/api/command";
 import {BaseItemProps} from "@/components/watools/wa-base-item";
 import Fuse from "fuse.js";
+import {getSearchQuery} from '@/lib/input-text';
 import {WaIcon} from "@/components/watools/wa-icon";
 import {compareRankableItems, RankingInputContext, RankingSelectionRecord} from "@/lib/command-ranking";
 
@@ -53,11 +54,12 @@ export const useOperationItems = ({
     }, []);
 
     const filteredItems = useMemo((): BaseItemProps[] => {
-        if (!searchKey || !operationFuse) {
+        const query = getSearchQuery(searchKey);
+        if (!query || !operationFuse) {
             return [];
         }
 
-        const results = operationFuse.search(searchKey, {limit: 5})
+        const results = operationFuse.search(query, {limit: 5})
             .map((result, index) => ({
                 command: result.item,
                 rankingMeta: {

@@ -4,10 +4,12 @@ import * as React from "react";
 import {useMemo} from "react";
 
 export const WaComplexInput = (
-    {className, classNames, imageBase64, files, ...props}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+    {className, classNames, imageBase64, files, textPreview, onCopyOrigin, ...props}: React.ComponentProps<typeof CommandPrimitive.Input> & {
         classNames?: { wrapper?: string },
         imageBase64?: string | null,
         files: string[] | null
+        textPreview?: string | null,
+        onCopyOrigin?: () => void,
     }
 ) => {
     const previewAssets = useMemo(() => {
@@ -48,6 +50,10 @@ export const WaComplexInput = (
             className={cn("flex h-9 gap-x-1 w-full items-center", classNames?.wrapper)}
         >
             {previewAssets}
+            {textPreview && <div className="flex max-w-[65%] min-w-0 shrink-0 items-center gap-2 rounded border border-dashed px-2 py-1 text-sm" aria-label="剪贴板文本摘要">
+                <span className="truncate select-none">{textPreview}</span>
+                <button type="button" className="shrink-0 text-xs text-gray-500 hover:text-gray-900" onMouseDown={event => event.preventDefault()} onClick={onCopyOrigin}>复制原文</button>
+            </div>}
             <CommandPrimitive.Input
                 data-slot="command-input"
                 className={cn(

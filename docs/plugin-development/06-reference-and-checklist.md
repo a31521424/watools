@@ -26,13 +26,27 @@
 ## 完整类型
 
 ```typescript
-type PluginEntry = {
-    type: "executable" | "ui"
+type PluginEntryDefinition = {
     subTitle: string
-    match: (context: PluginContext) => boolean
-    execute?: (context: PluginContext, api?: WaToolsApi) => Promise<void>
+    matchPreview?: (context: PluginMatchContext) => boolean
+    match?: (context: PluginContext) => boolean // 旧入口兼容，仅用于 <=2000 单元文本
     icon: string | null
-    file?: string
+    largeTextPrefixes?: string[] // 超长文本 executable 的有界前缀规则
+} & (
+    {type: "ui"; file: string}
+    | {type: "executable"; execute: (context: PluginContext, api?: WaToolsApi) => Promise<void>}
+)
+
+type PluginMatchContext = {
+    readonly input: {
+        readonly valueType: "text" | "clipboard"
+        readonly clipboardContentType?: "text" | "image" | "files"
+        readonly length: number
+        readonly head: string // 最多 128 UTF-16 单元，原始前缀
+        readonly tail: string // 最多 128 UTF-16 单元，原始后缀
+        readonly truncated: boolean // 原文长度 >128
+    }
+    readonly clipboard: {readonly contentType: "text" | "image" | "files"; readonly fileCount: number} | null
 }
 
 type PluginContext = {
@@ -65,6 +79,8 @@ declare global {
 
 ## 最终检查清单
 
+插件导出的是上述声明类型；内部 `PluginEntry` 含规范化 matcher，不属于插件参数协议。旧兼容仅存在于宿主边界，新入口无需同时写两份 matcher。
+
 ### 文件结构
 
 - [ ] `manifest.json` 在根目录
@@ -77,7 +93,7 @@ declare global {
 - [ ] `manifest.json` 包含必需字段
 - [ ] `packageId` 格式为 `watools.plugin.xxx`
 - [ ] `app.js` 正确导出 `export default entry`
-- [ ] `match` 同步返回 boolean
+- [ ] 至少提供 `matchPreview` 或兼容 `match`，同步返回 boolean；新入口优先用有界的 `matchPreview`
 
 ### 构建模式
 

@@ -59,8 +59,8 @@
 - 作用：把文本、图片、文件等输入统一整理为插件和命令可消费的上下文
 - 用户入口：命令面板输入、粘贴动作、插件触发
 - 主要实现：`internal/app`、`frontend/src/stores/appStore.ts`、`frontend/src/lib/plugin-context.ts`
-- 核心行为：读取剪贴板、识别内容类型、构造 `PluginContext`
-- 注意事项：兼容字段存在，但主路径应使用统一上下文对象
+- 核心行为：自动呼出只读取文本与有界摘要，超长原文按快照标识在插件启动时读取；手动粘贴支持文本、图片与文件，构造完整 `PluginContext`
+- 注意事项：show、origin、query 各有职责；原文不参与无界搜索，摘要不作为正文。`matchPreview` 只使用有界首尾与元数据，真实触发交付完整原文；旧 matcher 有单独兼容路径，详见 [实现机制](./implementation-mechanism.md)
 
 ## 使用统计与排序
 

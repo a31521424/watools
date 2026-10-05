@@ -1,0 +1,342 @@
+{
+  "environment": {
+    "node": "v24.11.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M5",
+    "fuse": "7.1.0"
+  },
+  "methodology": "Single cold operation per isolated Node process; 100 synthetic applications; 5s child timeout includes startup/transpilation; no native clipboard or WebKit access.",
+  "semantics": {
+    "autoPreservesWhitespace": false,
+    "pastePreservesWhitespace": true,
+    "editedOriginLength": 71
+  },
+  "rows": [
+    {
+      "stage": "extended-parser",
+      "shape": "words",
+      "length": 2000,
+      "elapsedMs": 1.819,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "words",
+      "length": 20000,
+      "elapsedMs": 62.206,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 1611.143,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "words",
+      "length": 1000000,
+      "timeoutMs": 5000,
+      "status": "ETIMEDOUT",
+      "error": ""
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "unbroken",
+      "length": 2000,
+      "elapsedMs": 0.485,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "unbroken",
+      "length": 20000,
+      "elapsedMs": 0.704,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "unbroken",
+      "length": 100000,
+      "elapsedMs": 1.418,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "unbroken",
+      "length": 1000000,
+      "elapsedMs": 7.683,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "json",
+      "length": 2000,
+      "elapsedMs": 0.953,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "json",
+      "length": 20000,
+      "elapsedMs": 13.6,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "json",
+      "length": 100000,
+      "elapsedMs": 3708.194,
+      "result": 0
+    },
+    {
+      "stage": "extended-parser",
+      "shape": "json",
+      "length": 1000000,
+      "timeoutMs": 5000,
+      "status": "ETIMEDOUT",
+      "error": ""
+    },
+    {
+      "stage": "application-search",
+      "shape": "words",
+      "length": 2000,
+      "elapsedMs": 3.191,
+      "result": 0
+    },
+    {
+      "stage": "application-search",
+      "shape": "unbroken",
+      "length": 2000,
+      "elapsedMs": 62.977,
+      "result": 0
+    },
+    {
+      "stage": "bounded-query",
+      "shape": "words",
+      "length": 2000,
+      "elapsedMs": 1.581,
+      "result": 0
+    },
+    {
+      "stage": "application-search",
+      "shape": "words",
+      "length": 20000,
+      "elapsedMs": 63.759,
+      "result": 0
+    },
+    {
+      "stage": "application-search",
+      "shape": "unbroken",
+      "length": 20000,
+      "elapsedMs": 577.848,
+      "result": 0
+    },
+    {
+      "stage": "bounded-query",
+      "shape": "words",
+      "length": 20000,
+      "elapsedMs": 1.542,
+      "result": 0
+    },
+    {
+      "stage": "application-search",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 1623.362,
+      "result": 0
+    },
+    {
+      "stage": "application-search",
+      "shape": "unbroken",
+      "length": 100000,
+      "elapsedMs": 2829.954,
+      "result": 0
+    },
+    {
+      "stage": "bounded-query",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 1.556,
+      "result": 0
+    },
+    {
+      "stage": "application-search",
+      "shape": "words",
+      "length": 1000000,
+      "timeoutMs": 5000,
+      "status": "ETIMEDOUT",
+      "error": ""
+    },
+    {
+      "stage": "application-search",
+      "shape": "unbroken",
+      "length": 1000000,
+      "timeoutMs": 5000,
+      "status": "ETIMEDOUT",
+      "error": ""
+    },
+    {
+      "stage": "bounded-query",
+      "shape": "words",
+      "length": 1000000,
+      "elapsedMs": 1.579,
+      "result": 0
+    },
+    {
+      "stage": "store-auto",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 0.062,
+      "result": {
+        "originLength": 100000,
+        "displayLength": 70
+      }
+    },
+    {
+      "stage": "store-auto",
+      "shape": "words",
+      "length": 1000000,
+      "elapsedMs": 0.06,
+      "result": {
+        "originLength": 999999,
+        "displayLength": 70
+      }
+    },
+    {
+      "stage": "store-auto",
+      "shape": "words",
+      "length": 10000000,
+      "elapsedMs": 0.059,
+      "result": {
+        "originLength": 10000000,
+        "displayLength": 70
+      }
+    },
+    {
+      "stage": "store-paste",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 0.059,
+      "result": {
+        "originLength": 100000,
+        "displayLength": 100000
+      }
+    },
+    {
+      "stage": "store-paste",
+      "shape": "words",
+      "length": 1000000,
+      "elapsedMs": 0.062,
+      "result": {
+        "originLength": 1000000,
+        "displayLength": 1000000
+      }
+    },
+    {
+      "stage": "store-paste",
+      "shape": "words",
+      "length": 10000000,
+      "elapsedMs": 0.058,
+      "result": {
+        "originLength": 10000000,
+        "displayLength": 10000000
+      }
+    },
+    {
+      "stage": "ranking",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 0.827,
+      "result": 100015
+    },
+    {
+      "stage": "ranking",
+      "shape": "words",
+      "length": 1000000,
+      "elapsedMs": 8.71,
+      "result": 1000014
+    },
+    {
+      "stage": "ranking",
+      "shape": "words",
+      "length": 10000000,
+      "elapsedMs": 110.175,
+      "result": 10000015
+    },
+    {
+      "stage": "launch-json",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 0.23,
+      "result": true
+    },
+    {
+      "stage": "launch-json",
+      "shape": "words",
+      "length": 1000000,
+      "elapsedMs": 1.88,
+      "result": true
+    },
+    {
+      "stage": "launch-json",
+      "shape": "words",
+      "length": 10000000,
+      "elapsedMs": 17.373,
+      "result": true
+    },
+    {
+      "stage": "launch-shallow",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 0.012,
+      "result": 100000
+    },
+    {
+      "stage": "launch-shallow",
+      "shape": "words",
+      "length": 1000000,
+      "elapsedMs": 0.013,
+      "result": 1000000
+    },
+    {
+      "stage": "launch-shallow",
+      "shape": "words",
+      "length": 10000000,
+      "elapsedMs": 0.011,
+      "result": 10000000
+    },
+    {
+      "stage": "official-match",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 1.439,
+      "result": 1
+    },
+    {
+      "stage": "official-match",
+      "shape": "words",
+      "length": 1000000,
+      "elapsedMs": 12.091,
+      "result": 1
+    },
+    {
+      "stage": "official-match",
+      "shape": "words",
+      "length": 10000000,
+      "elapsedMs": 143.349,
+      "result": 1
+    },
+    {
+      "stage": "application-no-extended",
+      "shape": "words",
+      "length": 100000,
+      "elapsedMs": 3250.334,
+      "result": 0
+    }
+  ],
+  "sourceCommit": "2c6a229",
+  "date": "2026-10-06"
+}
