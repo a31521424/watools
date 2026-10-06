@@ -13,13 +13,33 @@ import * as models$0 from "../../pkg/models/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
+export function ClosePluginWindowApi(id: string): $CancellablePromise<void> {
+    return $Call.ByID(3924671286, id);
+}
+
+export function DetachPluginApi(request: $models.DetachPluginRequest): $CancellablePromise<string> {
+    return $Call.ByID(3738892629, request);
+}
+
 export function GetPluginJsEntryUrlApi(id: string): $CancellablePromise<string> {
     return $Call.ByID(3614614968, id);
 }
 
+export function GetPluginWindowApi(id: string): $CancellablePromise<$models.PluginWindowSession> {
+    return $Call.ByID(841452234, id).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+export function GetPluginWindowStatusApi(id: string): $CancellablePromise<$models.PluginWindowStatus> {
+    return $Call.ByID(235339344, id).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
 export function GetPluginsApi(): $CancellablePromise<models$0.PluginInfo[]> {
     return $Call.ByID(3008093281).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType3($result);
     });
 }
 
@@ -29,6 +49,10 @@ export function InstallPluginApi(path: string): $CancellablePromise<void> {
 
 export function InstallPluginByFileDialogApi(): $CancellablePromise<void> {
     return $Call.ByID(478366158);
+}
+
+export function PluginWindowReadyApi(id: string): $CancellablePromise<void> {
+    return $Call.ByID(444874033, id);
 }
 
 export function TogglePluginApi(id: string, enabled: boolean | null): $CancellablePromise<void> {
@@ -44,5 +68,7 @@ export function UpdatePluginUsageApi(items: $models.PluginUsage[]): $Cancellable
 }
 
 // Private type creation functions
-const $$createType0 = models$0.PluginInfo.createFrom;
-const $$createType1 = $Create.Array($$createType0);
+const $$createType0 = $models.PluginWindowSession.createFrom;
+const $$createType1 = $models.PluginWindowStatus.createFrom;
+const $$createType2 = models$0.PluginInfo.createFrom;
+const $$createType3 = $Create.Array($$createType2);

@@ -1,0 +1,7 @@
+2026-10-06 macOS arm64
+node scripts/dev.mjs check: exit 0; 57 frontend + 16 workflow regressions; TypeScript/Vite build; go test ./...; go vet ./...; production/private_mac_apis compilation.
+node scripts/dev.mjs build: exit 0; build/bin/watools.app, ad-hoc signed.
+Native QA: production,private_mac_apis,mcp build; isolated data/cache and external reference window; two JSON instances (one million characters); automatic focus/clipboard recommendation; successful detach hides launcher and preserves editor/origin; three show/hide rounds preserve child order behind external window.
+Clipboard restored; QA processes stopped. Physical keyboard and IME not covered.
+Final lifecycle guard: source-page cancellation during readiness query cannot hide a different launcher page; pnpm --dir frontend test re-run: 57/57. Final node scripts/dev.mjs build: exit 0, includes guard.
+2026-10-07 workspace finalization: user confirmed current window behavior has no remaining reported issues. node scripts/dev.mjs check re-run: exit 0 (57 frontend, 16 workflow, TypeScript/Vite, all Go tests/vet/production compilation). Documentation links, JSON/JSONL, archived Python syntax and git diff --check passed. Broader backlog acceptance remains separately tracked.

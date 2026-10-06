@@ -753,6 +753,7 @@ test('IME candidate keys leave launcher input and plugin/management routes intac
         const handler = windowKeyHandler(`frontend/src/components/watools/${name}.tsx`, {
             getIsPanelOpen: () => true, getCanClearAssets: () => true,
             clearValue: () => actions.push('clear'), navigate: () => actions.push('navigate'),
+            detach: () => actions.push('detach'),
             inputRef: {current: {focus: () => actions.push('focus')}},
             Promise, flushApplicationUsage: async () => {}, flushPluginUsage: async () => {},
             host: {HideOrShowAppApi: () => actions.push('hide')},
@@ -1058,4 +1059,251 @@ test('mock launcher sizing uses Host API and preserves the legacy runtime size s
     assert.equal(JSON.stringify(await runtime.WindowGetSize()), '{"w":920,"h":760}');
     await assert.rejects(host.SetLauncherSizeApi(0,760), error => error.code === 'INVALID_ARGUMENT');
     assert.equal(JSON.stringify(await runtime.WindowGetSize()), '{"w":920,"h":760}');
+});
+
+test('plugin window hooks preserve edited models and generic forms exclude passwords and files', async () => {
+    const state = loadTS('frontend/src/lib/plugin-window-state.ts');
+    const edited = {text:'  \0😀 edited JSON\n', view:{line:7}};
+    let restored;
+    const hooked = {watoolsSession:{capture:async()=>edited,restore:async value=>{restored=value}}};
+    const captured = await state.capturePluginWindowState(hooked);
+    assert.equal(captured.kind,'hooks');
+    await state.restorePluginWindowState(hooked,captured);
+    assert.equal(restored,edited);
+    await assert.rejects(state.restorePluginWindowState({},captured),/状态恢复接口/);
+    const events=[];
+    const fields=[{tagName:'TEXTAREA',type:'textarea',value:'edited',dispatchEvent:e=>events.push(e.name)},
+        {tagName:'INPUT',type:'password',value:'secret'}, {tagName:'INPUT',type:'file',value:'path'}];
+    const frame={document:{querySelector:()=>null,querySelectorAll:()=>fields,createEvent:()=>({initEvent(name){this.name=name}})}};
+    const form=await state.capturePluginWindowState(frame);
+    assert.equal(form.value.length,1);
+    fields[0].value='changed';
+    await state.restorePluginWindowState(frame,form);
+    assert.equal(fields[0].value,'edited');
+    assert.deepEqual(events,['input','change']);
+    await assert.rejects(state.capturePluginWindowState({document:{querySelector:()=>({})}}),/安装新版插件.*重新打开/);
+});
+
+test('plugin runtime targets its window and owns independent event subscriptions', async () => {
+    const callbacks=new Map(), actions=[];
+    const register=(name, callback)=>{callbacks.set(name,callback);return ()=>callbacks.delete(name)};
+    const {createPluginRuntime}=loadTS('frontend/src/lib/legacy-runtime.ts',{
+        '@wailsio/runtime':{Application:{Quit:()=>actions.push('quit-app')},Browser:{},Clipboard:{},Screens:{},System:{},
+            Window:{Get:name=>({Hide:()=>actions.push(['hide',name]),Close:()=>actions.push(['close',name]),Size:async()=>({width:800,height:600})})},
+            Events:{On:register,Once:register,OnMultiple:register,Emit:async(name,data)=>callbacks.get(name)?.({data})}},
+        '@/api/host':{host:{GetLauncherSizeApi:async()=>({width:1280,height:64})}},
+    });
+    const a=createPluginRuntime('plugin-a','a'),b=createPluginRuntime('plugin-b','b');
+    const observations=[];
+    a.EventsOn('ping',value=>observations.push(['a',value]));b.EventsOn('ping',value=>observations.push(['b',value]));
+    await a.EventsEmit('ping','first');
+    assert.deepEqual(observations,[['a','first']]);
+    a.EventsOffAll(); await b.EventsEmit('ping','second');
+    assert.deepEqual(observations,[['a','first'],['b','second']]);
+    a.Hide();b.Quit();
+    assert.deepEqual(actions,[['hide','plugin-a'],['close','plugin-b']]);
+    assert.equal(JSON.stringify(await b.WindowGetSize()),'{"w":800,"h":600}');
+    b.dispose();assert.equal(callbacks.size,0);
+});
+
+test('iframe HTTP request IDs and cancellation remain owned by one UI session', async () => {
+    const requests=[],cancelled=[],listeners=new Map();
+    const api={HttpProxy:request=>new Promise(resolve=>requests.push({request,resolve})),CancelHttpProxy:async id=>cancelled.push(id)};
+    const {attachPluginSession}=loadTS('frontend/src/lib/plugin-ui-session.ts',{
+        '@/api/api':{createWaToolsApi:()=>api}, '@/lib/legacy-runtime':{createPluginRuntime:()=>({dispose(){}})},
+    },{crypto:{randomUUID:()=> 'generated'},CustomEvent:class{constructor(name,options){this.name=name;this.detail=options.detail}}});
+    const frame=()=>({addEventListener:(name,callback)=>listeners.set(name,callback),removeEventListener:name=>listeners.delete(name),dispatchEvent(){}});
+    const a=frame(),b=frame();const context={input:{value:'source',valueType:'text'},clipboard:null};
+    const closeA=attachPluginSession(a,'same-plugin','plugin-a','a',context);
+    const closeB=attachPluginSession(b,'same-plugin','plugin-b','b',context);
+    assert.equal(a.watools.session.windowMode,'detached');
+    assert.equal(a.watools.session.id,'a');
+    assert.equal(Object.isFrozen(a.watools.session),true);
+    const taskA=a.watools.HttpProxy({url:'https://example.invalid',requestId:'same'});
+    const taskB=b.watools.HttpProxy({url:'https://example.invalid',requestId:'same'});
+    assert.equal(requests[0].request.requestId,'a:same');assert.equal(requests[1].request.requestId,'b:same');
+    closeA();assert.deepEqual(cancelled,['a:same']);
+    await assert.rejects(a.watools.HttpProxy({url:'https://example.invalid'}),/已关闭/);
+    await b.watools.CancelHttpProxy('same');assert.deepEqual(cancelled,['a:same','b:same']);
+    requests.forEach(item=>item.resolve({status_code:200}));await Promise.all([taskA,taskB]);closeB();
+    assert.equal(context.input.value,'source');a.pluginContext.input.value='mutated';assert.equal(b.pluginContext.input.value,'source');
+});
+
+test('detach hides only after restoration; failures and cancelled pages keep the launcher available', async () => {
+    for (const outcome of ['success','failure','cancelled']) {
+        const failure=outcome==='failure',cancelled=outcome==='cancelled',success=outcome==='success';
+        const events=[],body={inert:false};let finishStatus;
+        const refs={alive:{current:true},pendingDetach:{current:null},detachBusy:{current:false}};
+        const frame={document:{body}};
+        const handler=windowKeyHandler('frontend/src/components/watools/wa-plugin.tsx',{
+            ...refs,deliveredDocument:{current:frame.document},iframeRef:{current:{contentWindow:frame}},launch:{context:{input:{value:'original'}}},
+            plugin:{homeUrl:'/revision'},safeFile:'index.html',packageId:'json',
+            setDetaching:flag=>events.push(['busy',flag]),setDetachError:error=>{if(error)events.push(['error'])},
+            capturePluginWindowState:async()=>({kind:'hooks',value:{text:'edited'}}),
+            host:{DetachPluginApi:async request=>{assert.equal(request.state.value.text,'edited');return 'session'},
+                GetPluginWindowStatusApi:()=>new Promise((resolve,reject)=>{finishStatus=()=>failure?reject(Error('failed')):resolve({ready:true})}),
+                ClosePluginWindowApi:async id=>events.push(['close',id]),
+                HideAppApi:async()=>events.push(['hide'])},navigate:()=>events.push(['navigate']),
+            Date,setTimeout,
+        },'detach');
+        const task=handler();await tick();await handler();
+        assert.equal(body.inert,true);assert.equal(events.some(e=>e[0]==='navigate' || e[0]==='hide'),false);
+        if (cancelled) refs.alive.current=false;
+        finishStatus();await task;await tick();
+        assert.equal(body.inert,false);assert.equal(refs.detachBusy.current,false);
+        assert.equal(events.some(e=>e[0]==='navigate'),success);
+        assert.equal(events.some(e=>e[0]==='hide'),success);
+        if (success) assert.ok(events.findIndex(e=>e[0]==='hide') < events.findIndex(e=>e[0]==='navigate'));
+        assert.equal(events.some(e=>e[0]==='close'),!success);
+        assert.equal(events.some(e=>e[0]==='error'),failure);
+    }
+});
+
+test('Command+D captures before editor shortcuts and composing or repeated keys do not detach', () => {
+    const actions=[];
+    const handler=windowKeyHandler('frontend/src/components/watools/wa-plugin.tsx',{navigate(){},detach:()=>actions.push('detach')});
+    const event={key:'d',metaKey:true,preventDefault:()=>actions.push('prevent'),stopImmediatePropagation:()=>actions.push('stop')};
+    handler({...event,isComposing:true});assert.deepEqual(actions,[]);
+    handler({...event,repeat:true});assert.deepEqual(actions,['prevent','stop']);
+    actions.length=0;handler(event);assert.deepEqual(actions,['prevent','stop','detach']);
+});
+
+test('launcher resize restores its minimum height and ignores delayed plugin measurements', async () => {
+    let finishOld;const writes=[];let reads=0;
+    const {resizeWindowHeight}=loadTS('frontend/src/hooks/useElementResize.ts',{
+        react:{},'@/lib/legacy-runtime':{WindowGetSize:()=>++reads===1?new Promise(resolve=>{finishOld=resolve}):Promise.resolve({w:1280,h:760}),
+            WindowSetSize:async(w,h)=>writes.push({w,h})},
+    });
+    const old=resizeWindowHeight([{target:{clientHeight:760}}]);
+    await resizeWindowHeight([{target:{clientHeight:54}}]);
+    finishOld({w:1280,h:64});await old;
+    assert.deepEqual(writes,[{w:1280,h:64}]);
+});
+
+function officialWindowHooks(plugin, globals) {
+    const html = fs.readFileSync(path.join(root, `plugins/official/watools.plugin.${plugin}/plugin/index.html`), 'utf8');
+    const start = html.indexOf('    window.watoolsSession = {');
+    assert.ok(start >= 0, `${plugin} must provide explicit window state hooks`);
+    const end = html.indexOf('\n    };', start) + 7;
+    const context = {window: {}, Promise, ...globals};
+    vm.runInNewContext(html.slice(start, end), context);
+    return context.window.watoolsSession;
+}
+
+const windowField = (value) => ({value, textContent:'', className:'', selectionStart:1, selectionEnd:3,
+    selectionDirection:'backward', scrollTop:17, focus(){}, setSelectionRange(start,end,direction){
+        this.selectionStart=start;this.selectionEnd=end;this.selectionDirection=direction;
+    }});
+
+test('official JSON and textstats export edited text, selections and panel state', async () => {
+    const editor=windowField('  \0😀 edited\n'),path=windowField('$.edited'),output=windowField('result');
+    const model={previewCollapsed:false,editor:{saveViewState:()=>({cursor:9}),restoreViewState:value=>{model.view=value}}};
+    let preview;
+    const json=officialWindowHooks('json',{editorReady:Promise.resolve(),state:model,pathInput:path,extractOutput:output,
+        getEditorValue:()=>editor.value,getModel:()=>({setValue:value=>{editor.value=value}}),normalizeLineEndings:value=>value,
+        togglePanel:value=>{preview=value},
+        validateNow(){},updateActionState(){},focusEditor(){}});
+    const captured=await json.capture();editor.value='new initialization';path.value='';output.value='';
+    await json.restore(captured);
+    assert.equal(editor.value,'  \0😀 edited\n');assert.equal(path.value,'$.edited');assert.equal(output.value,'result');
+    assert.equal(preview,true);assert.equal(model.view.cursor,9);
+    const label={textContent:'original label'};let renders=0;
+    const stats=officialWindowHooks('textstats',{editor,seedLabel:label,render:()=>renders++});
+    const saved=await stats.capture();editor.value='overwritten';editor.selectionStart=0;
+    await stats.restore(saved);
+    assert.equal(editor.value,saved.text);assert.equal(editor.selectionStart,1);assert.equal(editor.selectionDirection,'backward');
+    assert.equal(editor.scrollTop,17);assert.equal(renders,1);
+});
+
+test('QR window snapshot waits for imports and restores the existing image without regeneration', async () => {
+    let completeImport;const pendingImages=new Set([new Promise(resolve=>{completeImport=resolve})]);
+    const state={text:'decoded text',imageDataUrl:'data:image/png;base64,synthetic',imageLabel:'imported image',
+        imageInfo:{width:100,height:80},activeSource:'image'};
+    const textInput=windowField(state.text),statusNode={textContent:'decoded',className:'status success'};
+    let image;
+    const qr=officialWindowHooks('qr',{pendingImages,state,textInput,statusNode,
+        applyTextValue:(text,source)=>{textInput.value=text;state.activeSource=source},setPreviewImage:(...args)=>{image=args}});
+    let captured=false;const task=qr.capture().then(value=>{captured=true;return value});await tick();assert.equal(captured,false);
+    completeImport();const saved=await task;textInput.value='fresh';state.activeSource='text';
+    await qr.restore(saved);
+    assert.equal(textInput.value,'decoded text');assert.equal(state.activeSource,'image');
+    assert.equal(image[0],saved.imageDataUrl);assert.equal(image[1],'imported image');assert.equal(image[2].width,100);
+});
+
+test('translation window snapshot preserves results, cancels work and excludes credentials', async () => {
+    const source=windowField('edited source'),target=windowField('existing translation');
+    const status={textContent:'translating',className:'status'},detected={textContent:'检测结果 EN'};
+    const calls=[];
+    const globals={initialize:async()=>calls.push('init'),autoTranslateTimer:12,isTranslating:true,apiKey:'synthetic-secret',
+        clearTimeout:()=>calls.push('stop-timer'),invalidateTranslation:()=>calls.push('cancel'),
+        sourceTextNode:source,targetTextNode:target,statusNode:status,detectedLabel:detected,
+        settingsPanel:{classList:{contains:()=>false}},setStatus:message=>{status.textContent=message},
+        updateDirectionUI:()=>calls.push('direction'),setSettingsVisible:()=>calls.push('settings')};
+    const hooks=officialWindowHooks('translate',globals);const saved=await hooks.capture();
+    assert.equal(JSON.stringify(saved).includes('synthetic-secret'),false);assert.ok(saved.status.includes('暂停'));
+    source.value='seed';target.value='';await hooks.restore(saved);
+    assert.equal(source.value,'edited source');assert.equal(target.value,'existing translation');
+    assert.ok(calls.includes('cancel'));assert.equal(detected.textContent,'检测结果 EN');
+});
+
+test('calculator window restore waits for initialization and does not write shared history or draft', async () => {
+    let ready;const expressionInput=windowField('2 + 3');let rendered=0;
+    const globals={ready:new Promise(resolve=>{ready=resolve}),expressionInput,
+        history:[{expression:'1+1',result:'2'}],latestOutcome:{displayValue:'5'},statusNode:{textContent:'ready',className:'status'},
+        renderHistory:()=>rendered++};
+    const hooks=officialWindowHooks('calculator',globals);let done=false;
+    const task=hooks.capture().then(value=>{done=true;return value});await tick();assert.equal(done,false);
+    ready();const saved=await task;expressionInput.value='draft';await hooks.restore(saved);
+    assert.equal(expressionInput.value,'2 + 3');assert.equal(rendered,1);assert.equal(expressionInput.selectionEnd,3);
+});
+
+test('translation initializes once and detached restore never repeats translation or overwrites edits', async () => {
+    const html=fs.readFileSync(path.join(root,'plugins/official/watools.plugin.translate/plugin/index.html'),'utf8');
+    const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)[1];
+    for (const windowMode of ['inline','detached']) {
+        const fields=new Map(),listeners=new Map();let requests=0,keyReads=0;
+        const field=id=>{
+            if (!fields.has(id)) {
+                const classes=new Set();
+                fields.set(id,{...windowField(''),addEventListener(){},select(){},classList:{
+                    contains:name=>classes.has(name),add:name=>classes.add(name),remove:name=>classes.delete(name),
+                    toggle:(name,value)=>{if(value)classes.add(name);else classes.delete(name)},
+                }});
+            }
+            return fields.get(id);
+        };
+        const window={location:{search:''},runtime:{},pluginContext:{input:{value:'original',valueType:'text'},clipboard:null},
+            addEventListener:(name,fn)=>listeners.set(name,fn),localStorage:{removeItem(){},getItem:()=>null},
+            watools:{session:{windowMode},SecretGet:async()=>{keyReads++;return 'synthetic-key'},StorageRemove:async()=>{},
+                HttpProxy:async()=>{requests++;return {status_code:200,body:JSON.stringify({translations:[{text:'translated',detected_source_language:'EN'}]})}},
+                CancelHttpProxy:async()=>{}}};
+        vm.runInNewContext(script,{window,document:{getElementById:field},URLSearchParams,setTimeout,clearTimeout,console});
+        listeners.get('load')();listeners.get('watools:context-ready')();await tick();await tick();
+        assert.equal(keyReads,1);
+        if(windowMode==='inline') {assert.equal(requests,1);assert.equal(field('target-text').value,'translated')}
+        else {
+            assert.equal(requests,0);
+            const saved={source:'edited source',target:'preserved result',detected:'检测结果 EN',status:'complete',statusClass:'status success',
+                settingsVisible:false,selectionStart:1,selectionEnd:4,sourceScrollTop:11,targetScrollTop:12};
+            await window.watoolsSession.restore(saved);
+            listeners.get('watools:context-ready')();await tick();
+            assert.equal(requests,0);assert.equal(field('source-text').value,saved.source);assert.equal(field('target-text').value,saved.target);
+        }
+    }
+});
+
+test('JSON restoration claims the model before initialization and ignores late launch context', async () => {
+    const html=fs.readFileSync(path.join(root,'plugins/official/watools.plugin.json/plugin/index.html'),'utf8');
+    let initialized,modelText='';const state={editor:{},windowRestored:false};
+    const globals={state,editorReady:new Promise(resolve=>{initialized=resolve}),getModel:()=>({setValue:value=>{modelText=value}}),
+        normalizeLineEndings:value=>value,pathInput:windowField(''),extractOutput:windowField(''),
+        togglePanel(){},validateNow(){},updateActionState(){},focusEditor(){}};
+    const hooks=officialWindowHooks('json',globals);const task=hooks.restore({text:'edited',path:'',output:'',previewCollapsed:true});
+    assert.equal(state.windowRestored,true);
+    const start=html.indexOf('    const applyHostContext =');const end=html.indexOf('\n    };',start)+7;
+    const context={state,window:{watools:{session:{windowMode:'inline'}}}};
+    vm.runInNewContext(html.slice(start,end)+'\nthis.apply=applyHostContext;',context);
+    context.apply({input:{value:'late original'}}); // No original lookup or parsing is permitted after restore claims the model.
+    initialized();await task;assert.equal(modelText,'edited');
+    context.apply({input:{value:'another original'}});assert.equal(modelText,'edited');
 });

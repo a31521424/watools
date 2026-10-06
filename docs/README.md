@@ -1,6 +1,6 @@
 # WaTools 文档系统
 
-本目录按项目需求、当前实现、开发指南、未来计划和历史材料分类。Agent 首先读取 [根目录约束](../AGENT.md)，再按任务进入具体文档，不需要一次读取全部文件。当前应用使用固定 Wails v3 Beta.27，代码迁移与验收边界见 backlog；插件独立小窗仍未实施。当前阶段以 macOS 开发者自用为优先，Windows 与对外分发任务延期。
+本目录按项目需求、当前实现、开发指南、未来计划和历史材料分类。Agent 首先读取 [根目录约束](../AGENT.md)，再按任务进入具体文档，不需要一次读取全部文件。当前应用使用固定 Wails v3 Beta.27，代码迁移与验收边界见 backlog；插件默认主窗口展开，Command+D 分离小窗的当前实现与剩余验收见插件会话 backlog。当前阶段以 macOS 开发者自用为优先，Windows 与对外分发任务延期。
 
 ## 分类与入口
 
@@ -134,7 +134,19 @@ docs/
 │   │   │   ├── match-context-native-harness.py.txt
 │   │   │   ├── match-context-native-results.jsonl
 │   │   │   ├── launcher-refactor-native-results.jsonl
-│   │   │   └── launcher-refactor-json-results.jsonl
+│   │   │   ├── launcher-refactor-json-results.jsonl
+│   │   │   ├── plugin-window-checks.txt
+│   │   │   ├── plugin-window-native-harness.py.txt
+│   │   │   ├── plugin-window-status.swift.txt
+│   │   │   ├── plugin-window-native-results.jsonl
+│   │   │   ├── plugin-upgrade-checks.txt
+│   │   │   ├── plugin-upgrade-native-harness.py.txt
+│   │   │   ├── plugin-upgrade-native-results.jsonl
+│   │   │   ├── plugin-window-focus-checks.txt
+│   │   │   ├── plugin-window-focus-native-harness.py.txt
+│   │   │   ├── plugin-window-focus-native-results.jsonl
+│   │   │   ├── plugin-window-focus-status.swift.txt
+│   │   │   └── plugin-window-focus-helper.m.txt
 │   │   └── README.md
 │   ├── remediation-2026-10-03.md
 │   └── review-2026-10-02.md

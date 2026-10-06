@@ -7,66 +7,6 @@ package app
    #import <Carbon/Carbon.h>
    #import <dispatch/dispatch.h>
 
-   static NSRunningApplication *previousActiveApp = nil;
-
-   static void clearPreviousActiveApp() {
-       if (previousActiveApp != nil) {
-           [previousActiveApp release];
-           previousActiveApp = nil;
-       }
-   }
-
-   static void storePreviousActiveApp() {
-       @autoreleasepool {
-           NSRunningApplication *frontmostApp = [[NSWorkspace sharedWorkspace] frontmostApplication];
-           NSRunningApplication *currentApp = [NSRunningApplication currentApplication];
-           if (frontmostApp == nil || [frontmostApp isEqual:currentApp]) {
-               return;
-           }
-
-           if (previousActiveApp != nil && [previousActiveApp isEqual:frontmostApp]) {
-               return;
-           }
-
-           clearPreviousActiveApp();
-           previousActiveApp = [frontmostApp retain];
-       }
-   }
-
-   static void activateCurrentAppWindowOnMainThread(void *handle);
-   static void returnFocusToPreviousAppOnMainThread();
-
-   static void activateCurrentAppWindow(void *handle) {
-       @autoreleasepool {
-           if ([NSThread isMainThread]) {
-               activateCurrentAppWindowOnMainThread(handle);
-               return;
-           }
-
-           dispatch_sync(dispatch_get_main_queue(), ^{
-               activateCurrentAppWindowOnMainThread(handle);
-           });
-       }
-   }
-
-   static void returnFocusToPreviousApp() {
-       @autoreleasepool {
-           if ([NSThread isMainThread]) {
-               returnFocusToPreviousAppOnMainThread();
-               return;
-           }
-
-           dispatch_sync(dispatch_get_main_queue(), ^{
-               returnFocusToPreviousAppOnMainThread();
-           });
-       }
-   }
-
-   static void hideCurrentWindow() {
-       NSApplication *app = [NSApplication sharedApplication];
-       [app hide:nil];
-   }
-
    typedef struct {
        int ok;
        int screenWidth;
@@ -76,47 +16,6 @@ package app
        int leftMargin;
        int rightMargin;
    } WaWindowPositionMetrics;
-
-   static void activateCurrentAppWindowOnMainThread(void *handle) {
-       NSApplication *app = [NSApplication sharedApplication];
-       NSWindow *window = (NSWindow *)handle;
-
-       [app unhide:nil];
-       // This is an explicit launcher invocation. NSApp.activate is best-effort
-       // and can leave a visible launcher without keyboard focus on macOS 14+.
-       [app activateIgnoringOtherApps:YES];
-
-       if (window != nil) {
-           [window orderFront:nil];
-           if ([window canBecomeKeyWindow]) {
-               [window makeKeyWindow];
-           }
-       }
-   }
-
-   static void returnFocusToPreviousAppOnMainThread() {
-       if (previousActiveApp == nil || [previousActiveApp isTerminated]) {
-           clearPreviousActiveApp();
-           return;
-       }
-
-       NSRunningApplication *currentApp = [NSRunningApplication currentApplication];
-       if (currentApp == nil || ![currentApp isActive]) {
-           clearPreviousActiveApp();
-           return;
-       }
-
-       if (@available(macOS 14.0, *)) {
-           [[NSApplication sharedApplication] yieldActivationToApplication:previousActiveApp];
-           [previousActiveApp activateFromApplication:currentApp options:0];
-       } else {
-           [previousActiveApp activateWithOptions:0];
-       }
-
-       dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-           clearPreviousActiveApp();
-       });
-   }
 
    static int isSecureEventInputEnabled() {
        return IsSecureEventInputEnabled() ? 1 : 0;
@@ -354,7 +253,6 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"runtime"
 	"strconv"
-	"time"
 	"unsafe"
 	"watools/pkg/logger"
 )
@@ -384,19 +282,17 @@ type ClipboardContent struct {
 // ==================== Window Management ====================
 
 func (a *WaApp) showAppAsPanel() {
-	application.InvokeSync(func() { C.storePreviousActiveApp() })
-	time.Sleep(10 * time.Millisecond)
 	a.checkAndRepositionIfNeeded()
 	a.window.Show()
 	a.positionWindow()
-	C.activateCurrentAppWindow(a.window.NativeWindow())
+	a.window.Focus()
 	a.isHidden.Store(false)
 }
 
 func (a *WaApp) hideAppWithFocusReturn() {
 	if !a.isHidden.Load() {
-		C.returnFocusToPreviousApp()
-		time.Sleep(100 * time.Millisecond)
+		// Ordering out the non-activating launcher returns keyboard focus through
+		// AppKit without activating another app or disturbing detached windows.
 		a.window.Hide()
 		a.isHidden.Store(true)
 	}

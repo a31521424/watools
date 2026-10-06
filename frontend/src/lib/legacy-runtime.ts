@@ -21,29 +21,59 @@ export const LogInfo = (message: string) => host.LogFrontendApi('info', message)
 export const LogError = (message: string) => host.LogFrontendApi('error', message)
 export const LogWarning = (message: string) => host.LogFrontendApi('warn', message)
 
+const windowMethods = (windowName: string) => {
+ const target = Window.Get(windowName);
+ return {
+   WindowGetSize: windowName === 'launcher' ? WindowGetSize : async () => {const size = await target.Size(); return {w:size.width,h:size.height}},
+   WindowSetSize: windowName === 'launcher' ? WindowSetSize : (width:number,height:number) => target.SetSize(width,height),
+   WindowReload: () => target.Reload(), WindowReloadApp: () => target.ForceReload(),
+   WindowCenter: () => target.Center(), WindowSetTitle: (title:string) => target.SetTitle(title),
+   WindowSetPosition: (x:number,y:number) => target.SetPosition(x,y), WindowGetPosition: () => target.Position(),
+   WindowHide: () => target.Hide(), WindowShow: () => target.Show(), Hide: () => target.Hide(), Show: () => target.Show(),
+   WindowSetAlwaysOnTop: (value:boolean) => target.SetAlwaysOnTop(value),
+   WindowSetMinSize: (width:number,height:number) => target.SetMinSize(width,height), WindowSetMaxSize: (width:number,height:number) => target.SetMaxSize(width,height),
+   WindowFullscreen: () => target.Fullscreen(), WindowUnfullscreen: () => target.UnFullscreen(), WindowIsFullscreen: () => target.IsFullscreen(),
+   WindowMaximise: () => target.Maximise(), WindowUnmaximise: () => target.UnMaximise(), WindowToggleMaximise: () => target.ToggleMaximise(), WindowIsMaximised: () => target.IsMaximised(),
+   WindowMinimise: () => target.Minimise(), WindowUnminimise: () => target.UnMinimise(), WindowIsMinimised: () => target.IsMinimised(),
+   WindowIsNormal: async () => !(await target.IsFullscreen()) && !(await target.IsMaximised()) && !(await target.IsMinimised()),
+   WindowSetBackgroundColour: (r:number,g:number,b:number,a:number) => target.SetBackgroundColour(r,g,b,a),
+ };
+};
 export const legacyRuntime = {
- BrowserOpenURL, ClipboardGetText, ClipboardSetText, WindowGetSize, WindowSetSize,
+ ...windowMethods('launcher'), BrowserOpenURL, ClipboardGetText, ClipboardSetText,
  EventsOn, EventsOnce, EventsOnMultiple, EventsEmit, EventsOff, EventsOffAll,
  LogDebug, LogInfo, LogError, LogWarning, LogPrint: LogInfo, LogTrace: LogDebug, LogFatal: LogError,
- WindowReload: () => launcher.Reload(), WindowReloadApp: () => launcher.ForceReload(),
- WindowCenter: () => launcher.Center(), WindowSetTitle: (title: string) => launcher.SetTitle(title),
- WindowSetPosition: (x: number, y: number) => launcher.SetPosition(x, y), WindowGetPosition: () => launcher.Position(),
- WindowHide: () => launcher.Hide(), WindowShow: () => launcher.Show(),
- WindowSetAlwaysOnTop: (value: boolean) => launcher.SetAlwaysOnTop(value),
- WindowSetMinSize: (width: number, height: number) => launcher.SetMinSize(width, height),
- WindowSetMaxSize: (width: number, height: number) => launcher.SetMaxSize(width, height),
- WindowFullscreen: () => launcher.Fullscreen(), WindowUnfullscreen: () => launcher.UnFullscreen(),
- WindowIsFullscreen: () => launcher.IsFullscreen(),
- WindowMaximise: () => launcher.Maximise(), WindowUnmaximise: () => launcher.UnMaximise(),
- WindowToggleMaximise: () => launcher.ToggleMaximise(), WindowIsMaximised: () => launcher.IsMaximised(),
- WindowMinimise: () => launcher.Minimise(), WindowUnminimise: () => launcher.UnMinimise(),
- WindowIsMinimised: () => launcher.IsMinimised(),
- WindowIsNormal: async () => !(await launcher.IsFullscreen()) && !(await launcher.IsMaximised()) && !(await launcher.IsMinimised()),
- WindowSetBackgroundColour: (r: number, g: number, b: number, a: number) => launcher.SetBackgroundColour(r, g, b, a),
- Quit: () => Application.Quit(), Hide: () => Application.Hide(), Show: () => Application.Show(),
+ Quit: () => Application.Quit(),
  Environment: async () => { const env = await System.Environment(); return {buildType: env.Debug ? 'dev' : 'production', platform: env.OS, arch: env.Arch} },
  ScreenGetAll: async () => {
-   const [screens, current] = await Promise.all([Screens.GetAll(), Screens.GetCurrent()])
-   return screens.map(screen => ({isPrimary: screen.IsPrimary, isCurrent: screen.ID === current.ID, width: screen.Size.Width, height: screen.Size.Height}))
+   const [screens,current] = await Promise.all([Screens.GetAll(),Screens.GetCurrent()]);
+   return screens.map(screen => ({isPrimary:screen.IsPrimary,isCurrent:screen.ID===current.ID,width:screen.Size.Width,height:screen.Size.Height}));
  },
-}
+};
+
+// Each iframe owns its subscriptions and targets its containing native window.
+export const createPluginRuntime = (windowName: string, instanceId: string) => {
+ const target = Window.Get(windowName);
+ const listeners = new Map<string, Set<() => void>>();
+ const name = (event: string) => `plugin:${instanceId}:${event}`;
+ const subscribe = (event: string, callback: (...data: any[]) => void, once = false, count?: number) => {
+   let remaining = count ?? (once ? 1 : Infinity);
+   const wrapped = (...data: any[]) => {try {callback(...data)} finally {if (--remaining<=0) remove()}};
+   const off = count !== undefined ? EventsOnMultiple(name(event), wrapped, count) : once ? EventsOnce(name(event), wrapped) : EventsOn(name(event), wrapped);
+   const set = listeners.get(event) ?? new Set(); set.add(off); listeners.set(event, set);
+   const remove = () => {off(); set.delete(off); if (!set.size) listeners.delete(event)};
+   return remove;
+ };
+ const dispose = () => {for (const set of listeners.values()) for (const off of set) off(); listeners.clear()};
+ return {
+   ...legacyRuntime,
+   ...windowMethods(windowName),
+   Quit: windowName === 'launcher' ? legacyRuntime.Quit : () => target.Close(),
+   EventsOn: (event:string,callback:(...data:any[])=>void) => subscribe(event,callback),
+   EventsOnce: (event:string,callback:(...data:any[])=>void) => subscribe(event,callback,true),
+   EventsOnMultiple: (event:string,callback:(...data:any[])=>void,count:number) => subscribe(event,callback,false,count),
+   EventsEmit: (event:string,...data:any[]) => EventsEmit(name(event),...data),
+   EventsOff: (...events:string[]) => {for (const event of events) {for (const off of listeners.get(event) ?? []) off(); listeners.delete(event)}},
+   EventsOffAll: dispose, dispose,
+ };
+};

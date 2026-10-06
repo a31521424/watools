@@ -1,8 +1,57 @@
-# 剪贴板呼出与插件启动优化证据
+# 剪贴板呼出、插件启动与独立小窗证据
 
 [返回证据索引](../README.md) · [调研结论](../../../research/clipboard-launch-performance-2026-10-06.md)
 
 源码基线为 `2c6a229`，采样日期为 2026-10-06。基线调研和实施后验收分开记录；当前机制见 [实现说明](../../../architecture/implementation-mechanism.md#剪贴板原文与呼出性能)。
+
+## 主窗口展开与 Command+D 分离
+
+### 分离默认隐藏与单窗口唤出补充
+
+本轮修正分离成功后仍显示空主窗，以及应用级激活将独立小窗一起置前的问题。启动器改用 Wails Beta.27 的 non-activating NSPanel，Show／Focus 仅作用于启动器；隐藏由 AppKit 恢复键盘焦点，不再保存和强制激活前一个应用。小窗恢复后，源页面先隐藏主窗再复位空启动器；失败保留源页面。
+
+- [`plugin-window-focus-checks.txt`](./plugin-window-focus-checks.txt)：完整检查和签名构建摘要，57 项前端、16 项流程回归通过。
+- [`plugin-window-focus-native-harness.py.txt`](./plugin-window-focus-native-harness.py.txt)、[`plugin-window-focus-native-results.jsonl`](./plugin-window-focus-native-results.jsonl)：两个 JSON 实例（一个含百万字符），分离后主窗不在原生屏幕窗口列表中，小窗编辑值与原文逐字符一致，WebView 保有焦点；下次唤出为 64px 空启动器。
+- [`plugin-window-focus-status.swift.txt`](./plugin-window-focus-status.swift.txt)、[`plugin-window-focus-helper.m.txt`](./plugin-window-focus-helper.m.txt)：仅记录 QA 和外部参考进程的 CoreGraphics 窗口 ID／顺序与活跃进程。连续三轮外部参考窗覆盖小窗后，调用真实呼出 API，只出现启动器在其上方；小窗保持在参考窗之后且相对顺序不变，外部应用仍为活跃应用，启动器 WebView 获得键盘焦点。隐藏启动器后小窗仍在屏幕窗口列表中。
+
+脚本先确认 iframe 宿主上下文和分离按钮就绪，再发送合成 Command+D。JSON 推荐由原生 Focus 自动读取合成剪贴板产生。已恢复原剪贴板并退出全部 QA 进程。这里验证 AppKit／WebKit 焦点与原生层级；物理键盘、真实中文输入法、多屏仍未验收。下文较早阶段的“返回空启动器”记录保留其历史行为，以本轮“自动隐藏”为当前实现。
+
+### 官方插件 0.2.0 与旧包升级补充
+
+用户反馈分离报错后，只读检查确认正式与开发安装的 JSON 0.1.0 均无状态 hooks；源码接口已改，但宿主构建不会更新插件安装。这一轮补齐五个官方 UI 插件 hooks 并升为 0.2.0，UI SDK 在 context-ready 前提供只读 session 元数据，区分首次导入和分离恢复。JSON 恢复直接设置新模型并拒绝迟到的原文覆盖；二维码恢复现有图片，不重生成；翻译保留译文、暂停未完成请求，不序列化密钥，不重复自动翻译；计算器恢复不写共享历史／草稿，文本统计保存选区和滚动位置。
+
+- [`plugin-upgrade-checks.txt`](./plugin-upgrade-checks.txt)：57 项前端回归、完整检查、应用构建、打包和两个安装目录的升级摘要。
+- [`plugin-upgrade-native-harness.py.txt`](./plugin-upgrade-native-harness.py.txt)、[`plugin-upgrade-native-results.jsonl`](./plugin-upgrade-native-results.jsonl)：先构造无 hooks 的旧 JSON 包验证报错与原页面保留，再原位升级并验证启用状态、使用次数和合成存储不变；最后验收百万字 JSON 多开、面板状态及其余四个 UI 插件的迁移。
+
+本轮原生翻译场景没有真实密钥或外部服务调用；带合成密钥的重复请求、初始化去重与无密钥序列化由执行页面源码的回归验证。所有 native key events 为合成事件；物理输入法与多屏体验仍在待验范围。正式和开发目录已通过标准安装器升级，不读取用户插件存储／凭据来做测试；验证升级的数据保留使用独立 QA 数据。启动新应用前应先保存旧页面，因为更新后旧 iframe 仍保留其原 revision。
+
+复现使用下方构建的 QA bundle 和两个 Swift 辅助程序；重新打包插件后串行运行：
+
+```sh
+node scripts/dev.mjs plugins package
+python3 docs/reviews/evidence/2026-10-06/plugin-upgrade-native-harness.py.txt > /private/tmp/watools-plugin-upgrade-native-results.jsonl
+```
+
+### 首轮窗口实现验收
+
+这一阶段基于剪贴板优化提交 `d5b07b2` 继续实施。默认在主窗口展开 UI 插件，只有 Command+D 或分离按钮创建独立 AppKit 窗口；新窗领取宿主保存的原始上下文和编辑状态，恢复完成才显示，随后主窗口返回空启动器（最小高度 64）。同插件每次分离创建独立实例，URL 只含会话 ID。待加载超时与 ready 在同一锁内裁决，迟到的超时不会关闭已恢复的窗口；原生操作在锁外执行。
+
+- [`plugin-window-checks.txt`](./plugin-window-checks.txt)：最终完整检查、Go race、Windows 交叉构建和插件打包摘要。
+- [`plugin-window-native-harness.py.txt`](./plugin-window-native-harness.py.txt)：通过真实呼出 API 激活 QA 启动器，再用 Wails MCP 合成键盘事件验收；使用隔离目录和合成剪贴板。
+- [`plugin-window-status.swift.txt`](./plugin-window-status.swift.txt)：只读取 QA 进程的 CoreGraphics 窗口顺序和应用隐藏状态；Wails 的 macOS `visible` 为未遮挡状态，不能用来判断重叠窗口是否隐藏。
+- [`plugin-window-native-results.jsonl`](./plugin-window-native-results.jsonl)：最终 AppKit／WebKit 实际断言，仅保存长度和布尔结果。
+
+最终 51 项前端、16 项工作流回归、完整 check、Go race 和 Windows amd64 production 交叉编译通过。原生运行验证了两个 JSON 实例、百万字符编辑文本及原文／路径／输出逐字一致、事件隔离、独立尺寸、主窗复位与隐藏、单实例关闭及禁用清理；文本统计插件的普通表单编辑迁移和 Esc 单窗关闭也通过。剪贴板恢复，宿主和辅助进程退出。原生窗口列表在两个实例创建后分别有 2／3 个屏幕窗口，隐藏主窗后剩 2 个；窗口服务器异步更新需等待稳定，不能用即时读数或遮挡状态判失败。
+
+在本页下方完成 QA bundle 构建与剪贴板辅助程序编译后，串行执行：
+
+```sh
+cp docs/reviews/evidence/2026-10-06/plugin-window-status.swift.txt /private/tmp/watools-qa-window-status.swift
+swiftc -module-cache-path /private/tmp/watools-swift-module-cache /private/tmp/watools-qa-window-status.swift -o /private/tmp/watools-qa-window-status
+python3 docs/reviews/evidence/2026-10-06/plugin-window-native-harness.py.txt > /private/tmp/watools-plugin-window-native-results.jsonl
+```
+
+验证边界：快捷键由脚本合成，物理 Command+D、中文输入法、多屏／缩放／置顶、Windows GUI 尚未验收。JSON 提供专用 hooks；普通表单恢复输入并派发 input／change，其他自定义模型和运行中任务须由插件导出。重载恢复分离时快照，不承诺保留分离后的编辑或 undo 栈。共享历史的并发合并、旧 revision 回收及不可信插件权限不属于本次已完成交互，目标仍为 in-progress，见 [小窗 backlog](../../../backlog/plugin-windows-and-sessions.md)。
 
 ## 实施后验收
 

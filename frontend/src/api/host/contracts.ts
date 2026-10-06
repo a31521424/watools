@@ -1,4 +1,6 @@
 import type {LogFileInfo, LogQuery, QueryLogsResult} from '@/schemas/log'
+import type {PluginContext} from '@/schemas/plugin'
+import type {PluginWindowState} from '@/lib/plugin-window-state'
 
 export type Usage = {lastUsedAt: string; usedCount: number}
 export type ApplicationCommand = {triggerId: string; name: string; description: string; category: 'Application' | 'Operation'; lastUsedAt: string | null; usedCount: number; id: string; path: string; iconPath: string; isUserApp: boolean}
@@ -14,6 +16,8 @@ export type StorageKeyRequest = PackageRequest & {key: string}
 export type StorageSetRequest = StorageKeyRequest & {value: unknown}
 export type UpdateInfo = {currentVersion: string; latestVersion: string; releaseTag: string; releaseName: string; releaseUrl: string; publishedAt: string; notes: string; platformKey: string; platformLabel: string; assetName: string; assetUrl: string; assetSha256: string; assetSize: number; installerType: string; hasUpdate: boolean; downloadedPath: string; requiresManualInstall: boolean; message: string}
 export type InstallResult = {status: string; message: string; openPath: string; shouldQuit: boolean; requiresManualInstall: boolean}
+export type DetachPluginRequest = {packageId: string; file: string; homeUrl: string; context: PluginContext; state: PluginWindowState}
+export type PluginWindowSession = DetachPluginRequest & {id: string; windowName: string; title: string}
 
 export interface HostAPI {
  GetLauncherSizeApi(): Promise<{width: number; height: number}>
@@ -32,6 +36,11 @@ export interface HostAPI {
  TriggerCommandApi(id: string, category: string): Promise<void>
  UpdateApplicationUsageApi(items: (Usage & {id: string})[]): Promise<void>
  GetPluginsApi(): Promise<PluginInfo[]>
+ DetachPluginApi(request: DetachPluginRequest): Promise<string>
+ GetPluginWindowApi(id: string): Promise<PluginWindowSession>
+ GetPluginWindowStatusApi(id: string): Promise<{ready: boolean}>
+ PluginWindowReadyApi(id: string): Promise<void>
+ ClosePluginWindowApi(id: string): Promise<void>
  GetPluginJsEntryUrlApi(id: string): Promise<string>
  UpdatePluginUsageApi(items: (Usage & PackageRequest)[]): Promise<void>
  InstallPluginApi(path: string): Promise<void>

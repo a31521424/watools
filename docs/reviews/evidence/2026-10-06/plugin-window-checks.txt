@@ -1,0 +1,31 @@
+2026-10-06 plugin-window worktree verification
+Baseline: d5b07b2 (clipboard/match optimization); changes are uncommitted.
+Environment: macOS 26.6.2, arm64; Go 1.26.8; Wails v3.0.0-beta.27.
+
+PASS node scripts/dev.mjs check
+  16 workflow regressions; 51 frontend regressions; TypeScript/Vite build;
+  Go tests, vet, production/private_mac_apis build.
+PASS node scripts/dev.mjs check-race
+  frontend assets build and go test -race ./...
+PASS Windows amd64 cross compilation
+  GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -tags production
+PASS node scripts/dev.mjs plugins package
+  six official .wt packages, including updated JSON editor state hooks.
+PASS final QA native build
+  go build -tags production,private_mac_apis,mcp; ad-hoc codesign.
+PASS isolated AppKit/WebKit native harness
+  JSON default-inline (no extra window); two detached instances;
+  million-character edited text/origin/path/output preservation;
+  launcher empty input and height 64; instance event isolation;
+  child resize leaves launcher unchanged; hide launcher leaves children ordered;
+  close-one leaves other running; disable clears remaining plugin window;
+  textstats ordinary form state and origin preserved; Esc closes child only;
+  original clipboard restored; helper and host stopped.
+PASS git diff --check
+
+Wails macOS IsVisible returns NSWindow occlusion state. The final native probe
+instead verifies own-process CoreGraphics ordered/on-screen windows and appHidden.
+Native key events are scripted, not physical keyboard/input-method acceptance.
+Not covered: physical Cmd+D/IME, multi-display/scaling/always-on-top experience,
+Windows GUI, arbitrary custom editor models, shared-history concurrent merging,
+revision garbage collection, untrusted-plugin sandbox enforcement.

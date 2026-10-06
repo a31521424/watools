@@ -2,7 +2,7 @@
   "packageId": "watools.plugin.json",
   "name": "JSON 编辑器",
   "description": "官方 JSON 编辑器，支持格式化、URL Query 转 JSON、路径提取与快速复制。",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "WaTools",
   "usage": "输入 json、url2params、query2params 或 qs2params 打开编辑器；后面可直接跟 JSON、URL 或 Query 内容作为初始输入。",
   "triggerKeywords": [
@@ -20,7 +20,8 @@
   "shortcuts": [
     "Cmd/Ctrl + Enter: 格式化当前 JSON",
     "Cmd/Ctrl + Shift + C: 复制提取结果或当前 JSON",
-    "Cmd/Ctrl + L: 清空编辑器"
+    "Cmd/Ctrl + L: 清空编辑器",
+    "Cmd + D: 从主窗口分离为独立小窗"
   ],
   "notes": [
     "如果传入内容不是合法 JSON，也会原样带入编辑器，方便继续修正。",

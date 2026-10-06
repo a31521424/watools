@@ -2,10 +2,11 @@ import React from 'react'
 import {createRoot} from 'react-dom/client'
 import App from './app'
 import './style.css'
-import {legacyRuntime} from './lib/legacy-runtime'
+import {legacyRuntime,createPluginRuntime} from './lib/legacy-runtime'
 
 // Existing trusted .wt plugins receive this compatibility API in their iframe.
-Object.assign(window, {runtime: legacyRuntime})
+const sessionId=new URLSearchParams(window.location.search).get('pluginSession')
+Object.assign(window, {runtime: sessionId ? createPluginRuntime(`plugin-${sessionId}`,`${sessionId}:shell`) : legacyRuntime})
 
 
 const container = document.getElementById('root')

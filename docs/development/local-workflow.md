@@ -61,6 +61,8 @@ macOS 原生开发和 debug 构建带 `private_mac_apis`，生产构建带 `prod
 
 SIGINT/SIGTERM 转发到独立任务进程组，取消后即使子命令返回成功也不执行后续步骤。直属子进程退出后最多等待剩余任务组 5 秒；超时报告进程组并保留临时目录，不删除仍可能使用中的数据。v3 watcher 为自己的 Vite/宿主进程树设置退出策略与优雅关闭超时。生成 JS/TS/JSON 权限归一为 0644。
 
+`build` 不更新已安装插件。遇到“当前插件版本不支持编辑器状态迁移”，开发模式运行 `node scripts/dev.mjs plugins install watools.plugin.json`；正式安装在仓库根目录运行 `go run ./cmd/pluginctl install watools.plugin.json`。五个官方 UI 插件的完整迁移接口从 0.2.0 起提供。安装后先保存旧页面编辑内容，返回启动器并刷新插件列表，或退出旧应用后启动新构建，再重新打开插件；已有页面不会自动切换 revision。
+
 入口不清空真实安装、不提供自动重置；开发目录中的明文凭据同样不可提交。Wails framework 日志通过 slog 进入原旋转日志，过滤其自动记录的调用 `args/result` 字段，避免写入凭据或完整剪贴板内容。
 
 ## 调试边界
@@ -71,6 +73,6 @@ SIGINT/SIGTERM 转发到独立任务进程组，取消后即使子命令返回�
 
 可选的无 Go 固定场景：`VITE_WATOOLS_HOST=mock pnpm --dir frontend dev --host 127.0.0.1 --port 9259`，打开该 Vite 地址。默认 `dev` / `browser` 仍按原流程连接真实 Go。mock 实例提供固定命令/插件/更新/HTTP 结果、独立 JSON/凭据内存存储、合成文本剪贴板和 launcher 尺寸，可通过 `createMockHost(options)` 注入空列表、禁用等数据，`setHostAPI` 替换测试调用实现。文本写入更新版本，已取得的快照仍保留原文；不读写系统剪贴板。mock 不载入或执行真实插件模块，原生安装、文件对话框、图片剪贴板、下载/安装更新返回 `UNAVAILABLE`；旧 runtime 的其余原生窗口、ClipboardGetText 和 BrowserOpenURL 仍是兼容 Wails API，未纳入 mock。固定场景不能作为原生能力或权限隔离验收。
 
-浏览器/桌面检查不混写：源码测试不等于 WebKit 交互，合成键盘事件不等于物理全局快捷键或真实输入法。迁移验收中可临时用 Wails 官方 `mcp` build tag 检查原生 WebView；默认产物没有 MCP 服务。完整 Go 断点流程、插件多窗口与远端 macOS CI 仍在对应 backlog。
+浏览器/桌面检查不混写：源码测试不等于 WebKit 交互，合成键盘事件不等于物理全局快捷键或真实输入法。迁移验收中可临时用 Wails 官方 `mcp` build tag 检查原生 WebView；默认产物没有 MCP 服务。插件默认主窗口打开，Command+D 分离独立小窗；该能力仅原生桌面可用，browser/mock 明确报不支持。完整 Go 断点、物理输入法／多屏窗口体验与远端 macOS CI 仍在对应 backlog。
 
 实际版本、命令与验收边界见 [v3 迁移记录](../backlog/wails-v3-migration.md) 和 [开发工作流记录](../backlog/development-and-testing.md)。

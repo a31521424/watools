@@ -43,7 +43,7 @@
 - 作用：为带界面的插件提供嵌入式工作区
 - 用户入口：`/plugin`
 - 主要实现：`frontend/src/components/watools/wa-plugin.tsx`、`internal/handler/plugin.go`
-- 核心行为：加载 iframe、注入 `watools` API 与 `pluginContext`
+- 核心行为：默认主窗口加载 iframe、注入 `watools` API 与 `pluginContext`；Command+D 捕获当前状态后分离原生小窗，主窗口自动隐藏并回到空启动器。同插件可连续分离多个实例
 - 注意事项：插件上下文应优先通过 `window.pluginContext` 和 `watools:context-ready` 获取
 
 ## 可执行插件

@@ -153,7 +153,7 @@ func TestHTTPServiceCancellationAndShutdownWithoutDesktop(t *testing.T) {
 	for _, shutdown := range []bool{false, true} {
 		result := make(chan error, 1)
 		go func() {
-			_, e := s.HttpProxyApi(api.HttpProxyRequest{URL: server.URL, RequestID: "request", Timeout: 5000})
+			_, e := s.HttpProxyApi(context.Background(), api.HttpProxyRequest{URL: server.URL, RequestID: "request", Timeout: 5000})
 			result <- e
 		}()
 		select {
@@ -164,7 +164,7 @@ func TestHTTPServiceCancellationAndShutdownWithoutDesktop(t *testing.T) {
 		if shutdown {
 			s.ServiceShutdown()
 		} else {
-			s.CancelHttpProxyApi("request")
+			s.CancelHttpProxyApi(context.Background(), "request")
 		}
 		select {
 		case e := <-result:
@@ -176,7 +176,10 @@ func TestHTTPServiceCancellationAndShutdownWithoutDesktop(t *testing.T) {
 			t.Fatal("request was not cancelled")
 		}
 	}
-	errorCode(t, func() error { _, e := s.HttpProxyApi(api.HttpProxyRequest{URL: "file:///tmp/file"}); return e }(), "INVALID_ARGUMENT")
+	errorCode(t, func() error {
+		_, e := s.HttpProxyApi(context.Background(), api.HttpProxyRequest{URL: "file:///tmp/file"})
+		return e
+	}(), "INVALID_ARGUMENT")
 }
 func TestErrorWireDoesNotExposeSensitiveUnderlyingDetails(t *testing.T) {
 	source := errors.New("synthetic credential in request URL")

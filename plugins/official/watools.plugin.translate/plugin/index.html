@@ -690,21 +690,61 @@
         setStatus("自动翻译已就绪。");
     };
 
-    window.addEventListener("watools:context-ready", (event) => {
-        void applyHostContext(event.detail || readHostContext());
-    });
-
-    window.addEventListener("load", async () => {
+    let initialization;
+    let contextApplied = false;
+    const initialize = () => initialization ||= (async () => {
+        await waitForHostApi();
+        await loadApiKey();
+    })();
+    const initializeAndApply = async () => {
         try {
-            await waitForHostApi();
-            await loadApiKey();
+            await initialize();
+            if (contextApplied || window.watools?.session?.windowMode === "detached") return;
+            contextApplied = true;
+            await applyHostContext(readHostContext());
         } catch (error) {
             const message = error instanceof Error ? error.message : "插件初始化失败";
             setStatus(message, "error");
             return;
         }
 
-        await applyHostContext(readHostContext());
+    };
+
+    window.watoolsSession = {
+        capture: async () => {
+            await initialize();
+            if (autoTranslateTimer) clearTimeout(autoTranslateTimer);
+            invalidateTranslation();
+            if (isTranslating) setStatus("翻译已暂停，按 Cmd/Ctrl + Enter 继续。");
+            isTranslating = false;
+            return {
+                source: sourceTextNode.value, target: targetTextNode.value,
+                detected: detectedLabel.textContent, status: statusNode.textContent,
+                statusClass: statusNode.className, settingsVisible: settingsPanel.classList.contains("visible"),
+                selectionStart: sourceTextNode.selectionStart, selectionEnd: sourceTextNode.selectionEnd,
+                sourceScrollTop: sourceTextNode.scrollTop, targetScrollTop: targetTextNode.scrollTop,
+            };
+        },
+        restore: async (saved) => {
+            await initialize();
+            sourceTextNode.value = saved.source;
+            targetTextNode.value = saved.target;
+            updateDirectionUI(saved.source);
+            detectedLabel.textContent = saved.detected;
+            statusNode.textContent = saved.status;
+            statusNode.className = saved.statusClass;
+            setSettingsVisible(saved.settingsVisible || !apiKey);
+            sourceTextNode.setSelectionRange(saved.selectionStart, saved.selectionEnd);
+            sourceTextNode.scrollTop = saved.sourceScrollTop;
+            targetTextNode.scrollTop = saved.targetScrollTop;
+        },
+    };
+
+    window.addEventListener("watools:context-ready", () => {
+        void initializeAndApply();
+    });
+    window.addEventListener("load", () => {
+        void initializeAndApply();
     });
 </script>
 </body>

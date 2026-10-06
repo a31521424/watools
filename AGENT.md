@@ -6,8 +6,8 @@
 
 - 当前是 Go + Wails v3.0.0-beta.27 + React 19 + TypeScript + Vite 7，Go 工具链以 `go.mod` 和 CI 为准。
 - Go 负责原生能力、命令扫描、插件安装和 SQLite 持久化；React 负责启动器、插件页与管理界面。
-- 插件提供 `executable` 和 `ui` 入口；当前 UI 插件在主窗口 iframe 中运行。
-- Wails v3 代码迁移已落地，原生验收按 backlog 记录。服务与宿主接口已按职责拆分，为插件独立小窗提供基础，详见 [backlog](./docs/backlog/README.md)。插件小窗尚未实现，不能作为现有 API 使用。
+- 插件提供 `executable` 和 `ui` 入口；UI 插件默认在主窗口 iframe 中运行，Command+D 可将当前插件分离为独立原生小窗，支持同插件多个实例。
+- Wails v3 代码迁移已落地，原生验收按 backlog 记录。服务与宿主接口已按职责拆分，为插件独立小窗提供基础，详见 [backlog](./docs/backlog/README.md)。插件小窗的分离、状态交付与多实例已实现，剩余体验／共享状态验收见对应 backlog。
 - 阶段需求以 [开发者自用需求](./docs/requirements/developer-self-use.md) 为准：优先当前 macOS 开发机上的稳定使用与快速调试，Windows 兼容和对外分发任务延期。保留现有平台实现，未完成的延期项不作为自用阶段完成条件。
 - macOS 按用户要求不使用系统 Keychain；凭据当前保存为应用数据目录内的本地明文文件。Windows 仍使用 DPAPI，不要把 Secret SDK 名称解释为所有平台都加密。
 
@@ -36,7 +36,7 @@
 | 修改前端界面 | [UI 风格](./docs/design/ui-style.md) | [功能模块](./docs/architecture/feature-modules.md) |
 | 开发或维护插件 | [插件开发索引](./docs/plugin-development/README.md) | 索引中的相关章节、[官方插件工具](./plugins/README.md) |
 | 修改发布和更新流程 | [发布说明](./docs/development/release-cd.md) | `.github/workflows/`、`internal/update/` |
-| 本机启动、检查、构建或插件调试 | [本地开发指南](./docs/development/local-workflow.md) | `scripts/dev.mjs`、可选 Host API mock；v3 多窗口仍在 backlog |
+| 本机启动、检查、构建或插件调试 | [本地开发指南](./docs/development/local-workflow.md) | `scripts/dev.mjs`、可选 Host API mock；原生小窗验收见 backlog |
 | 验证已知缺陷或安全边界 | [修复记录](./docs/reviews/remediation-2026-10-03.md) | [原始审查](./docs/reviews/review-2026-10-02.md)、[证据索引](./docs/reviews/evidence/README.md) |
 | 推进下一轮优化 | [Backlog 入口](./docs/backlog/README.md) | 本次任务对应的目标文档及其依赖 |
 | 重新评估框架和语言 | [历史技术调研](./docs/research/technology-direction-2026-10-02.md) | 官方最新资料；当前推进顺序以 backlog 为准 |

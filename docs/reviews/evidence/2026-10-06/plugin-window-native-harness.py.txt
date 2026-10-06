@@ -1,0 +1,133 @@
+import os, pathlib, json, re, subprocess, time, tempfile, urllib.request
+root = pathlib.Path.cwd()
+qa = pathlib.Path(tempfile.mkdtemp(prefix='watools-plugin-window-native-'))
+(qa/'data/hotkeys').mkdir(parents=True)
+(qa/'data/hotkeys/config.json').write_text(json.dumps([{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+k'}]))
+url='http://127.0.0.1:9267/mcp'
+ids={}
+for path in (root/'frontend/bindings/watools/internal/host').glob('*service.ts'):
+    ids.update({name:int(number) for name,number in re.findall(r'export function (\w+)\([^\n]*\{\n\s+return \$Call.ByID\((\d+)',path.read_text())})
+def tool(name,args):
+    req=urllib.request.Request(url,data=json.dumps({'jsonrpc':'2.0','id':1,'method':'tools/call','params':{'name':name,'arguments':args}}).encode(),headers={'Content-Type':'application/json'})
+    response=json.load(urllib.request.urlopen(req,timeout=20))
+    if response.get('error'): raise RuntimeError(response['error'])
+    result=response['result']
+    if result.get('isError'): raise RuntimeError(result['content'])
+    return json.loads(result['content'][0]['text'])
+def js(code,window='launcher'):
+    result=tool('js_eval',{'window':window,'js':'try {'+code+'} catch (error) {return {qaError: error.message}}','timeout_ms':12000})
+    if isinstance(result,dict) and result.get('qaError'):raise RuntimeError(result['qaError'])
+    return result
+def wait(fn, timeout=20):
+    deadline=time.monotonic()+timeout
+    while time.monotonic()<deadline:
+        try:
+            result=fn()
+            if result:return result
+        except Exception:
+            if host.poll() is not None:raise RuntimeError('native process exited')
+        time.sleep(.1)
+    raise RuntimeError('native readiness condition timed out')
+def record(name,result): print(json.dumps({'case':name,**result},ensure_ascii=False),flush=True)
+setup='''window.__qaCall = async (id,args=[]) => {const response=await fetch(window.location.origin+'/wails/runtime',{method:'POST',headers:{'Content-Type':'application/json','x-wails-client-id':'clipboard-qa','x-wails-window-name':'launcher'},body:JSON.stringify({object:0,method:0,args:{'call-id':crypto.randomUUID(),methodID:id,args}})});const data=response.headers.get('Content-Type')?.includes('application/json')?await response.json():await response.text();if(!response.ok)throw Error(JSON.stringify(data));return data};return !!document.querySelector('input[role=combobox]');'''
+def call(name,args=[]):return js('return await window.__qaCall('+str(ids[name])+','+json.dumps(args)+');')
+def fixture(command):
+    helper.stdin.write(json.dumps(command)+'\n');helper.stdin.flush()
+    response=json.loads(helper.stdout.readline())
+    if response.get('error'):raise RuntimeError(response)
+    return response
+def clear_input():
+    js('''if(document.querySelector('[aria-label="剪贴板文本摘要"]') || document.querySelector('input[role=combobox]').value) document.querySelector('input[role=combobox]').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));return true;''')
+log=open(qa/'host.log','w')
+host=subprocess.Popen([str(root/'.cache/clipboard-native/watools-qa.app/Contents/MacOS/watools')],env=dict(os.environ,WATOOLS_DATA_DIR=str(qa/'data'),WATOOLS_CACHE_DIR=str(qa/'cache'),WAILS_MCP_HOST='127.0.0.1',WAILS_MCP_PORT='9267',WAILS_MCP_HIDE_CURSOR='1'),stdout=log,stderr=subprocess.STDOUT)
+helper=None; saved=False
+try:
+    wait(lambda:js(setup))
+    for package in sorted((root/'.cache/dev/packages').glob('*.wt')):call('InstallPluginApi',[str(package)])
+    js('window.__qaReloadMarker=true;setTimeout(()=>location.reload(),50);return true;')
+    wait(lambda:js("return window.__qaReloadMarker!==true && !!document.querySelector('input[role=combobox]');"))
+    wait(lambda:js(setup))
+    helper=subprocess.Popen(['/private/tmp/watools-clipboard-helper'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+    fixture({'action':'backup'});saved=True
+    children=[]
+    for index in range(2):
+        call('HideAppApi')
+        call('HideOrShowAppApi')
+        clear_input()
+        origin='  '+json.dumps({'instance':index,'payload':'x'*(1000000 if index==0 else 100)},ensure_ascii=False)+'\n  '
+        edited=json.dumps({'edited':index,'payload':'y'*(1000000 if index==0 else 100)},ensure_ascii=False)
+        (qa/'fixture.txt').write_text(origin)
+        fixture({'action':'set','path':str(qa/'fixture.txt')})
+        js("window.dispatchEvent(new Event('focus'));return true;")
+        wait(lambda:js("return Array.from(document.querySelectorAll('[cmdk-item]')).some(e=>e.textContent.includes('打开 JSON 编辑器'));"))
+        js("Array.from(document.querySelectorAll('[cmdk-item]')).find(e=>e.textContent.includes('打开 JSON 编辑器')).click();return true;")
+        wait(lambda:js("return !!document.querySelector('iframe')?.contentWindow?.pluginContext && !!document.querySelector('iframe')?.contentWindow?.watoolsSession;"))
+        result=js('const frame=document.querySelector("iframe").contentWindow;const state=await frame.watoolsSession.capture();const exact=state.text==='+json.dumps(origin)+';state.text='+json.dumps(edited)+';state.path="$.edited";state.output="preserved output";await frame.watoolsSession.restore(state);return {originExact:exact};')
+        assert result['originExact']
+        assert len(tool('windows_list',{}))==index+1
+        js("document.querySelector('iframe').contentWindow.dispatchEvent(new KeyboardEvent('keydown',{key:'d',metaKey:true,bubbles:true,cancelable:true}));return true;")
+        wait(lambda:js("return location.pathname==='/' && !!document.querySelector('input[role=combobox]');"),timeout=35)
+        available=[w for w in tool('windows_list',{}) if w['name'].startswith('plugin-') and w['name'] not in children]
+        assert len(available)==1,available
+        child=available[0]['name'];children.append(child)
+        native=json.loads(subprocess.check_output(['/private/tmp/watools-qa-window-status',str(host.pid)],text=True))
+        record('native-window-order',{'appHidden':native['appHidden'],'onScreenWindows':sum(w['onScreen'] and w['layer']==0 for w in native['windows'])})
+        assert not native['appHidden'] and sum(w['onScreen'] and w['layer']==0 for w in native['windows'])==index+2
+        available=[w for w in tool('windows_list',{}) if w['name']==child]
+        result=js('const frame=document.querySelector("iframe").contentWindow;const state=await frame.watoolsSession.capture();return {editorExact:state.text==='+json.dumps(edited)+',originExact:frame.pluginContext.input.value==='+json.dumps(origin)+',pathExact:state.path==="$.edited",outputExact:state.output==="preserved output",urlLength:location.href.length};',child)
+        assert all(result[k] for k in ['editorExact','originExact','pathExact','outputExact']) and result['urlLength']<160,result
+        record('detach-json',{'instance':index,'originLength':len(origin),'editedLength':len(edited),'wailsUnoccluded':available[0]['visible'],'nativeOrdered':True,**result})
+        launcher=wait(lambda:next((w for w in tool('windows_list',{}) if w['name']=='launcher' and w['height']==64),None))
+        assert launcher['height']==64,launcher
+        record('launcher-reset',{'height':launcher['height'],'inputEmpty':js("return document.querySelector('input[role=combobox]').value.length===0;")})
+    for child in children:
+        js("window.__qaEvents=0;document.querySelector('iframe').contentWindow.runtime.EventsOn('probe',()=>window.__qaEvents++);return true;",child)
+    js("await document.querySelector('iframe').contentWindow.runtime.EventsEmit('probe');return true;",children[0])
+    time.sleep(.2)
+    a=js("return {count:window.__qaEvents};",children[0]);b=js("return {count:window.__qaEvents};",children[1])
+    assert a['count']==1 and b['count']==0
+    record('event-isolation',{'first':a['count'],'second':b['count']})
+    before=call('GetLauncherSizeApi')
+    result=js("const runtime=document.querySelector('iframe').contentWindow.runtime;await runtime.WindowSetSize(620,540);return await runtime.WindowGetSize();",children[0])
+    assert result=={'w':620,'h':540} and call('GetLauncherSizeApi')==before
+    record('window-scope',{'childSizeExact':True,'launcherUnchanged':True})
+    call('HideAppApi')
+    def children_ordered():
+        native=json.loads(subprocess.check_output(['/private/tmp/watools-qa-window-status',str(host.pid)],text=True))
+        return sum(w['onScreen'] and w['layer']==0 for w in native['windows'])==2 and not native['appHidden']
+    wait(children_ordered,timeout=10)
+    record('launcher-hide',{'childrenStillOrdered':True})
+    tool('window_control',{'window':children[0],'action':'close'})
+    wait(lambda:len(tool('windows_list',{}))==2)
+    record('close-one',{'otherStillRunning':js("return {alive:!!document.querySelector('iframe')?.contentWindow?.watoolsSession};",children[1])['alive']})
+    call('TogglePluginApi',['watools.plugin.json',False])
+    wait(lambda:len(tool('windows_list',{}))==1)
+    record('disable-cleanup',{'remainingWindows':len(tool('windows_list',{}))})
+    call('HideAppApi')
+    call('HideOrShowAppApi')
+    clear_input()
+    origin='  plain text '+('x'*3000)+'\n  '
+    edited='Edited form 😀 '+('y'*3000)
+    (qa/'fixture.txt').write_text(origin)
+    fixture({'action':'set','path':str(qa/'fixture.txt')})
+    js("window.dispatchEvent(new Event('focus'));return true;")
+    wait(lambda:js("return Array.from(document.querySelectorAll('[cmdk-item]')).some(e=>e.textContent.includes('打开文本统计面板'));"))
+    js("Array.from(document.querySelectorAll('[cmdk-item]')).find(e=>e.textContent.includes('打开文本统计面板')).click();return true;")
+    wait(lambda:js("return !!document.querySelector('iframe')?.contentWindow?.pluginContext && !!document.querySelector('iframe')?.contentDocument?.querySelector('textarea');"))
+    js('const frame=document.querySelector("iframe").contentWindow;const editor=frame.document.querySelector("textarea");editor.value='+json.dumps(edited)+';editor.dispatchEvent(new frame.Event("input",{bubbles:true}));frame.dispatchEvent(new KeyboardEvent("keydown",{key:"d",metaKey:true,bubbles:true,cancelable:true}));return true;')
+    wait(lambda:js("return location.pathname==='/' && !!document.querySelector('input[role=combobox]');"),timeout=35)
+    child=next(w['name'] for w in tool('windows_list',{}) if w['name'].startswith('plugin-'))
+    result=js('const frame=document.querySelector("iframe").contentWindow;return {editorExact:frame.document.querySelector("textarea").value==='+json.dumps(edited)+',originExact:frame.pluginContext.input.value==='+json.dumps(origin)+'};',child)
+    assert result['editorExact'] and result['originExact'],result
+    record('detach-form',{'plugin':'watools.plugin.textstats',**result})
+    js("document.querySelector('iframe').contentWindow.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));return true;",child)
+    wait(lambda:len(tool('windows_list',{}))==1)
+    record('escape-close',{'onlyLauncherRemains':True})
+finally:
+    if saved and helper and helper.poll() is None:record('clipboard-restore',fixture({'action':'restore'}))
+    if helper:helper.stdin.close();helper.wait(timeout=10)
+    host.terminate()
+    try:host.wait(timeout=10)
+    except subprocess.TimeoutExpired:host.kill();host.wait()
+    log.close()
+    record('cleanup',{'hostStopped':host.poll() is not None,'qaDirectory':str(qa)})

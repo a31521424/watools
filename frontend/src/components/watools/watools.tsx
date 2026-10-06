@@ -11,10 +11,14 @@ import {usePluginStore} from "@/stores/pluginStore";
 import {useApplicationCommandStore} from "@/stores/applicationCommandStore";
 import {useLocation} from "wouter";
 import {cn} from "@/lib/utils";
+import {useAppStore} from '@/stores/appStore';
+import {watchClipboardSnapshot} from '@/api/app';
+import {Logger} from '@/lib/logger';
 
 const FIXED_PANEL_HEIGHT_CLASS = "h-[760px]"
 
 const Watools = () => {
+    useEffect(() => watchClipboardSnapshot(useAppStore, () => Logger.error('剪贴板快照维护失败')), []);
     const [location] = useLocation()
     const windowRef = useElementResize<HTMLDivElement>({
         onResize: resizeWindowHeight

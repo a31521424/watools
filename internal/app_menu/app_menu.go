@@ -12,10 +12,22 @@ func GetWatoolsMenu(waApp *app.WaApp) *application.Menu {
 	menu.AddRole(application.WindowMenu)
 	view := menu.AddSubmenu("View")
 	view.Add("Reload").SetAccelerator("CmdOrCtrl+Shift+r").OnClick(func(_ *application.Context) {
-		waApp.ReloadAPP()
+		application.InvokeSync(func() {
+			if window := application.Get().Window.Current(); window != nil {
+				window.ForceReload()
+			} else {
+				waApp.ReloadAPP()
+			}
+		})
 	})
 	view.Add("Refresh").SetAccelerator("CmdOrCtrl+r").OnClick(func(_ *application.Context) {
-		waApp.Reload()
+		application.InvokeSync(func() {
+			if window := application.Get().Window.Current(); window != nil {
+				window.Reload()
+			} else {
+				waApp.Reload()
+			}
+		})
 	})
 	return menu
 }

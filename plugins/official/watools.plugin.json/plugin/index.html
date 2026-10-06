@@ -366,6 +366,7 @@
         parsedValue: undefined,
         parsedTree: null,
         currentPath: "",
+        windowRestored: false,
     };
 
     const keyboard = {
@@ -1283,6 +1284,7 @@
     };
 
     const applyHostContext = (context) => {
+        if (state.windowRestored || window.watools?.session?.windowMode === "detached") return;
         if (!state.editor) {
             return;
         }
@@ -1582,6 +1584,32 @@
         }
     });
 
+    let resolveEditorReady, rejectEditorReady;
+    const editorReady = new Promise((resolve, reject) => {resolveEditorReady = resolve; rejectEditorReady = reject;});
+    editorReady.catch(() => {});
+    window.watoolsSession = {
+        capture: async () => {
+            await editorReady;
+            return {
+                text: getEditorValue(), view: state.editor.saveViewState(),
+                path: pathInput.value, output: extractOutput.value,
+                previewCollapsed: state.previewCollapsed,
+            };
+        },
+        restore: async (saved) => {
+            state.windowRestored = true;
+            await editorReady;
+            // Restore a new model directly; interactive undo edits belong to
+            // the source editor and must not participate in window creation.
+            getModel().setValue(normalizeLineEndings(saved.text));
+            validateNow();
+            pathInput.value = saved.path || "";
+            extractOutput.value = saved.output || "";
+            togglePanel(saved.previewCollapsed === false);
+            if (saved.view) state.editor.restoreViewState(saved.view);
+            updateActionState(); focusEditor();
+        }
+    };
     loadMonaco()
         .then((monaco) => {
             configureMonaco(monaco);
@@ -1589,8 +1617,10 @@
             window.addEventListener("watools:context-ready", (event) => {
                 applyHostContext(event.detail || readHostContext());
             });
+            resolveEditorReady();
         })
         .catch((error) => {
+            rejectEditorReady(error);
             setStatus(error instanceof Error ? error.message : "加载失败", "error");
         });
 </script>

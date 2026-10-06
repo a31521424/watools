@@ -21,9 +21,15 @@ export {
 export {
     ApplicationCommand,
     ApplicationUsage,
+    DetachPluginRequest,
     OperationCommand,
     PackageRequest,
+    PluginClipboard,
+    PluginInput,
+    PluginLaunchContext,
     PluginUsage,
+    PluginWindowSession,
+    PluginWindowStatus,
     StorageKeyRequest,
     StorageSetRequest,
     WindowSize

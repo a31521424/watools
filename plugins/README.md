@@ -59,5 +59,8 @@ go run ./cmd/pluginctl install watools.plugin.translate
 - UI plugins should read launch data from `window.pluginContext` and `watools:context-ready`.
 - `seed` query params and `window.inputValue` are compatibility fallbacks only. The host does not put input text in URLs.
 - Repackage and reinstall changed official plugins; updating the host alone does not replace installed plugin files.
+- All five official UI plugins provide `watoolsSession.capture/restore` from version 0.2.0. JSON preserves the edited model and panel; QR preserves its current image; translation preserves results without repeating requests; calculator preserves its current view; textstats preserves selection/scroll.
+- The host injects `window.watools.session.windowMode` before `watools:context-ready`. Detached pages restore their snapshot instead of reapplying launch input or starting automatic work.
+- After upgrading a plugin, save any open document, return to the launcher, refresh the plugin list (or restart), and reopen it. Existing pages keep their old immutable revision.
 - Current official entries declare only `matchPreview` and require the current host. Third-party entries using legacy `match` remain supported through the host adapter.
 - Translation requires the new Secret API. macOS saves credentials in owner-only local plaintext files; Windows uses DPAPI. Host storage failures are reported without copying keys to browser storage.

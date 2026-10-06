@@ -1,0 +1,9 @@
+import AppKit
+import CoreGraphics
+let pid = pid_t(CommandLine.arguments[1])!
+let app = NSRunningApplication(processIdentifier: pid)
+let windows = (CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []).filter { ($0[kCGWindowOwnerPID as String] as? Int) == Int(pid) }.map { w in
+    ["onScreen": w[kCGWindowIsOnscreen as String] as? Bool ?? false, "layer": w[kCGWindowLayer as String] as? Int ?? -1, "bounds": w[kCGWindowBounds as String] ?? [:]] as [String: Any]
+}
+let result: [String: Any] = ["appHidden": app?.isHidden ?? true, "windows": windows]
+print(String(data: try! JSONSerialization.data(withJSONObject: result), encoding: .utf8)!)

@@ -1,0 +1,13 @@
+{"case": "invoke-keyboard-and-clipboard", "instance": 0, "nativeWebViewFocused": true, "automaticRecommendation": true}
+{"case": "detach-hides-launcher", "instance": 0, "launcherHeight": 64, "onlyChildrenOrdered": true, "children": 1, "editedExact": true, "focused": true, "originExact": true}
+{"case": "invoke-keyboard-and-clipboard", "instance": 1, "nativeWebViewFocused": true, "automaticRecommendation": true}
+{"case": "detach-hides-launcher", "instance": 1, "launcherHeight": 64, "onlyChildrenOrdered": true, "children": 2, "editedExact": true, "focused": true, "originExact": true}
+{"case": "invoke-preserves-other-window-order", "round": 0, "launcherAboveExternal": true, "childrenBehindExternal": true, "childrenRelativeOrderPreserved": true, "externalRemainsActive": true, "launcherReceivesKeyboardFocus": true}
+{"case": "hide-restores-external-focus", "round": 0, "launcherOrderedOut": true, "externalStillActive": true, "childrenStillOrdered": true}
+{"case": "invoke-preserves-other-window-order", "round": 1, "launcherAboveExternal": true, "childrenBehindExternal": true, "childrenRelativeOrderPreserved": true, "externalRemainsActive": true, "launcherReceivesKeyboardFocus": true}
+{"case": "hide-restores-external-focus", "round": 1, "launcherOrderedOut": true, "externalStillActive": true, "childrenStillOrdered": true}
+{"case": "invoke-preserves-other-window-order", "round": 2, "launcherAboveExternal": true, "childrenBehindExternal": true, "childrenRelativeOrderPreserved": true, "externalRemainsActive": true, "launcherReceivesKeyboardFocus": true}
+{"case": "hide-restores-external-focus", "round": 2, "launcherOrderedOut": true, "externalStillActive": true, "childrenStillOrdered": true}
+{"case": "cleanup", "onlyLauncherRemains": true}
+{"case": "clipboard-restore", "restored": true}
+{"case": "qa-processes-stopped", "hostStopped": true, "externalStopped": true}

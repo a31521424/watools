@@ -44,3 +44,9 @@ Official translation panel plugin, now built around DeepL Free.
 ```bash
 go run ./cmd/pluginctl package watools.plugin.translate
 ```
+
+## Window Detachment
+
+Window detachment (0.2.0) preserves source/result and view state, pauses pending translation, and restores without repeating API requests. Credentials reload from host storage and are excluded from the snapshot. Press `Cmd + D` in the main window to detach.
+
+Repackage and reinstall the plugin after updating its source; save the open document, refresh the plugin list (or restart WaTools), and reopen it to load the new revision. Updating the host alone keeps the old installed plugin.

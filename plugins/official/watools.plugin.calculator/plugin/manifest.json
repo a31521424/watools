@@ -2,7 +2,7 @@
   "packageId": "watools.plugin.calculator",
   "name": "计算器",
   "description": "官方计算器，支持直接输入表达式求值，或打开面板连续计算并查看历史。",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "WaTools",
   "usage": "启用后可直接输入算式获得结果；输入 calc、calculator、jsq、计算 或 计算器 可打开面板。",
   "triggerKeywords": [
@@ -23,7 +23,8 @@
     "Cmd/Ctrl + L: 清空输入",
     "Cmd/Ctrl + Shift + C: 复制最近结果",
     "Cmd/Ctrl + Shift + E: 复制当前表达式",
-    "Cmd/Ctrl + Shift + L: 复制最近一条历史"
+    "Cmd/Ctrl + Shift + L: 复制最近一条历史",
+    "Cmd + D: 从主窗口分离为独立小窗"
   ],
   "notes": [
     "直接输入合法表达式时，会作为可执行插件立即参与命令匹配。",

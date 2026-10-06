@@ -16,6 +16,13 @@ export type WaToolsApi = {
     StorageKeys: () => Promise<string[]>;
 }
 
+export type WaToolsUIApi = WaToolsApi & {
+    readonly session: {
+        readonly id: string;
+        readonly windowMode: 'inline' | 'detached';
+    };
+};
+
 // Factory function to create WaToolsApi with explicit packageId
 export const createWaToolsApi = (packageId: string): WaToolsApi => ({
     OpenFolder: value => host.OpenFolder(value),

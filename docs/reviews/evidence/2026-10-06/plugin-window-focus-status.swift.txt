@@ -1,0 +1,8 @@
+import AppKit
+import CoreGraphics
+let pids = Set(CommandLine.arguments.dropFirst().compactMap(Int.init))
+let windows = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []).filter { pids.contains($0[kCGWindowOwnerPID as String] as? Int ?? -1) }.map { w in
+ ["pid": w[kCGWindowOwnerPID as String] as? Int ?? -1, "id": w[kCGWindowNumber as String] as? Int ?? -1, "layer": w[kCGWindowLayer as String] as? Int ?? -1, "bounds": w[kCGWindowBounds as String] ?? [:]] as [String: Any]
+}
+let result: [String: Any] = ["frontmost": NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1, "windows": windows]
+print(String(data: try! JSONSerialization.data(withJSONObject: result), encoding: .utf8)!)

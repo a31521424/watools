@@ -100,6 +100,11 @@ export function createMockHost(options: MockHostOptions = {}): HostAPI {
             items.forEach(v => {const c = applications.find(c => c.id === v.id); if (c) Object.assign(c, v)})
         },
         GetPluginsApi: async () => clone(plugins),
+        DetachPluginApi: async () => unavailable(),
+        GetPluginWindowApi: async () => unavailable(),
+        GetPluginWindowStatusApi: async () => unavailable(),
+        PluginWindowReadyApi: async () => unavailable(),
+        ClosePluginWindowApi: async () => unavailable(),
         GetPluginJsEntryUrlApi: async id => {packageID(id); return ''},
         UpdatePluginUsageApi: async items => {
             items.forEach(v => {packageID(v.packageId); usage(v.packageId, v)})

@@ -98,6 +98,47 @@ export class ApplicationUsage {
     }
 }
 
+export class DetachPluginRequest {
+    "packageId": string;
+    "file": string;
+    "homeUrl": string;
+    "context": PluginLaunchContext;
+    "state": json$0.RawMessage;
+
+    /** Creates a new DetachPluginRequest instance. */
+    constructor($$source: Partial<DetachPluginRequest> = {}) {
+        if (!("packageId" in $$source)) {
+            this["packageId"] = "";
+        }
+        if (!("file" in $$source)) {
+            this["file"] = "";
+        }
+        if (!("homeUrl" in $$source)) {
+            this["homeUrl"] = "";
+        }
+        if (!("context" in $$source)) {
+            this["context"] = (new PluginLaunchContext());
+        }
+        if (!("state" in $$source)) {
+            this["state"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DetachPluginRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DetachPluginRequest {
+        const $$createField3_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("context" in $$parsedSource) {
+            $$parsedSource["context"] = $$createField3_0($$parsedSource["context"]);
+        }
+        return new DetachPluginRequest($$parsedSource as Partial<DetachPluginRequest>);
+    }
+}
+
 export class OperationCommand {
     "triggerId": string;
     "name": string;
@@ -164,6 +205,102 @@ export class PackageRequest {
     }
 }
 
+export class PluginClipboard {
+    "contentType": string;
+    "text": string | null;
+    "imageBase64": string | null;
+    "files": string[];
+
+    /** Creates a new PluginClipboard instance. */
+    constructor($$source: Partial<PluginClipboard> = {}) {
+        if (!("contentType" in $$source)) {
+            this["contentType"] = "";
+        }
+        if (!("text" in $$source)) {
+            this["text"] = null;
+        }
+        if (!("imageBase64" in $$source)) {
+            this["imageBase64"] = null;
+        }
+        if (!("files" in $$source)) {
+            this["files"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PluginClipboard instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PluginClipboard {
+        const $$createField3_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("files" in $$parsedSource) {
+            $$parsedSource["files"] = $$createField3_0($$parsedSource["files"]);
+        }
+        return new PluginClipboard($$parsedSource as Partial<PluginClipboard>);
+    }
+}
+
+export class PluginInput {
+    "value": string;
+    "valueType": string;
+    "clipboardContentType"?: string;
+
+    /** Creates a new PluginInput instance. */
+    constructor($$source: Partial<PluginInput> = {}) {
+        if (!("value" in $$source)) {
+            this["value"] = "";
+        }
+        if (!("valueType" in $$source)) {
+            this["valueType"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PluginInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PluginInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PluginInput($$parsedSource as Partial<PluginInput>);
+    }
+}
+
+export class PluginLaunchContext {
+    "input": PluginInput;
+    "clipboard": PluginClipboard | null;
+
+    /** Creates a new PluginLaunchContext instance. */
+    constructor($$source: Partial<PluginLaunchContext> = {}) {
+        if (!("input" in $$source)) {
+            this["input"] = (new PluginInput());
+        }
+        if (!("clipboard" in $$source)) {
+            this["clipboard"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PluginLaunchContext instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PluginLaunchContext {
+        const $$createField0_0 = $$createType2;
+        const $$createField1_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("input" in $$parsedSource) {
+            $$parsedSource["input"] = $$createField0_0($$parsedSource["input"]);
+        }
+        if ("clipboard" in $$parsedSource) {
+            $$parsedSource["clipboard"] = $$createField1_0($$parsedSource["clipboard"]);
+        }
+        return new PluginLaunchContext($$parsedSource as Partial<PluginLaunchContext>);
+    }
+}
+
 export class PluginUsage {
     "packageId": string;
     "lastUsedAt": string | null;
@@ -190,6 +327,80 @@ export class PluginUsage {
     static createFrom($$source: any = {}): PluginUsage {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new PluginUsage($$parsedSource as Partial<PluginUsage>);
+    }
+}
+
+export class PluginWindowSession {
+    "id": string;
+    "windowName": string;
+    "title": string;
+    "packageId": string;
+    "file": string;
+    "homeUrl": string;
+    "context": PluginLaunchContext;
+    "state": json$0.RawMessage;
+
+    /** Creates a new PluginWindowSession instance. */
+    constructor($$source: Partial<PluginWindowSession> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("windowName" in $$source)) {
+            this["windowName"] = "";
+        }
+        if (!("title" in $$source)) {
+            this["title"] = "";
+        }
+        if (!("packageId" in $$source)) {
+            this["packageId"] = "";
+        }
+        if (!("file" in $$source)) {
+            this["file"] = "";
+        }
+        if (!("homeUrl" in $$source)) {
+            this["homeUrl"] = "";
+        }
+        if (!("context" in $$source)) {
+            this["context"] = (new PluginLaunchContext());
+        }
+        if (!("state" in $$source)) {
+            this["state"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PluginWindowSession instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PluginWindowSession {
+        const $$createField6_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("context" in $$parsedSource) {
+            $$parsedSource["context"] = $$createField6_0($$parsedSource["context"]);
+        }
+        return new PluginWindowSession($$parsedSource as Partial<PluginWindowSession>);
+    }
+}
+
+export class PluginWindowStatus {
+    "ready": boolean;
+
+    /** Creates a new PluginWindowStatus instance. */
+    constructor($$source: Partial<PluginWindowStatus> = {}) {
+        if (!("ready" in $$source)) {
+            this["ready"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PluginWindowStatus instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PluginWindowStatus {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new PluginWindowStatus($$parsedSource as Partial<PluginWindowStatus>);
     }
 }
 
@@ -271,3 +482,10 @@ export class WindowSize {
         return new WindowSize($$parsedSource as Partial<WindowSize>);
     }
 }
+
+// Private type creation functions
+const $$createType0 = PluginLaunchContext.createFrom;
+const $$createType1 = $Create.Array($Create.Any);
+const $$createType2 = PluginInput.createFrom;
+const $$createType3 = PluginClipboard.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);

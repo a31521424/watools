@@ -31,3 +31,9 @@ Official calculator plugin with two modes:
 ```bash
 go run ./cmd/pluginctl package watools.plugin.calculator
 ```
+
+## Window Detachment
+
+Window detachment (0.2.0) preserves the current expression, result, selection, and history view without writing draft/history during restore. Press `Cmd + D` in the main window to detach.
+
+Repackage and reinstall the plugin after updating its source; save the open document, refresh the plugin list (or restart WaTools), and reopen it to load the new revision. Updating the host alone keeps the old installed plugin.

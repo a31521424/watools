@@ -471,6 +471,12 @@
         activeSource: "empty",
         toastTimer: 0,
     };
+    const pendingImages = new Set();
+    const trackImage = (task) => {
+        pendingImages.add(task);
+        task.then(() => pendingImages.delete(task), () => pendingImages.delete(task));
+        return task;
+    };
 
     const readHostContext = () => window.pluginContext || {
         input: {
@@ -714,27 +720,32 @@
         reader.readAsDataURL(file);
     });
 
-    const importImageFile = async (file, sourceLabel = "导入图片") => {
-        if (!file) {
-            return;
-        }
-        if (!file.type.startsWith("image/")) {
-            setStatus("请选择图片文件。", "error");
-            return;
-        }
+    const importImageFile = (file, sourceLabel = "导入图片") => {
+        return trackImage((async () => {
+            if (!file) {
+                return;
+            }
+            if (!file.type.startsWith("image/")) {
+                setStatus("请选择图片文件。", "error");
+                return;
+            }
 
-        setStatus("正在解析二维码图片……");
-        const dataUrl = await readFileAsDataUrl(file);
-        await decodeQrFromImage(dataUrl, sourceLabel);
+            setStatus("正在解析二维码图片……");
+            const dataUrl = await readFileAsDataUrl(file);
+            await decodeQrFromImage(dataUrl, sourceLabel);
+        })());
     };
 
-    const importImageDataUrl = async (dataUrl, sourceLabel = "粘贴图片") => {
-        if (!dataUrl) {
-            return;
-        }
-        setStatus("正在解析二维码图片……");
-        await decodeQrFromImage(dataUrl, sourceLabel);
+    const importImageDataUrl = (dataUrl, sourceLabel = "粘贴图片") => {
+        return trackImage((async () => {
+            if (!dataUrl) {
+                return;
+            }
+            setStatus("正在解析二维码图片……");
+            await decodeQrFromImage(dataUrl, sourceLabel);
+        })());
     };
+
 
     const clearAll = () => {
         state.text = "";
@@ -887,6 +898,7 @@
     });
 
     const applyHostContext = (context) => {
+        if (window.watools?.session?.windowMode === "detached") return;
         const seededText = extractSeedText(context);
         const seededImageBase64 = context?.clipboard?.contentType === "image" && context.clipboard.imageBase64
             ? `data:image/png;base64,${context.clipboard.imageBase64}`
@@ -905,6 +917,29 @@
         }
 
         setStatus("输入文本或导入二维码图片开始处理。");
+    };
+
+    window.watoolsSession = {
+        capture: async () => {
+            await Promise.allSettled(pendingImages);
+            return {
+                text: state.text, imageDataUrl: state.imageDataUrl, imageLabel: state.imageLabel,
+                imageInfo: state.imageInfo, activeSource: state.activeSource,
+                status: statusNode.textContent, statusClass: statusNode.className,
+                selectionStart: textInput.selectionStart, selectionEnd: textInput.selectionEnd,
+                scrollTop: textInput.scrollTop,
+            };
+        },
+        restore: async (saved) => {
+            await Promise.allSettled(pendingImages);
+            applyTextValue(saved.text, saved.activeSource);
+            setPreviewImage(saved.imageDataUrl, saved.imageLabel, saved.imageInfo);
+            statusNode.textContent = saved.status;
+            statusNode.className = saved.statusClass;
+            textInput.focus();
+            textInput.setSelectionRange(saved.selectionStart, saved.selectionEnd);
+            textInput.scrollTop = saved.scrollTop;
+        },
     };
 
     updateUiState();

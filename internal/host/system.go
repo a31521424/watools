@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"net/http"
 	"net/url"
@@ -29,7 +30,7 @@ func (s *SystemService) SaveBase64Image(data string) (string, error) {
 func (s *SystemService) CopyBase64ImageToClipboard(data string) error {
 	return failure("system.copyImage", s.core.CopyBase64ImageToClipboard(data))
 }
-func (s *SystemService) HttpProxyApi(r api.HttpProxyRequest) (*api.HttpProxyResponse, error) {
+func (s *SystemService) HttpProxyApi(ctx context.Context, r api.HttpProxyRequest) (*api.HttpProxyResponse, error) {
 	u, e := url.Parse(r.URL)
 	if e != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
 		return nil, invalid("url 必须是有效 HTTP(S) 地址")
@@ -43,7 +44,13 @@ func (s *SystemService) HttpProxyApi(r api.HttpProxyRequest) (*api.HttpProxyResp
 	if _, e := http.NewRequest(r.Method, r.URL, nil); e != nil {
 		return nil, invalid("HTTP method 格式不正确")
 	}
+	if r.RequestID == "" {
+		r.RequestID = uuid.NewString()
+	}
+	r.RequestID = sourceWindow(ctx) + ":" + r.RequestID
 	v, e := s.core.HttpProxy(r)
 	return v, failure("system.http", e)
 }
-func (s *SystemService) CancelHttpProxyApi(id string) { s.core.CancelHttpProxy(id) }
+func (s *SystemService) CancelHttpProxyApi(ctx context.Context, id string) {
+	s.core.CancelHttpProxy(sourceWindow(ctx) + ":" + id)
+}

@@ -1,0 +1,15 @@
+{"case": "native-window-order", "appHidden": false, "onScreenWindows": 2}
+{"case": "detach-json", "instance": 0, "originLength": 1000035, "editedLength": 1000028, "wailsUnoccluded": false, "nativeOrdered": true, "editorExact": true, "originExact": true, "outputExact": true, "pathExact": true, "urlLength": 65}
+{"case": "launcher-reset", "height": 64, "inputEmpty": true}
+{"case": "native-window-order", "appHidden": false, "onScreenWindows": 3}
+{"case": "detach-json", "instance": 1, "originLength": 135, "editedLength": 128, "wailsUnoccluded": false, "nativeOrdered": true, "editorExact": true, "originExact": true, "outputExact": true, "pathExact": true, "urlLength": 65}
+{"case": "launcher-reset", "height": 64, "inputEmpty": true}
+{"case": "event-isolation", "first": 1, "second": 0}
+{"case": "window-scope", "childSizeExact": true, "launcherUnchanged": true}
+{"case": "launcher-hide", "childrenStillOrdered": true}
+{"case": "close-one", "otherStillRunning": true}
+{"case": "disable-cleanup", "remainingWindows": 1}
+{"case": "detach-form", "plugin": "watools.plugin.textstats", "editorExact": true, "originExact": true}
+{"case": "escape-close", "onlyLauncherRemains": true}
+{"case": "clipboard-restore", "restored": true}
+{"case": "cleanup", "hostStopped": true, "qaDirectory": "/var/folders/bm/bnv2nh7j36q_h3yshkg4m9dm0000gn/T/watools-plugin-window-native-jlsm65ib"}

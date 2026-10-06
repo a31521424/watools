@@ -30,9 +30,9 @@
 
 当前固定 Wails v3 Beta.27 与同版 npm runtime。启动前配置 launcher 窗口，WindowRuntimeReady 后定位并注册快捷键；命令 watcher 通过注入回调发出 `watools.applicationChanged`。
 
-主窗口是透明无边框 WebviewWindow，macOS 位置与焦点桥接接收该窗口的 NativeWindow 句柄，不再查找任意 key/main window。原生菜单改为 v3 menu roles；插件安装文件对话框明确附着主窗口。
+主窗口是透明无边框 WebviewWindow，macOS 使用 non-activating NSPanel；位置桥接接收启动器的 NativeWindow 句柄，不查找任意 key/main window。原生菜单改为 v3 menu roles；插件安装文件对话框明确附着主窗口。
 
-macOS 全局快捷键使用 Carbon 独占注册，生命周期入口先调度到 AppKit 主线程再取得锁，注册与移除在主线程完成，避免退出清理的锁反转。占用冲突会返回错误，现有配置更新流程恢复旧配置与注册；注册的事件处理器随快捷键释放。Windows 仍使用原有 hotkey 库。启动器显式呼出使用 `activateIgnoringOtherApps:YES`，避免 macOS 14+ 的 best-effort `activate` 留下可见但没有键盘焦点的窗口；隐藏时仍按原有逻辑交还先前应用。
+macOS 全局快捷键使用 Carbon 独占注册，生命周期入口先调度到 AppKit 主线程再取得锁，注册与移除在主线程完成，避免退出清理的锁反转。占用冲突会返回错误，现有配置更新流程恢复旧配置与注册；注册的事件处理器随快捷键释放。Windows 仍使用原有 hotkey 库。启动器呼出仅 Show／Focus 自己的 non-activating NSPanel，获得键盘焦点而不执行应用级激活，因此不会将其他独立插件窗一起置前。隐藏只 order out 启动器，由 AppKit 恢复键盘焦点，不强制激活先前应用，以免打断刚分离的小窗。
 
 插件继续注入 `window.runtime` 兼容对象，由 `frontend/src/lib/legacy-runtime.ts` 将旧名称转换为 v3 API，包含旧剪贴板成功布尔值、窗口尺寸 `{w,h}` 与事件可变参数。常用日志走显式宿主方法；v3 framework 自动调用日志过滤 args/result。这个兼容对象不是完整 v2 运行时或不可信插件沙箱，具体支持边界见插件指南。
 
@@ -93,6 +93,16 @@ macOS 全局快捷键使用 Carbon 独占注册，生命周期入口先调度到
 本轮验证与边界见 [2026-10-06 证据](../reviews/evidence/2026-10-06/README.md)。
 
 插件机制集中在 [`internal/plugin/`](../../internal/plugin)。
+
+### 默认展开与 Command+D 分离
+
+UI 默认仍在主窗口展开。`wa-plugin.tsx` 在主页面和 iframe 捕获 Command+D，原页面保持可用直到新窗加载及恢复完成；失败展示错误，Esc 可取消。捕获期间暂时禁止编辑，防止状态导出后继续修改被丢弃。`plugin-window-state.ts` 使用插件 hooks 或普通表单兼容快照；官方 JSON 等待 Monaco 就绪后捕获编辑模型和视图，不传 DOM。
+
+官方 UI 插件 0.2.0 均提供 hooks；UI SDK 在 context-ready 前注入只读 `session.id/windowMode`，独立窗恢复快照而不重复处理原文。JSON 恢复直接设置新模型，并在初始化前标记恢复所有权，阻止迟到上下文覆盖编辑；二维码保留现有图片和模式，翻译暂停未完成请求、保留译文且不重复自动请求。版本升级只切换安装指针，已打开的页面仍使用旧 revision，需保存内容后重新打开。
+
+PluginService 的五个会话 API 负责创建、领取、查询 ready、确认恢复和关闭。`plugin_window.go` 在宿主保存会话，校验启用状态、包内路径和 revision；原生窗仅通过 `/?pluginSession=<id>` 加载独立 shell。隐藏窗恢复状态后显示，主窗口轮询轻量 ready，恢复成功后隐藏自己并返回空启动器；下次唤出仍为最小 64px。创建／显隐／关闭不持会话锁等待原生主线程，关闭清理，pending 30 秒超时，应用退出禁止回写。禁用／卸载先关闭所属窗口，升级保留已打开的旧 revision。
+
+独立 shell 延迟加载插件视图，不初始化启动器命令与 usage store。每个 iframe 初始化自己的 SDK 和窗口 runtime；窗口方法绑定具体窗口，实例事件命名避免串用。HTTP 公共 requestId 在 UI 和宿主分别加实例／窗口前缀，单窗关闭只取消其请求。共享 Storage／Secret 仍以 packageId 为范围。主窗口 ResizeObserver 保持最小 64px，并丢弃旧异步尺寸读数；菜单刷新指向当前活跃窗口。更多契约及剩余范围见 [窗口 backlog](../backlog/plugin-windows-and-sessions.md) 和 [插件运行时](../plugin-development/03-runtime-and-context.md#分离窗口的状态接口)。
 
 ### 安装与状态
 

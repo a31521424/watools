@@ -31,3 +31,9 @@ Official text statistics panel for explicit command-triggered analysis.
 ```bash
 go run ./cmd/pluginctl package watools.plugin.textstats
 ```
+
+## Window Detachment
+
+Window detachment (0.2.0) preserves exact text, selection, and scroll position, then recomputes the statistics. Press `Cmd + D` in the main window to detach.
+
+Repackage and reinstall the plugin after updating its source; save the open document, refresh the plugin list (or restart WaTools), and reopen it to load the new revision. Updating the host alone keeps the old installed plugin.

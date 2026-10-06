@@ -725,6 +725,7 @@
     });
 
     const applyHostContext = (context) => {
+        if (window.watools?.session?.windowMode === "detached") return;
         const seedText = extractSeedText(context);
         if (seedText) {
             editor.value = seedText;
@@ -735,6 +736,22 @@
 
         render();
         editor.focus();
+    };
+
+    window.watoolsSession = {
+        capture: () => ({
+            text: editor.value, selectionStart: editor.selectionStart,
+            selectionEnd: editor.selectionEnd, selectionDirection: editor.selectionDirection,
+            scrollTop: editor.scrollTop, label: seedLabel.textContent,
+        }),
+        restore: (saved) => {
+            editor.value = saved.text;
+            seedLabel.textContent = saved.label;
+            render();
+            editor.focus();
+            editor.setSelectionRange(saved.selectionStart, saved.selectionEnd, saved.selectionDirection);
+            editor.scrollTop = saved.scrollTop;
+        },
     };
 
     applyHostContext(readHostContext());

@@ -2,11 +2,11 @@
 
 [返回 Backlog](./README.md)
 
-状态：planned。优先级：P0。依赖：[v3 窗口与绑定](./wails-v3-migration.md)、[宿主接口](./services-and-host-api.md)。目标是插件独立于启动器运行，多实例的上下文、状态与生命周期明确。当前按 macOS 自用验收，Windows 适配延期。
+状态：in-progress。优先级：P0。依赖：[v3 窗口与绑定](./wails-v3-migration.md)、[宿主接口](./services-and-host-api.md)。目标是插件独立于启动器运行，多实例的上下文、状态与生命周期明确。当前按 macOS 自用验收，Windows 适配延期。
 
 ## 现状问题
 
-UI 插件由 `frontend/src/components/watools/wa-plugin.tsx` 在主窗口 iframe 内加载并注入 API。启动上下文在 `frontend/src/lib/plugin-context.ts` 的内存 Map 中，新窗口无法直接读取。页面缓存状态与使用次数，开放多窗口前需解决写回覆盖。
+默认 UI 仍由 `frontend/src/components/watools/wa-plugin.tsx` 在主窗口 iframe 加载。分离会话在 `internal/host/plugin_window.go` 管理，通过 `wa-detached-plugin.tsx` 加载独立 iframe；不依赖主页面内存 Map。入口使用次数只由启动器记录，分离不额外计次，独立窗不维护列表／使用计数缓存。Storage／Secret 仍按插件共享，历史类读改写的并发合并与 revision 引用回收尚未实施。
 
 ## 实施范围
 
@@ -19,7 +19,7 @@ UI 插件由 `frontend/src/components/watools/wa-plugin.tsx` 在主窗口 iframe
 
 ## 验收与验证
 
-- 翻译或 JSON 等真实插件从搜索结果打开独立窗口，隐藏启动器后继续工作。
+- 翻译或 JSON 默认从搜索结果在主窗口展开，Command+D 后打开独立窗并保留编辑内容，隐藏启动器后继续工作。
 - 至少两个实例的输入、HTTP 取消、存储、事件和计数不串用或覆盖。
 - 关闭重开、升级、禁用和卸载行为一致，没有残留请求、订阅或无界 revision 积累。
 - 当前 macOS 开发机验收焦点、中文输入法、Esc、置顶、多屏、缩放与关闭行为；无对应硬件的场景记录未验证范围，Windows 专项列入 [延期任务](./windows-compatibility.md)。
@@ -27,4 +27,12 @@ UI 插件由 `frontend/src/components/watools/wa-plugin.tsx` 在主窗口 iframe
 
 ## 实施记录
 
-尚未开始。当前没有原生独立插件小窗，会话仍在主页面内存中。
+2026-10-06 已按用户交互要求实施：默认在主窗口展开插件，只有 Command+D 或分离按钮创建独立原生小窗；恢复成功后主窗口自动隐藏并返回空启动器，同插件可连续创建多实例。会话由宿主内存管理，保存原始上下文与分离时可序列化状态，独立 SDK 窗口操作、事件与 HTTP 取消范围按实例区分。JSON 提供 Monaco 状态 hooks，普通表单有兼容路径；关闭、待加载超时、禁用与卸载回收会话。升级不迁移已打开的 revision，沿用已有不可变资源。
+
+完整检查（51 项前端、16 项工作流回归）、Go race、Windows 交叉编译通过；AppKit／WebKit 原生验证两个 JSON 实例（含百万字符编辑文本与原文）、文本统计表单迁移、主窗复位／隐藏、事件隔离、窗口尺寸、单实例关闭、禁用清理和 Esc 关闭。详见 [验证证据](../reviews/evidence/2026-10-06/README.md#主窗口展开与-commandd-分离)。快捷键使用合成事件，窗口显示使用原生进程窗口列表确认，未做物理输入和像素级视觉验收。
+
+2026-10-06 补齐官方 UI 插件 0.2.0 的专用 hooks，区分独立窗恢复与首次启动，避免原文重复导入、二维码重新生成和翻译重复请求。已安装旧包需要更新并重新打开页面；宿主构建不代替插件安装。
+
+2026-10-06 补充：分离成功自动隐藏主窗口；启动器使用 non-activating NSPanel，只置前自身，隐藏不打断小窗焦点。两个 JSON 实例与外部参考窗口的三轮真实呼出 API 验收确认层级不变；脚本合成快捷键，物理输入仍待验收。见 [窗口焦点证据](../reviews/evidence/2026-10-06/README.md#分离默认隐藏与单窗口唤出补充)。
+
+剩余验收：物理 Command+D／中文输入法、置顶、多屏与缩放实机体验；共享历史的并发写回合并；旧 revision 引用回收和不可信来源权限校验。当前交互完成不代表这些独立目标全部完成，状态保持 in-progress。

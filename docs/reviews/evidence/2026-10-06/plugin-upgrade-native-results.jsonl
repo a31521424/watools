@@ -1,0 +1,20 @@
+{"case": "old-plugin-detach", "upgradeHint": true, "inlineRetained": true, "noChildCreated": true}
+{"case": "plugin-upgrade", "version": "0.2.0", "enabledPreserved": true, "usagePreserved": true, "storagePreserved": true}
+{"case": "native-window-order", "appHidden": false, "onScreenWindows": 2}
+{"case": "detach-json", "instance": 0, "originLength": 1000035, "editedLength": 1000028, "wailsUnoccluded": true, "nativeOrdered": true, "editorExact": true, "mode": "detached", "originExact": true, "outputExact": true, "panelExact": true, "pathExact": true, "textLength": 1000028, "urlLength": 65}
+{"case": "launcher-reset", "height": 64, "inputEmpty": true}
+{"case": "native-window-order", "appHidden": false, "onScreenWindows": 3}
+{"case": "detach-json", "instance": 1, "originLength": 135, "editedLength": 128, "wailsUnoccluded": true, "nativeOrdered": true, "editorExact": true, "mode": "detached", "originExact": true, "outputExact": true, "panelExact": true, "pathExact": true, "textLength": 128, "urlLength": 65}
+{"case": "launcher-reset", "height": 64, "inputEmpty": true}
+{"case": "event-isolation", "first": 1, "second": 0}
+{"case": "window-scope", "childSizeExact": true, "launcherUnchanged": true}
+{"case": "launcher-hide", "childrenStillOrdered": true}
+{"case": "close-one", "otherStillRunning": true}
+{"case": "disable-cleanup", "remainingWindows": 1}
+{"case": "detach-textstats", "plugin": "watools.plugin.textstats", "editorExact": true, "originExact": true}
+{"case": "escape-close", "onlyLauncherRemains": true}
+{"case": "detach-calculator", "stateExact": true, "checks": {"expression": true, "history": true, "latestOutcome": true, "status": true}}
+{"case": "detach-qr", "stateExact": true, "checks": {"text": true, "imageDataUrl": true, "imageLabel": true, "imageInfo": true, "activeSource": true}}
+{"case": "detach-translate", "stateExact": true, "checks": {"source": true, "target": true, "detected": true, "status": true}}
+{"case": "clipboard-restore", "restored": true}
+{"case": "cleanup", "hostStopped": true, "qaDirectory": "/var/folders/bm/bnv2nh7j36q_h3yshkg4m9dm0000gn/T/watools-plugin-window-native-xg6gisyh"}

@@ -37,12 +37,13 @@ func main() {
 	waApp := app.GetWaApp() // shared with the native hotkey manager
 	plugins := plugin.NewWaPlugin()
 	commands := command.NewWaLaunch()
+	httpAPI := api.NewWaApi()
 	var desktop *application.App
 	var window *application.WebviewWindow
 	commandService := host.NewCommandService(commands, func() { desktop.Event.Emit("watools.applicationChanged") })
 	pluginService := host.NewPluginService(plugins, func() ([]string, error) {
 		return desktop.Dialog.OpenFile().SetTitle("Select Plugin .wt File(s)").AddFilter("WaTools Plugin Files", "*.wt").AttachToWindow(window).PromptForMultipleSelection()
-	})
+	}, host.NewPluginWindowFactory(func() *application.App { return desktop }, httpAPI.CancelHttpProxyPrefix))
 	desktop = application.New(application.Options{
 		Name:         config.ProjectName(),
 		Server:       application.ServerOptions{Host: "127.0.0.1", Port: 9246},
@@ -53,7 +54,7 @@ func main() {
 			application.NewServiceWithOptions(commandService, application.ServiceOptions{MarshalError: host.MarshalError}),
 			application.NewServiceWithOptions(pluginService, application.ServiceOptions{MarshalError: host.MarshalError}),
 			application.NewServiceWithOptions(host.NewStorageService(plugins), application.ServiceOptions{MarshalError: host.MarshalError}),
-			application.NewServiceWithOptions(host.NewSystemService(api.NewWaApi()), application.ServiceOptions{MarshalError: host.MarshalError}),
+			application.NewServiceWithOptions(host.NewSystemService(httpAPI), application.ServiceOptions{MarshalError: host.MarshalError}),
 			application.NewServiceWithOptions(host.NewUpdateService(update.NewService(), func() { desktop.Quit() }), application.ServiceOptions{MarshalError: host.MarshalError}),
 			application.NewServiceWithOptions(&host.LogService{}, application.ServiceOptions{MarshalError: host.MarshalError}),
 		},
@@ -68,7 +69,12 @@ func main() {
 		Frameless:        true,
 		BackgroundType:   application.BackgroundTypeTransparent,
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
-		Mac:              application.MacWindow{TitleBar: application.MacTitleBarHidden, Backdrop: application.MacBackdropTransparent},
+		Mac: application.MacWindow{
+			TitleBar: application.MacTitleBarHidden, Backdrop: application.MacBackdropTransparent,
+			// A launcher takes keyboard focus without activating every plugin window.
+			WindowClass:      application.MacWindowClassPanel,
+			PanelPreferences: application.MacPanelPreferences{NonActivating: true},
+		},
 	})
 	waApp.ConfigureDesktop(desktop, window)
 	var ready sync.Once

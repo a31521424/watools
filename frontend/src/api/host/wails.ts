@@ -6,7 +6,7 @@ import * as Storage from '../../../bindings/watools/internal/host/storageservice
 import * as System from '../../../bindings/watools/internal/host/systemservice'
 import * as Update from '../../../bindings/watools/internal/host/updateservice'
 import * as Log from '../../../bindings/watools/internal/host/logservice'
-import type {HostAPI} from './contracts'
+import type {HostAPI, PluginWindowSession} from './contracts'
 import {HostError, withHostErrors} from './errors'
 
 const stringMap = (values: {[key: string]: string | undefined}): Record<string, string> =>
@@ -14,6 +14,8 @@ const stringMap = (values: {[key: string]: string | undefined}): Record<string, 
 
 export const wailsHost: HostAPI = withHostErrors({
     ...App, ...Command, ...Plugin, ...Storage, ...System, ...Update, ...Log,
+    DetachPluginApi: request => Plugin.DetachPluginApi({...request,context:{...request.context,clipboard:request.context.clipboard ? {...request.context.clipboard,files:request.context.clipboard.files ?? []} : null}}),
+    GetPluginWindowApi: async id => await Plugin.GetPluginWindowApi(id) as unknown as PluginWindowSession,
     GetApplicationCommandsApi: async () => (await Command.GetApplicationCommandsApi()).map(c => ({...c, category: 'Application' as const})),
     GetOperatorCommandsApi: async () => (await Command.GetOperatorCommandsApi()).map(c => ({...c, category: 'Operation' as const})),
     HttpProxyApi: async request => {

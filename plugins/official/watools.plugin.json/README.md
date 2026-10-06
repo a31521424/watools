@@ -17,6 +17,8 @@ Official JSON editor for explicit command-triggered editing.
 - current JSON object can be serialized back to a hostname-free query string
 - current editor content can be parsed as URL / query string via toolbar button
 - one-click format, minify, and copy
+- opens inside the launcher by default; `Cmd + D` detaches the edited document into an independent native window, allowing multiple JSON instances
+- `watoolsSession` exports and restores editor text, cursor/view state, path input, and extraction output during detachment
 
 ## Match Rules
 
@@ -34,6 +36,7 @@ Official JSON editor for explicit command-triggered editing.
 
 ## Shortcuts
 
+- `Cmd + D`: detach the current launcher document (or use the host's 分离 button)
 - `Cmd/Ctrl + Enter`: format current JSON
 - `Cmd/Ctrl + Shift + C`: copy extracted result, or copy current JSON when no extracted result exists
 - `Cmd/Ctrl + L`: clear editor
@@ -43,3 +46,9 @@ Official JSON editor for explicit command-triggered editing.
 ```bash
 go run ./cmd/pluginctl package watools.plugin.json
 ```
+
+## Window Detachment
+
+Window detachment (0.2.0) preserves the edited model, view, path, extraction output, and panel visibility. Press `Cmd + D` in the main window to detach.
+
+Repackage and reinstall the plugin after updating its source; save the open document, refresh the plugin list (or restart WaTools), and reopen it to load the new revision. Updating the host alone keeps the old installed plugin.

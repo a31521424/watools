@@ -10,7 +10,7 @@
 | --- | --- | --- | --- |
 | [Wails v3 迁移](./wails-v3-migration.md) | P0 | in-progress | 固定 Beta.27；代码已迁移，待完成原生验收 |
 | [服务与宿主接口整理](./services-and-host-api.md) | P0 | done | 七个领域服务/HostAPI、无 Go mock、原生绑定与独立复审通过 |
-| [插件会话与独立小窗](./plugin-windows-and-sessions.md) | P0 | planned | v3 窗口、绑定和宿主接口 |
+| [插件会话与独立小窗](./plugin-windows-and-sessions.md) | P0 | in-progress | 主窗展开／Command+D 分离与多实例已实施；共享状态与实机体验待验 |
 | [开发工作流与测试](./development-and-testing.md) | P0 | in-progress | 基础入口与数据隔离已实施；模拟适配与原生检查仍依赖后续目标 |
 | [macOS 自用原生验收](./native-self-use-acceptance.md) | P0 | in-progress | v3 原生回归已推进；物理输入法、快捷键及完整场景待验 |
 | [插件加载与 SDK](./plugin-loading-and-sdk.md) | P1 | planned | 宿主接口、会话与调用边界 |
@@ -23,7 +23,7 @@ P0 为当前自用阶段核心目标，P1 为自用开发体验增强，P2 为�
 
 ## 分阶段推进
 
-2026-10-04 用户撤回低干扰 browser/test 系统能力适配与 VM runner 的新增安排，沿用现有 dev flow。本轮已完成 P0 **[服务与宿主接口整理](./services-and-host-api.md)**。下一条待确认任务为 P0 **[插件会话与独立小窗](./plugin-windows-and-sessions.md)**；完成服务任务不自动授权实施下一目标。
+2026-10-04 用户撤回低干扰 browser/test 系统能力适配与 VM runner 的新增安排，沿用现有 dev flow。P0 **[服务与宿主接口整理](./services-and-host-api.md)** 已完成。2026-10-06 用户明确要求继续实施 **[插件会话与独立小窗](./plugin-windows-and-sessions.md)**，并确定默认主窗展开、Command+D 分离和同插件多实例；该交互已实施，剩余验收见目标记录。其他 backlog 不因本次工作自动授权。
 
 1. **恢复现有能力**：固定 v3 版本，迁移启动、资源、绑定、事件与本机构建；整理必要服务，建立统一开发和检查入口，用 macOS 原生场景验证。
 2. **完整运行插件小窗**：实现宿主会话、按 ID 操作窗口和多窗口一致性；用一至两个真实插件在本机验收，不仅验证窗口创建成功。

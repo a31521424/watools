@@ -1,0 +1,28 @@
+2026-10-06 official UI state migration and installed-package verification
+Scope: follow-up worktree on existing plugin-window implementation, uncommitted.
+Environment: macOS 26.6.2 arm64; Go 1.26.8; Wails v3.0.0-beta.27.
+PASS node scripts/dev.mjs check
+  16 workflow regressions; 57 frontend regressions; TypeScript/Vite build;
+  Go tests, vet, production/private_mac_apis build.
+PASS node scripts/dev.mjs build
+  build/bin/watools.app, current architecture, ad-hoc signature.
+PASS package six official plugins
+  Five UI plugins bumped to 0.2.0, with explicit capture/restore hooks.
+PASS installed-package update
+  Standard installer updates existing five UI plugins in dev and normal data directories.
+  Only immutable resources/current pointer updated; no uninstall, reset or credential reads.
+PASS isolated native upgrade/migration harness
+  Old JSON without hooks: actionable update message, original page retained, no child.
+  Upgrade to 0.2.0: enabled, usage and synthetic storage preserved.
+  Two JSON windows, one with million-character edited text; origin, output, path,
+  panel visibility and edited text exact; launcher reset; event/window isolation.
+  Textstats edited text/origin, calculator expression/history/result, QR text/image/mode,
+  and translation source/result all preserved; close/disable/Esc and cleanup pass.
+  System clipboard restored; QA host and auxiliary process stopped.
+PASS page-source regressions
+  Translation initialization deduplication with a synthetic key; detached restore performs
+  no HTTP request; credentials omitted from snapshot; QR waits for pending imports;
+  JSON claims restore before initialization and ignores late launch context.
+No external translation endpoint or real credentials used in native QA.
+Physical shortcuts/IME, multi-display/scaling/always-on-top and Windows GUI remain untested.
+No new Go concurrency changes; the previous window phase's Go race evidence remains separate.

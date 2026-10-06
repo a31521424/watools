@@ -1,12 +1,9 @@
-import Watools from "@/components/watools/watools";
 import './app.css'
-import {useEffect} from 'react';
-import {useAppStore} from '@/stores/appStore';
-import {watchClipboardSnapshot} from '@/api/app';
-import {Logger} from '@/lib/logger';
-
+import {lazy, Suspense} from 'react';
+const Watools=lazy(()=>import('@/components/watools/watools'));
+const DetachedPlugin=lazy(()=>import('@/components/watools/wa-detached-plugin'));
 
 export default () => {
-    useEffect(() => watchClipboardSnapshot(useAppStore, () => Logger.error('剪贴板快照维护失败')), []);
-    return <Watools/>
-}
+    const id=new URLSearchParams(window.location.search).get('pluginSession');
+    return <Suspense fallback={<div className="p-4">正在加载…</div>}>{id ? <DetachedPlugin id={id}/> : <Watools/>}</Suspense>;
+};

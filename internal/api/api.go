@@ -125,6 +125,17 @@ func (a *WaApi) CancelHttpProxy(id string) {
 		cancel()
 	}
 }
+
+// Native window closure cancels only requests owned by that window.
+func (a *WaApi) CancelHttpProxyPrefix(prefix string) {
+	a.requestMu.Lock()
+	defer a.requestMu.Unlock()
+	for id, cancel := range a.requests {
+		if strings.HasPrefix(id, prefix) {
+			cancel()
+		}
+	}
+}
 func (a *WaApi) HttpProxy(req HttpProxyRequest) (*HttpProxyResponse, error) {
 	if req.URL == "" {
 		return nil, fmt.Errorf("url cannot be empty")
