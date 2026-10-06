@@ -9,7 +9,8 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 
 function loadTS(file, mocks = {}, globals = {}) {
     const output = ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
-        compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022},
+        fileName: file,
+        compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX},
     }).outputText;
     const context = {...globals, exports: {}, console, setTimeout, clearTimeout, queueMicrotask, Map, Date, Promise, URLSearchParams,
         require(name) {
@@ -801,6 +802,70 @@ test('a disabled plugin loads its entry on enable; writes during flush remain du
     assert.equal(writes.length, 2);
     assert.equal(writes[1][0].usedCount, 2);
     assert.equal(store.getState().updateBuffer.size, 0);
+});
+
+test('plugin refresh reports a failed fetch and a later retry loads the new revision', async () => {
+    let reads = 0;
+    const {usePluginStore: store} = loadTS('frontend/src/stores/pluginStore.ts', {
+        '@/api/plugin': {
+            getPlugins: async () => {
+                reads++;
+                if (reads === 2) throw new Error('plugin database temporarily unavailable');
+                return [{packageId: 'probe', enabled: true, entry: [], version: reads === 1 ? 'old' : 'new'}];
+            },
+            disposePlugin: async () => {}, updatePluginUsage: async () => {},
+        },
+        '@/lib/logger': {Logger: {error() {}}},
+    }, {Error});
+    await tick();
+    await assert.rejects(store.getState().refreshPlugins(), /temporarily unavailable/);
+    assert.equal(store.getState().plugins[0].version, 'old');
+    assert.equal(store.getState().isLoading, false);
+    await store.getState().refreshPlugins();
+    assert.equal(store.getState().plugins[0].version, 'new');
+    assert.equal(store.getState().error, null);
+});
+
+test('management retries a completed installation refresh and clears only its refresh error', async () => {
+    let effect, retry, attempts = 0, releaseRefresh;
+    const states = [];
+    const status = {state: 'succeeded', jobId: 1, configuration: {sourceRoot: '/checkout', goExecutable: '/go', toolPath: '/bin'}, officialPlugins: [], output: []};
+    const refreshPlugins = () => {
+        attempts++;
+        if (attempts === 1) return Promise.reject(new Error('usage temporarily unavailable'));
+        return new Promise(resolve => {releaseRefresh = resolve});
+    };
+    const {WaManagement} = loadTS('frontend/src/components/watools/wa-management.tsx', {
+        react: {
+            useState: value => {
+                const index = states.push(value) - 1;
+                return [value, next => {states[index] = next}];
+            },
+            useRef: value => ({current: value}), useEffect: callback => {effect = callback},
+        },
+        'react/jsx-runtime': {jsx: () => null, jsxs: () => null},
+        wouter: {useLocation: () => ['/', () => {}]}, 'lucide-react': {},
+        '@/api/host': {host: {GetLocalInstallationApi: async () => status}},
+        '@/components/ui/button': {}, '@/components/ui/input': {}, './wa-plugin-management': {},
+        '@/stores/pluginStore': {usePluginStore: selector => selector({refreshPlugins})},
+    }, {setTimeout: callback => {retry = callback; return 1}, clearTimeout() {}});
+    WaManagement({});
+    const cleanup = effect();
+    await tick();
+    assert.equal(attempts, 1);
+    assert.match(states[6], /usage temporarily unavailable/);
+    // A separate action error must survive recovery of the plugin refresh.
+    states[5] = 'independent source configuration error';
+    const recovering = retry();
+    await tick();
+    assert.equal(attempts, 2, 'the same completed job retries its failed refresh');
+    releaseRefresh();
+    await recovering;
+    assert.equal(states[6], '');
+    assert.equal(states[5], 'independent source configuration error');
+    await retry();
+    assert.equal(attempts, 2, 'a successfully refreshed job is not refreshed again');
+    cleanup();
 });
 
 test('usage retry preserves a failed snapshot', async () => {

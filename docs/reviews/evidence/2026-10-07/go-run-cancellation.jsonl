@@ -1,0 +1,2 @@
+{"case": "go-run-SIGTERM", "childCleanup": true, "cancellationReported": true, "sourceLockReleased": true}
+{"case": "go-run-SIGINT", "childCleanup": true, "cancellationReported": true, "sourceLockReleased": true}

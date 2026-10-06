@@ -1,0 +1,57 @@
+import pathlib,tempfile,os,subprocess,signal,time,shutil,json,fcntl,sys
+root=pathlib.Path.cwd();bootstrap=shutil.which('go')
+lookup=dict(os.environ,GOTOOLCHAIN='go1.26.8',GOCACHE=str(root/'.cache/tools/go-build'),GOMODCACHE=str(root/'.cache/tools/go-mod'),GOPATH=str(root/'.cache/tools/gopath'))
+go=str(pathlib.Path(subprocess.check_output([bootstrap,'env','GOROOT'],env=lookup,text=True).strip())/'bin/go')
+for sig in [signal.SIGTERM,signal.SIGINT]:
+ with tempfile.TemporaryDirectory(prefix='watools-go-wrapper-') as temp:
+  checkout=pathlib.Path(temp);bin=checkout/'tools with spaces';bin.mkdir()
+  for directory in ['cmd/watoolsctl','internal/workflow','internal/filelock']:
+   (checkout/directory).mkdir(parents=True)
+   for source in (root/directory).glob('*.go'):
+    if not source.name.endswith('_test.go'):shutil.copy2(source,checkout/directory/source.name)
+  shutil.copy2(root/'go.mod',checkout/'go.mod');shutil.copy2(root/'go.sum',checkout/'go.sum')
+  (checkout/'wails.json').write_text('{"name":"watools"}')
+  (checkout/'frontend').mkdir();shutil.copy2(root/'frontend/package.json',checkout/'frontend/package.json')
+  record=checkout/'tool-calls.jsonl';ready=checkout/'ready.json';stopped=checkout/'stopped'
+  script='#!'+sys.executable+'\n'+'''import sys,os,pathlib,json,signal,time
+name=pathlib.Path(sys.argv[0]).name;args=sys.argv[1:]
+record=pathlib.Path(os.environ['QA_RECORD'])
+with record.open('a') as stream:stream.write(json.dumps({'tool':name,'args':args})+'\\n')
+if name=='go' and args==['version']:print('go version go1.26.8 darwin/arm64')
+elif name=='node':print('v24.11.0')
+elif name=='pnpm' and args==['--version']:print('10.21.0')
+elif name=='xcrun':print('/fake/macOS.sdk')
+if name=='pnpm' and args==['install','--frozen-lockfile']:
+ pathlib.Path(os.environ['QA_READY']).write_text(json.dumps({'toolPid':os.getpid(),'cliPid':os.getppid()}))
+ def stop(signum,frame):
+  pathlib.Path(os.environ['QA_STOPPED']).write_text('cleaned');sys.exit(0)
+ signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)
+ while True:time.sleep(.1)
+'''
+  for name in ['go','node','pnpm','xcrun']:
+   path=bin/name;path.write_text(script);path.chmod(0o755)
+  env=dict(os.environ,PATH=str(bin),GOTOOLCHAIN='local',GOCACHE=str(root/'.cache/tools/go-build'),GOMODCACHE=str(root/'.cache/tools/go-mod'),GOPATH=str(root/'.cache/tools/gopath'),QA_RECORD=str(record),QA_READY=str(ready),QA_STOPPED=str(stopped))
+  process=subprocess.Popen([go,'run','./cmd/watoolsctl','setup'],cwd=checkout,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,start_new_session=True)
+  owned={};output=''
+  try:
+   deadline=time.monotonic()+60
+   while not ready.exists():
+    if process.poll() is not None:raise RuntimeError(process.communicate()[0])
+    if time.monotonic()>deadline:raise RuntimeError('CLI bootstrap timeout')
+    time.sleep(.05)
+   owned=json.loads(ready.read_text())
+   # SIGTERM only the go run wrapper; SIGINT the terminal process group.
+   if sig==signal.SIGTERM:os.kill(process.pid,sig)
+   else:os.killpg(process.pid,sig)
+   output=process.communicate(timeout=12)[0]
+   assert stopped.read_text()=='cleaned',output
+   calls=[json.loads(line) for line in record.read_text().splitlines()]
+   assert 'context canceled' in output,output
+   fd=os.open(checkout/'.cache/installation/source.lock',os.O_RDWR)
+   fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB);os.close(fd)
+   print(json.dumps({'case':'go-run-'+signal.Signals(sig).name,'childCleanup':True,'cancellationReported':True,'sourceLockReleased':True}),flush=True)
+  finally:
+   if process.poll() is None:os.killpg(process.pid,signal.SIGKILL);process.wait()
+   for pid in owned.values():
+    try:os.kill(pid,signal.SIGKILL)
+    except ProcessLookupError:pass

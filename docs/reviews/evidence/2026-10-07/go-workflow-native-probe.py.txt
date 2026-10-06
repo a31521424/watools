@@ -1,0 +1,94 @@
+import os,pathlib,json,re,subprocess,time,urllib.request,zipfile
+root=pathlib.Path.cwd();qa=pathlib.Path((root/'.cache/local-install-qa/path').read_text())
+(qa/'data/hotkeys').mkdir(exist_ok=True,parents=True)
+(qa/'data/hotkeys/config.json').write_text(json.dumps([{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+k'}]))
+url='http://127.0.0.1:9267/mcp';ids={}
+for path in (root/'frontend/bindings/watools/internal/host').glob('*service.ts'):
+ ids.update({name:int(number) for name,number in re.findall(r'export function (\w+)\([^\n]*\{\n\s+return \$Call.ByID\((\d+)',path.read_text())})
+def tool(name,args):
+ req=urllib.request.Request(url,data=json.dumps({'jsonrpc':'2.0','id':1,'method':'tools/call','params':{'name':name,'arguments':args}}).encode(),headers={'Content-Type':'application/json'})
+ data=json.load(urllib.request.urlopen(req,timeout=20))
+ if data.get('error'):raise RuntimeError(data['error'])
+ result=data['result']
+ if result.get('isError'):raise RuntimeError(result['content'])
+ try:return json.loads(result['content'][0]['text'])
+ except json.JSONDecodeError:return result['content'][0]['text']
+def js(code,window='launcher'):
+ result=tool('js_eval',{'window':window,'js':'try {'+code+'} catch(error){return {qaError:error.message}}','timeout_ms':12000})
+ if isinstance(result,dict) and result.get('qaError'):raise RuntimeError(result['qaError'])
+ return result
+def wait(fn,timeout=30):
+ deadline=time.monotonic()+timeout
+ while time.monotonic()<deadline:
+  try:
+   value=fn()
+   if value:return value
+  except Exception:
+   if host.poll() is not None:raise RuntimeError('QA host exited')
+  time.sleep(.2)
+ raise RuntimeError('Native condition timed out')
+def record(case,**result):print(json.dumps({'case':case,**result},ensure_ascii=False),flush=True)
+def call(name,args=[]):return js('return await window.__qaCall('+str(ids[name])+','+json.dumps(args)+');')
+def click(label):return js('const button=Array.from(document.querySelectorAll("button")).find(e=>e.textContent.trim()==='+json.dumps(label)+');if(!button || button.disabled)throw Error("button unavailable");button.click();return true;')
+log=open(qa/'native-host.log','w')
+host=subprocess.Popen([str(root/'.cache/local-install-qa/watools-qa.app/Contents/MacOS/watools')],env=dict(os.environ,PATH='/usr/bin:/bin',WATOOLS_DATA_DIR=str(qa/'data'),WATOOLS_CACHE_DIR=str(qa/'cache'),WAILS_MCP_HOST='127.0.0.1',WAILS_MCP_PORT='9267'),stdout=log,stderr=subprocess.STDOUT)
+try:
+ setup='''window.__qaCall=async(id,args=[])=>{const response=await fetch(window.location.origin+'/wails/runtime',{method:'POST',headers:{'Content-Type':'application/json','x-wails-client-id':'local-install-qa','x-wails-window-name':'launcher'},body:JSON.stringify({object:0,method:0,args:{'call-id':crypto.randomUUID(),methodID:id,args}})});const data=response.headers.get('Content-Type')?.includes('application/json')?await response.json():await response.text();if(!response.ok)throw Error(JSON.stringify(data));return data};return !!document.querySelector('input[role=combobox]');'''
+ wait(lambda:js(setup))
+ js("history.pushState(null,'','/management');return true;")
+ wait(lambda:js("return !!Array.from(document.querySelectorAll('h1')).find(e=>e.textContent==='管理中心') && document.querySelector('input')?.value!=='';"))
+ status=call('GetLocalInstallationApi')
+ assert status['configuration']['sourceRoot']==str(root) and len(status['officialPlugins'])==6
+ record('native-management',sourceAutoConfigured=True,officialPlugins=6)
+ click('保存源码设置');wait(lambda:js("return document.body.textContent.includes('源码目录已保存');"))
+ migrated=json.loads((qa/'data/installation.json').read_text());assert 'nodeExecutable' not in migrated and migrated['goExecutable']
+ record('legacy-receipt-migration',goResolvedFromRecordedPath=True,obsoleteNodeFieldRemoved=True)
+ # Third-party package and user state must survive official updates.
+ extra=qa/'third-party.wt'
+ with zipfile.ZipFile(extra,'w') as archive:
+  archive.writestr('manifest.json',json.dumps({'packageId':'watools.plugin.thirdparty.qa','name':'QA third party','version':'1.0.0','entry':'app.js'}))
+  archive.writestr('app.js','export default [];')
+ call('InstallPluginApi',[str(extra)])
+ call('SetPluginStorageKeyApi',[{'packageId':'watools.plugin.json','key':'installQA','value':{'preserved':True}}])
+ call('TogglePluginApi',['watools.plugin.common',False])
+ before={p['packageId']:p for p in call('GetPluginsApi')}
+ state={'kind':'hooks','value':{'text':'{"unsaved":"synthetic QA document"}','path':'','output':'','previewCollapsed':True}}
+ session=call('DetachPluginApi',[{'packageId':'watools.plugin.json','file':'index.html','homeUrl':before['watools.plugin.json']['homeUrl'],'context':{'input':{'valueType':'text','value':'{"origin":"synthetic"}'},'clipboard':None},'state':state}])
+ wait(lambda:call('GetPluginWindowStatusApi',[session])['ready'])
+ child='plugin-'+session
+ oldurl=js('return document.querySelector("iframe").src;',child)
+ # Exercise the real GUI action and continue the job while navigating away.
+ click('插件')
+ wait(lambda:js("return document.body.textContent.includes('源码中的官方插件');"))
+ js('const label=Array.from(document.querySelectorAll("span")).find(e=>e.firstChild?.textContent?.trim()==="JSON Formatter");const rows=Array.from(document.querySelectorAll("section > div > div"));const row=rows.find(e=>e.textContent.includes("JSON") && e.querySelector("button"));if(!row)throw Error("JSON action missing");row.querySelector("button").click();return true;')
+ wait(lambda:call('GetLocalInstallationApi')['jobId']>=1)
+ js("history.pushState(null,'','/');return true;")
+ wait(lambda:call('GetLocalInstallationApi')['state']!='running',timeout=180)
+ status=call('GetLocalInstallationApi');assert status['state']=='succeeded',status
+ after={p['packageId']:p for p in call('GetPluginsApi')}
+ assert after['watools.plugin.json']['homeUrl']!=before['watools.plugin.json']['homeUrl']
+ assert after['watools.plugin.common']['homeUrl']==before['watools.plugin.common']['homeUrl']
+ assert not after['watools.plugin.common']['enabled'] and 'watools.plugin.thirdparty.qa' in after
+ assert call('GetPluginStorageKeyApi',[{'packageId':'watools.plugin.json','key':'installQA'}])=={'preserved':True}
+ assert js('return document.querySelector("iframe").src;',child)==oldurl
+ assert js('return {text:(await document.querySelector("iframe").contentWindow.watoolsSession.capture()).text};',child)['text']==state['value']['text']
+ record('native-single-plugin-update',jobPersistsAfterNavigation=True,selectedRevisionChanged=True,otherRevisionUnchanged=True,storagePreserved=True,disabledStatePreserved=True,thirdPartyPreserved=True,detachedEditorPreserved=True)
+ # Application+all-plugin update must leave the native host and its editor alive.
+ js("history.pushState(null,'','/management');return true;")
+ wait(lambda:js("return document.body.textContent.includes('更新应用和官方插件');"))
+ click('更新应用和官方插件')
+ wait(lambda:call('GetLocalInstallationApi')['jobId']>=2)
+ wait(lambda:call('GetLocalInstallationApi')['state']!='running',timeout=240)
+ status=call('GetLocalInstallationApi');assert status['state']=='succeeded',status
+ assert status['restartRequired'] and host.poll() is None
+ assert js('return {text:(await document.querySelector("iframe").contentWindow.watoolsSession.capture()).text};',child)['text']==state['value']['text']
+ wait(lambda:js("return document.body.textContent.includes('请保存小窗内容后退出并重新打开');"))
+ assert call('GetPluginStorageKeyApi',[{'packageId':'watools.plugin.json','key':'installQA'}])=={'preserved':True}
+ after={p['packageId']:p for p in call('GetPluginsApi')};assert not after['watools.plugin.common']['enabled'] and 'watools.plugin.thirdparty.qa' in after
+ assert list((qa/'Applications').glob('.watools-backup-*.app'))
+ record('native-application-and-all-plugins-update',signedAppInstalled=True,previousBundleRetained=True,hostStillRunning=True,detachedEditorPreserved=True,restartPromptVisible=True,storagePreserved=True,disabledStatePreserved=True,thirdPartyPreserved=True)
+finally:
+ host.terminate()
+ try:host.wait(timeout=30)
+ except subprocess.TimeoutExpired:host.kill();host.wait()
+ log.close();record('cleanup',onlyQAHostStopped=host.poll() is not None,compiledInstallerRemoved=not bool(list((qa/'cache').glob('installer-cli-*'))))

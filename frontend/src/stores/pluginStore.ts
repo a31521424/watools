@@ -74,6 +74,8 @@ export const usePluginStore = create<PluginState>((set, get) => {
         for (const plugin of get().plugins) await disposePlugin(plugin.packageId)
         isInitialized = false
         await fetchPlugins()
+        const error = get().error
+        if (error) throw new Error(error)
     }
 
     const getPluginById = (packageId: string) => {

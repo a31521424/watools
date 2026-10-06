@@ -19,7 +19,15 @@ export type InstallResult = {status: string; message: string; openPath: string; 
 export type DetachPluginRequest = {packageId: string; file: string; homeUrl: string; context: PluginContext; state: PluginWindowState}
 export type PluginWindowSession = DetachPluginRequest & {id: string; windowName: string; title: string}
 
+export type LocalInstallationConfiguration = {sourceRoot: string; goExecutable: string; toolPath: string; applicationPath: string; installedAt: string; version: string}
+export type LocalInstallationStatus = {configuration: LocalInstallationConfiguration; officialPlugins: {packageId: string; name: string; version: string}[]; jobId: number; state: string; scope: string; message: string; output: string[]; canCancel: boolean; restartRequired: boolean}
+export type LocalInstallationRequest = {scope: 'all' | 'application' | 'plugins'; packageIds: string[]}
+
 export interface HostAPI {
+ GetLocalInstallationApi(): Promise<LocalInstallationStatus>
+ ConfigureLocalInstallationApi(value: LocalInstallationConfiguration): Promise<void>
+ StartLocalInstallationApi(value: LocalInstallationRequest): Promise<void>
+ CancelLocalInstallationApi(): Promise<void>
  GetLauncherSizeApi(): Promise<{width: number; height: number}>
  SetLauncherSizeApi(width: number, height: number): Promise<void>
  HideAppApi(): Promise<void>

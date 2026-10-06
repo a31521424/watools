@@ -155,6 +155,8 @@ export function createMockHost(options: MockHostOptions = {}): HostAPI {
         GetLogDirectoryApi: async () => '/mock/logs', ListLogFilesApi: async () => [],
         QueryLogsApi: async q => {if (q.limit !== undefined && (!Number.isInteger(q.limit) || q.limit < 0 || q.limit > 1000)) invalid('limit 必须是 0 到 1000 的整数'); return {records: [], availableSources: [], availablePluginIds: [], totalMatched: 0}},
         LogFrontendApi: async level => {if (!['debug', 'info', 'warn', 'error'].includes(level)) invalid('日志级别格式不正确')},
+        GetLocalInstallationApi: async () => ({configuration: {sourceRoot:'',goExecutable:'',toolPath:'',applicationPath:'',installedAt:'',version:''},officialPlugins:[],jobId:0,state:'idle',scope:'',message:'浏览器模拟不执行本地安装',output:[],canCancel:false,restartRequired:false}),
+        ConfigureLocalInstallationApi: async () => unavailable(), StartLocalInstallationApi: async () => unavailable(), CancelLocalInstallationApi: async () => unavailable(),
         CheckForUpdatesApi: async () => clone(options.update ?? emptyUpdate),
         DownloadUpdateApi: async () => unavailable(), InstallUpdateApi: async path => {if (!path) invalid('更新包路径不能为空'); return unavailable()},
     }

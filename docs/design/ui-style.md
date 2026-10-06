@@ -22,12 +22,12 @@ WaTools 的主界面不是传统多页面应用，而是一个桌面级 command 
   主命令面板
 - `/plugin`
   UI 插件 iframe 容器
-- `/plugin-management`
-  插件管理页
+- `/management`
+  内置管理中心，包含应用安装更新、源码设置和插件管理；`/plugin-management` 兼容打开插件标签
 - `/log-management`
   日志管理页
 - `/update-management`
-  更新管理页
+  兼容打开管理中心的应用与更新标签
 
 其中插件页、插件管理页、日志页和更新页会进入固定高度面板模式，和主命令面板的动态高度逻辑区分开。
 

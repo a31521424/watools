@@ -1,0 +1,48 @@
+import os,pathlib,tempfile,shutil,subprocess,time,json,signal,socket,urllib.request
+root=pathlib.Path.cwd();parent=pathlib.Path(tempfile.mkdtemp(prefix='watools-go-dev-smoke-',dir='/private/tmp'));checkout=parent/'checkout with spaces'
+ignore=shutil.ignore_patterns('.git','.cache','node_modules','dist','bin','dist-plugins','coverage')
+shutil.copytree(root,checkout,ignore=ignore)
+(checkout/'frontend/node_modules').symlink_to(root/'frontend/node_modules',target_is_directory=True)
+(checkout/'.cache/dev/data/hotkeys').mkdir(parents=True)
+(checkout/'.cache/dev/data/hotkeys/config.json').write_text(json.dumps([{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+k'}]))
+env=dict(os.environ,GOTOOLCHAIN='go1.26.8',GOCACHE=str(root/'.cache/tools/go-build'),GOMODCACHE=str(root/'.cache/tools/go-mod'),GOPATH=str(root/'.cache/tools/gopath'))
+log=(parent/'dev.log').open('w')
+process=subprocess.Popen(['go','run','./cmd/watoolsctl','dev','--port','9273'],cwd=checkout,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+expected=str(checkout/'.cache/dev/bin/watools.dev.app');hostPid=None
+try:
+ deadline=time.monotonic()+240
+ while time.monotonic()<deadline:
+  if process.poll() is not None:raise RuntimeError((parent/'dev.log').read_text()[-5000:])
+  try:
+   with urllib.request.urlopen('http://127.0.0.1:9273',timeout=1) as response:assert response.status==200
+   apps=json.loads(subprocess.check_output(['/private/tmp/watools-install-running'],text=True))
+   own=[app for app in apps if app['bundle']==expected]
+   if own:hostPid=own[0]['pid'];break
+  except Exception:pass
+  time.sleep(.3)
+ if not hostPid:raise RuntimeError('dev host readiness timeout\n'+(parent/'dev.log').read_text()[-5000:])
+ print(json.dumps({'case':'go-cli-native-dev','nativeHostStarted':True,'viteReady':True,'checkoutWithSpaces':True,'isolatedData':True}),flush=True)
+ # Terminate only this go run wrapper. The CLI observes parent loss and closes
+ # Wails watcher, native host and Vite before releasing its build workspace.
+ os.kill(process.pid,signal.SIGTERM);process.wait(timeout=10)
+ deadline=time.monotonic()+25
+ while time.monotonic()<deadline:
+  apps=json.loads(subprocess.check_output(['/private/tmp/watools-install-running'],text=True))
+  hostAlive=any(app['pid']==hostPid for app in apps)
+  portAlive=False
+  with socket.socket() as probe:portAlive=probe.connect_ex(('127.0.0.1',9273))==0
+  if not hostAlive and not portAlive:break
+  time.sleep(.2)
+ assert not hostAlive and not portAlive,'dev children outlived wrapper cancellation'
+ print(json.dumps({'case':'go-cli-native-dev-cancel','nativeHostStopped':True,'viteStopped':True,'onlyTestProcessesStopped':True}),flush=True)
+finally:
+ if process.poll() is None:
+  os.killpg(process.pid,signal.SIGTERM)
+  try:process.wait(timeout=20)
+  except subprocess.TimeoutExpired:os.killpg(process.pid,signal.SIGKILL);process.wait()
+ log.close()
+ if hostPid:
+  try:os.kill(hostPid,0)
+  except ProcessLookupError:shutil.rmtree(parent)
+  else:print(json.dumps({'preservedDiagnosticDirectory':str(parent)}),flush=True)
+ else:print(json.dumps({'preservedDiagnosticDirectory':str(parent)}),flush=True)

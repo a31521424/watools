@@ -9,7 +9,7 @@
 | 需求 | [开发者自用需求](./requirements/developer-self-use.md)：项目目标、自用场景、优先级和延期边界 |
 | 架构 | [架构](./architecture/architecture.md)、[实现机制](./architecture/implementation-mechanism.md)、[功能模块](./architecture/feature-modules.md)：说明当前实现 |
 | 设计 | [UI 风格](./design/ui-style.md)：当前界面定位、布局和交互规范 |
-| 开发 | [本地开发](./development/local-workflow.md)：macOS 统一命令、隔离与调试；[发布流程](./development/release-cd.md)：发布与更新机制及迁移暂停记录 |
+| 开发 | [本地开发](./development/local-workflow.md)：macOS 统一开发／安装更新命令、管理中心、隔离与调试；[发布流程](./development/release-cd.md)：发布与更新机制及迁移暂停记录 |
 | 插件开发 | [专题索引](./plugin-development/README.md)：按需读取六个章节 |
 | Backlog | [目标索引](./backlog/README.md)：优先级、依赖、实施范围和验收标准 |
 | 调研 | [框架与语言调研](./research/technology-direction-2026-10-02.md)、[剪贴板与插件启动性能](./research/clipboard-launch-performance-2026-10-06.md)：保留讨论与实验依据，最新路线以 backlog 为准 |
@@ -147,6 +147,15 @@ docs/
 │   │   │   ├── plugin-window-focus-native-results.jsonl
 │   │   │   ├── plugin-window-focus-status.swift.txt
 │   │   │   └── plugin-window-focus-helper.m.txt
+│   │   ├── 2026-10-07/
+│   │   │   ├── README.md
+│   │   │   ├── local-install-native.jsonl
+│   │   │   ├── go-workflow-native.jsonl
+│   │   │   ├── go-workflow-native-probe.py.txt
+│   │   │   ├── go-run-cancellation.jsonl
+│   │   │   ├── go-run-cancellation-probe.py.txt
+│   │   │   ├── go-dev-native.jsonl
+│   │   │   └── go-dev-native-probe.py.txt
 │   │   └── README.md
 │   ├── remediation-2026-10-03.md
 │   └── review-2026-10-02.md

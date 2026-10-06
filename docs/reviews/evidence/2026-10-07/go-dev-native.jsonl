@@ -1,0 +1,2 @@
+{"case": "go-cli-native-dev", "nativeHostStarted": true, "viteReady": true, "checkoutWithSpaces": true, "isolatedData": true}
+{"case": "go-cli-native-dev-cancel", "nativeHostStopped": true, "viteStopped": true, "onlyTestProcessesStopped": true}

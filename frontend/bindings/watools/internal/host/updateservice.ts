@@ -7,12 +7,23 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as localinstall$0 from "../localinstall/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as update$0 from "../update/models.js";
+
+export function CancelLocalInstallationApi(): $CancellablePromise<void> {
+    return $Call.ByID(2112286770);
+}
 
 export function CheckForUpdatesApi(): $CancellablePromise<update$0.UpdateInfo> {
     return $Call.ByID(561924916).then(($result: any) => {
         return $$createType0($result);
     });
+}
+
+export function ConfigureLocalInstallationApi(value: localinstall$0.Configuration): $CancellablePromise<void> {
+    return $Call.ByID(943546082, value);
 }
 
 export function DownloadUpdateApi(): $CancellablePromise<update$0.UpdateInfo> {
@@ -21,12 +32,23 @@ export function DownloadUpdateApi(): $CancellablePromise<update$0.UpdateInfo> {
     });
 }
 
-export function InstallUpdateApi(path: string): $CancellablePromise<update$0.InstallResult> {
-    return $Call.ByID(2348129487, path).then(($result: any) => {
+export function GetLocalInstallationApi(): $CancellablePromise<localinstall$0.Status> {
+    return $Call.ByID(1685513798).then(($result: any) => {
         return $$createType1($result);
     });
 }
 
+export function InstallUpdateApi(path: string): $CancellablePromise<update$0.InstallResult> {
+    return $Call.ByID(2348129487, path).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+export function StartLocalInstallationApi(request: localinstall$0.Request): $CancellablePromise<void> {
+    return $Call.ByID(4260528582, request);
+}
+
 // Private type creation functions
 const $$createType0 = update$0.UpdateInfo.createFrom;
-const $$createType1 = update$0.InstallResult.createFrom;
+const $$createType1 = localinstall$0.Status.createFrom;
+const $$createType2 = update$0.InstallResult.createFrom;

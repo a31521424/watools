@@ -102,6 +102,7 @@ Start with the entry that matches the task instead of reading everything end-to-
 |-- pkg/
 |-- plugins/
 |-- docs/
+|-- cmd/watoolsctl/
 |-- cmd/pluginctl/
 `-- build/
 ```
@@ -127,23 +128,30 @@ cd watools
 2. Check the macOS environment and install locked dependencies.
 
 ```sh
-node scripts/dev.mjs doctor
-node scripts/dev.mjs setup
+go run ./cmd/watoolsctl doctor
+go run ./cmd/watoolsctl setup
 ```
 
 3. Start the development app.
 
 ```sh
-node scripts/dev.mjs plugins install
-node scripts/dev.mjs dev
+go run ./cmd/watoolsctl plugins install
+go run ./cmd/watoolsctl dev
 ```
 
 4. Build a production binary.
 
 ```sh
-node scripts/dev.mjs check
-node scripts/dev.mjs build
+go run ./cmd/watoolsctl check
+go run ./cmd/watoolsctl build
 ```
+
+Install the application and all official plugins into the normal installation:
+
+```sh
+go run ./cmd/watoolsctl install
+```
+
 
 The output application is written to `build/bin/`. The entry uses a Wails CLI pinned to the Go module version, so a global CLI is not required. Development data, cache and plugin packages are isolated under `.cache/dev/`; checks and builds use disposable application data. See the [local development guide](./docs/development/local-workflow.md) for browser debugging, binding generation and boundaries. The unified entry currently targets macOS; existing Windows CI remains separate.
 
@@ -163,9 +171,9 @@ Current official plugins include:
 Useful plugin commands:
 
 ```sh
-node scripts/dev.mjs plugins list
-node scripts/dev.mjs plugins package
-node scripts/dev.mjs plugins install
+go run ./cmd/watoolsctl plugins list
+go run ./cmd/watoolsctl plugins package
+go run ./cmd/watoolsctl plugins install
 ```
 
 More plugin details:

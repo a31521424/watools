@@ -1,4 +1,6 @@
-> 2026-10-03 v3 迁移说明：当前 macOS 自用包由 `node scripts/dev.mjs build` 构建；本页下方的公开分发流程保留为 v2 历史基线。release workflow 在 prepare 阶段明确停止，避免用 v2 CLI 构建 v3 源码或发布未经验证的 Windows/universal 包。恢复分发时须迁移整条构建、安装器和发布验收流程；本次未推送、发布或触发远端 CI。
+> 2026-10-07 当前自用安装入口为 `go run ./cmd/watoolsctl install`，一次构建并安装本体与官方插件，内置管理中心复用该流程。见[本地指南](./local-workflow.md)。本次按用户简化后的范围实施本机源码安装，没有启用 GitHub 商店或恢复远端 release workflow。
+
+> 2026-10-03 v3 迁移说明：本机包的当前构建命令见本地指南；本页下方的公开分发流程保留为 v2 历史基线。release workflow 在 prepare 阶段明确停止，避免用 v2 CLI 构建 v3 源码或发布未经验证的 Windows/universal 包。恢复分发时须迁移整条构建、安装器和发布验收流程；本次未推送、发布或触发远端 CI。
 
 # Release CD
 

@@ -10,7 +10,7 @@ dev_mode:
     watched_extension: ["*.go"]
     git_ignore: true
   executes:
-    - command: [node, scripts/dev.mjs, dev-build]
+    - command: [${WATOOLS_CTL}, dev-build]
       type: blocking
       shutdown_timeout: 10s
     - command: [pnpm, --dir, frontend, dev]

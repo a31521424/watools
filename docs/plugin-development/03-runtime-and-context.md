@@ -154,6 +154,6 @@ window.watoolsSession = {
 
 未接入的普通表单插件兼容保存 input／textarea／select，并派发 input／change 重建视图；不捕获 password 和 file 输入。检测到 Monaco 或 contenteditable 却未提供 hooks 时拒绝分离，避免无声丢失编辑内容。其他自定义模型、绘图结果及运行中任务需要插件自行导出，不能搬运实时 DOM 或 Promise。独立窗重载恢复分离时快照，不承诺跨重载保留之后的编辑或 undo 栈。
 
-宿主构建不会替换已安装插件。修改接口后必须重新打包并安装；旧版本正在运行的页面仍使用其不可变 revision，应先保存编辑内容，再返回启动器、刷新插件列表并重新打开。开发安装使用 `node scripts/dev.mjs plugins install`；正式安装使用仓库根目录的 `go run ./cmd/pluginctl install`，二者数据目录不同。见 [官方插件工具](../../plugins/README.md)。
+宿主构建不会替换已安装插件。修改接口后必须重新打包并安装；旧版本正在运行的页面仍使用其不可变 revision，应先保存编辑内容，再返回启动器、刷新插件列表并重新打开。开发安装使用 `go run ./cmd/watoolsctl plugins install`；正式安装使用仓库根目录的 `go run ./cmd/pluginctl install`，二者数据目录不同。见 [官方插件工具](../../plugins/README.md)。
 
 会话接口检查 Wails 绑定上下文中的窗口名以避免跨实例误读；现有插件仍为可信模型，不能把该检查、iframe 或独立窗当作不可信代码权限沙箱。共享历史／配置的并发合并及 revision 垃圾回收仍见 backlog。

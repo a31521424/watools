@@ -68,3 +68,7 @@
 2026-10-04 服务整理已落地类型化 Host API 与基础固定场景模拟，详情见 [宿主接口目标](./services-and-host-api.md)。
 
 剩余目标：Go 源码断点流程；更完整的失败复现场景与契约测试；多窗口和完整原生 GUI 验收；在用户授权推送后实际运行 macOS CI。保持 in-progress，不以基础入口代替整项验收。
+
+### 2026-10-07 Go 工作流迁移
+
+按用户要求，统一入口迁为 `go run ./cmd/watoolsctl`，旧 Node 工作流脚本和对应 Node 测试已移除；流程实现与回归分别归入 `internal/workflow`。Wails watcher 使用编译后的 Go CLI。内置管理中心先编译最新 CLI，再直接执行安装，兼容旧收据的工具 PATH。安装、隔离和取消能力按当前[本地指南](../development/local-workflow.md)验收；上方 Node 命令为历史实施记录。

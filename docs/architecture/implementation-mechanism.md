@@ -26,7 +26,7 @@
 
 前端 [`api/host/contracts.ts`](../../frontend/src/api/host/contracts.ts) 是稳定业务契约，只有 [`api/host/wails.ts`](../../frontend/src/api/host/wails.ts) 接触生成路径。该适配器转换窗口/命令/日志类型与 Wails 错误；mock 同样实现 HostAPI，使用独立内存固定场景。旧插件 SDK 名称、packageId 闭包、Storage 值与 HTTP `status_code` 保持兼容；旧 `internal/coordinator` 生成路径及方法 ID 已删除，直接依赖内部绑定的调用方必须迁移，内部路径不属于插件 SDK。
 
-扩展能力时：在业务模块实现 → 在对应领域服务校验/暴露 → 运行 `node scripts/dev.mjs bindings` → 更新 HostAPI 与两个适配器 → 迁移调用方并补关键契约回归。禁止手改生成文件。
+扩展能力时：在业务模块实现 → 在对应领域服务校验/暴露 → 运行 `go run ./cmd/watoolsctl bindings` → 更新 HostAPI 与两个适配器 → 迁移调用方并补关键契约回归。禁止手改生成文件。
 
 当前固定 Wails v3 Beta.27 与同版 npm runtime。启动前配置 launcher 窗口，WindowRuntimeReady 后定位并注册快捷键；命令 watcher 通过注入回调发出 `watools.applicationChanged`。
 
@@ -198,4 +198,10 @@ WaTools 不是纯静态前端资源加载模式，`/api/*` 路由由自定义 ha
 - [`pkg/logger/`](../../pkg/logger)
 - [`internal/app/`](../../internal/app)
 
-未设置 `WATOOLS_DATA_DIR` 时，正式安装使用系统应用数据目录，并按既有流程迁移旧缓存；显式设置此变量时视为独立安装，不导入旧缓存。开发入口 `scripts/dev.mjs` 同时隔离数据和缓存，具体目录与临时检查行为见 [本地开发指南](../development/local-workflow.md)。
+未设置 `WATOOLS_DATA_DIR` 时，正式安装使用系统应用数据目录，并按既有流程迁移旧缓存；显式设置此变量时视为独立安装，不导入旧缓存。开发入口 `cmd/watoolsctl` 同时隔离数据和缓存，具体目录与临时检查行为见 [本地开发指南](../development/local-workflow.md)。
+
+## 本机源码安装与管理中心（2026-10-07）
+
+`/management` 合并本体更新和插件管理，旧管理路由保留为对应标签入口。新增本机能力归入既有 UpdateService，Host API 提供配置、任务状态、启动和取消；未向插件 SDK 增加安装权限。`internal/localinstall` 管理源码配置和异步子任务，界面离开后任务继续，宿主退出时等待取消或提交完成。任务输出限制为 120 行，每行 2000 字节。
+
+CLI 和 GUI 共用 `go run ./cmd/watoolsctl install`：隔离构建全部产物，然后 `cmd/localinstall` 校验并暂存应用、保留备份、切换本体，复用插件安装器批量提交官方插件和安装收据。失败恢复旧 bundle 和插件指针，不重建已有用户记录；运行中小窗继续读取旧 revision。源码、数据及目标应用分别有安装锁。GUI 使用收据中的绝对 Go 路径和工具 PATH，先编译当前源码的轻量 CLI，再直接运行；旧 Node 收据保留 PATH 并重新定位 Go。详细命令、取消和恢复边界见[本地指南](../development/local-workflow.md)。

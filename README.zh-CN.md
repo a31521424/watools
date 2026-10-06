@@ -98,6 +98,7 @@ WaTools 早期主要以人工设计和人工编码的方式推进。核心架构
 |-- pkg/
 |-- plugins/
 |-- docs/
+|-- cmd/watoolsctl/
 |-- cmd/pluginctl/
 `-- build/
 ```
@@ -123,23 +124,30 @@ cd watools
 2. 检查 macOS 环境并安装锁定依赖。
 
 ```sh
-node scripts/dev.mjs doctor
-node scripts/dev.mjs setup
+go run ./cmd/watoolsctl doctor
+go run ./cmd/watoolsctl setup
 ```
 
 3. 启动开发模式。
 
 ```sh
-node scripts/dev.mjs plugins install
-node scripts/dev.mjs dev
+go run ./cmd/watoolsctl plugins install
+go run ./cmd/watoolsctl dev
 ```
 
 4. 构建生产版本。
 
 ```sh
-node scripts/dev.mjs check
-node scripts/dev.mjs build
+go run ./cmd/watoolsctl check
+go run ./cmd/watoolsctl build
 ```
+
+一键安装本体和全部官方插件到正式安装：
+
+```sh
+go run ./cmd/watoolsctl install
+```
+
 
 构建产物默认输出到 `build/bin/`。入口使用与 Go 模块一致的固定 Wails CLI，不需要全局安装 CLI。开发数据、缓存和插件包隔离在 `.cache/dev/`；检查与构建使用一次性应用数据。浏览器调试、绑定生成与能力边界见 [本地开发指南](./docs/development/local-workflow.md)。统一入口当前面向 macOS，Windows 保留既有 CI 与流程。
 
@@ -159,9 +167,9 @@ node scripts/dev.mjs build
 常用插件命令：
 
 ```sh
-node scripts/dev.mjs plugins list
-node scripts/dev.mjs plugins package
-node scripts/dev.mjs plugins install
+go run ./cmd/watoolsctl plugins list
+go run ./cmd/watoolsctl plugins package
+go run ./cmd/watoolsctl plugins install
 ```
 
 更多插件说明见：

@@ -7,6 +7,7 @@ import path from "node:path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    cacheDir: path.resolve(__dirname, "../.cache/dev/vite"),
     plugins: [
         react(),
         wails("./bindings"),
@@ -33,6 +34,7 @@ export default defineConfig({
                 '**/dist/**',
                 '**/build/**',
                 '**/.git/**',
+                '**/.cache/**',
                 '**/.DS_Store',
                 '**/*.log',
                 '**/*.log.*',

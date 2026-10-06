@@ -33,9 +33,6 @@ jobs:
           echo 'CGO_LDFLAGS=-mmacosx-version-min=12.0' >> "$GITHUB_ENV"
       - run: pnpm install --frozen-lockfile
         working-directory: frontend
-      - name: Verify macOS development entry
-        if: runner.os == 'macOS'
-        run: node --test scripts/dev-workflow.test.mjs
       - run: pnpm test
         working-directory: frontend
       - run: pnpm build

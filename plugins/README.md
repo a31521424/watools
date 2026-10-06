@@ -17,6 +17,12 @@ This directory is the source of truth for WaTools official plugins.
 - `watools.plugin.translate`: translation panel with OS-backed API key storage
 - `watools.plugin.textstats`: explicit-trigger text statistics panel with multidimensional counts
 
+## Local application installation
+
+`go run ./cmd/watoolsctl install` builds and installs WaTools and all official plugins into the normal installation. After `git pull --ff-only`, rerun it to update. Use `--scope plugins --plugin watools.plugin.json` for one plugin. The built-in management center runs the same workflow. Storage, enabled state and third-party plugins are preserved; running windows retain their old revision.
+
+`go run ./cmd/watoolsctl plugins install` remains isolated to development data. The Go commands below are lower-level packaging/install tools.
+
 ## Commands
 
 List official plugins:
@@ -51,7 +57,7 @@ go run ./cmd/pluginctl install watools.plugin.translate
 
 ## Development Notes
 
-- For an isolated macOS development installation, use `node scripts/dev.mjs plugins list|package|install [package-id...]`. Packages go to `.cache/dev/packages/`; installation shares `.cache/dev/data/` with `node scripts/dev.mjs dev`. See the [local workflow](../docs/development/local-workflow.md). Direct `go run ./cmd/pluginctl install` uses the normal installation unless data/cache overrides are supplied.
+- For an isolated macOS development installation, use `go run ./cmd/watoolsctl plugins list|package|install [package-id...]`. Packages go to `.cache/dev/packages/`; installation shares `.cache/dev/data/` with `go run ./cmd/watoolsctl dev`. See the [local workflow](../docs/development/local-workflow.md). Direct `go run ./cmd/pluginctl install` uses the normal installation unless data/cache overrides are supplied.
 - Package contents come only from each plugin's `plugin/` directory.
 - The generated `.wt` archive contains the files at the root of `plugin/`, not the parent directory.
 - `go run ./cmd/pluginctl install ...` uses the same backend installer logic as the app.

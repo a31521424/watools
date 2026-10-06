@@ -39,6 +39,7 @@ const formatLastUsedAt = (value: Date | null) => {
 }
 
 type PluginDetailsProps = {
+    busy?: boolean
     plugin: Plugin
     onToggle: (plugin: Plugin) => Promise<void>
     onUninstall: (plugin: Plugin) => Promise<void>
@@ -80,7 +81,7 @@ function PluginHelpSection({title, items, mono = false}: PluginHelpSectionProps)
     )
 }
 
-function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose}: PluginDetailsProps) {
+function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose, busy}: PluginDetailsProps) {
     const hasQuickStart = Boolean(plugin.usage) || plugin.triggerKeywords.length > 0
 
     return (
@@ -231,7 +232,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose}:
 
             <div className="border-t border-[color:var(--line)] px-5 py-4">
                 <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="outline" onClick={() => void onToggle(plugin)}>
+                    <Button variant="outline" disabled={busy} onClick={() => void onToggle(plugin)}>
                         {plugin.enabled ? '停用插件' : '启用插件'}
                     </Button>
                     {plugin.homeUrl && (
@@ -240,7 +241,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose}:
                             打开主页
                         </Button>
                     )}
-                    <Button variant="destructive" onClick={() => void onUninstall(plugin)} className="ml-auto">
+                    <Button variant="destructive" disabled={busy} onClick={() => void onUninstall(plugin)} className="ml-auto">
                         卸载插件
                     </Button>
                 </div>
@@ -249,7 +250,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose}:
     )
 }
 
-export function WaPluginManagement() {
+export function WaPluginManagement({embedded = false, busy = false}: {embedded?: boolean; busy?: boolean}) {
     const plugins = usePluginStore(state => state.plugins)
     const isLoading = usePluginStore(state => state.isLoading)
     const error = usePluginStore(state => state.error)
@@ -343,6 +344,7 @@ export function WaPluginManagement() {
     )
 
     const handleTogglePlugin = async (plugin: Plugin) => {
+        if (busy) return
         try {
             await togglePlugin(plugin.packageId, !plugin.enabled)
         } catch (toggleError) {
@@ -351,6 +353,7 @@ export function WaPluginManagement() {
     }
 
     const handleUninstallPlugin = async (plugin: Plugin) => {
+        if (busy) return
         try {
             await uninstallPlugin(plugin.packageId)
             setIsDrawerOpen(false)
@@ -360,6 +363,7 @@ export function WaPluginManagement() {
     }
 
     const handleInstallPlugin = async () => {
+        if (busy) return
         try {
             await host.InstallPluginByFileDialogApi()
             await refreshPlugins()
@@ -396,7 +400,7 @@ export function WaPluginManagement() {
         >
             <div className="border-b border-[color:var(--line)] px-6 py-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="min-w-0 space-y-3">
+                    {!embedded && <div className="min-w-0 space-y-3">
                         <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="h-8 px-2 text-[var(--muted)]">
                             <ArrowLeft className="mr-2 h-4 w-4"/>
                             返回命令面板
@@ -407,14 +411,14 @@ export function WaPluginManagement() {
                                 管理已安装插件、启用状态与插件元信息。
                             </p>
                         </div>
-                    </div>
+                    </div>}
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <Button variant="outline" onClick={() => void handleRefreshPlugins()} disabled={isLoading}>
+                        <Button variant="outline" onClick={() => void handleRefreshPlugins()} disabled={isLoading || busy}>
                             <RefreshCcw className="mr-2 h-4 w-4"/>
                             刷新列表
                         </Button>
-                        <Button onClick={() => void handleInstallPlugin()} disabled={isLoading}>
+                        <Button onClick={() => void handleInstallPlugin()} disabled={isLoading || busy}>
                             <Plus className="mr-2 h-4 w-4"/>
                             安装插件
                         </Button>
@@ -515,6 +519,7 @@ export function WaPluginManagement() {
                                                 {plugin.enabled ? '已启用' : '已停用'}
                                             </span>
                                             <Switch
+                                                disabled={busy}
                                                 checked={plugin.enabled}
                                                 onCheckedChange={() => void handleTogglePlugin(plugin)}
                                                 aria-label={`${plugin.name} 开关`}
@@ -550,6 +555,7 @@ export function WaPluginManagement() {
                         </SheetHeader>
                         <SheetContent className="p-0">
                             <PluginDetails
+                                busy={busy}
                                 plugin={selectedPlugin}
                                 onToggle={handleTogglePlugin}
                                 onUninstall={handleUninstallPlugin}

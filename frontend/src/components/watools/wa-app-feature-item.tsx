@@ -16,12 +16,12 @@ type UseAppFeatureItemsParams = {
 // 应用内置功能定义（纯前端快捷操作）
 const LOCAL_APP_FEATURES = [
     {
-        id: "app-feature-plugin-management",
-        name: "Plugin Management",
-        description: "Manage installed plugins",
+        id: "app-feature-management",
+        name: "管理中心",
+        description: "安装与更新应用、管理官方及第三方插件",
         icon: "puzzle",
-        navigatePath: "/plugin-management",
-        keywords: ["plugin", "extension", "manage", "installation"]
+        navigatePath: "/management",
+        keywords: ["plugin", "extension", "manage", "installation", "update", "upgrade", "管理", "安装", "插件", "更新", "升级"]
     },
     {
         id: "app-feature-log-management",
@@ -30,14 +30,6 @@ const LOCAL_APP_FEATURES = [
         icon: "logs",
         navigatePath: "/log-management",
         keywords: ["log", "logger", "debug", "trace", "日志", "错误"]
-    },
-    {
-        id: "app-feature-update-management",
-        name: "Update Management",
-        description: "Check releases and install app updates",
-        icon: "download",
-        navigatePath: "/update-management",
-        keywords: ["update", "upgrade", "release", "installer", "self update", "更新", "升级", "发布"]
     },
 ];
 

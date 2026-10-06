@@ -1,6 +1,6 @@
 # Build files
 
-`node scripts/dev.mjs build` builds the current macOS architecture using Wails v3. The Node helper in `scripts/mac-bundle.mjs` follows the official v3 macOS template and does not require a global CLI or Task installation.
+`go run ./cmd/watoolsctl build` builds the current macOS architecture using Wails v3. The Go workflow in `internal/workflow/bundle.go` follows the official v3 macOS template and does not require a global CLI or Task installation.
 
 - `appicon.png`: source icon; the pinned v3 CLI generates icons into the output directory.
 - `darwin/Info.plist` and `darwin/Info.dev.plist`: metadata templates rendered from `wails.json`; minimum macOS 12 and the existing bundle ID are retained.

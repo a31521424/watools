@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"watools/config"
+	"watools/internal/filelock"
 	"watools/pkg/db"
 	"watools/pkg/logger"
 	"watools/pkg/models"
@@ -41,6 +43,14 @@ func NewPluginInstaller(ctx context.Context) *PluginInstaller {
 	}
 }
 
+// NewPluginInstallerWithDatabase lets command-line transactions validate database
+// initialization before replacing an application, without the global panic path.
+func NewPluginInstallerWithDatabase(ctx context.Context, database *db.WaDB) *PluginInstaller {
+	installer := NewPluginInstaller(ctx)
+	installer.repository = database
+	return installer
+}
+
 func (pi *PluginInstaller) database() pluginRepository {
 	if pi.repository != nil {
 		return pi.repository
@@ -52,6 +62,15 @@ func (pi *PluginInstaller) database() pluginRepository {
 func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 	installationMu.Lock()
 	defer installationMu.Unlock()
+	unlock, err := pi.lockDirectory()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return pi.installFromWtFile(wtFilePath)
+}
+
+func (pi *PluginInstaller) installFromWtFile(wtFilePath string) error {
 	logger.Info(fmt.Sprintf("Installing plugin from: %s", wtFilePath))
 
 	// 1. 验证文件存在
@@ -170,6 +189,11 @@ func (pi *PluginInstaller) InstallFromWtFile(wtFilePath string) error {
 func (pi *PluginInstaller) UninstallPlugin(packageID string) error {
 	installationMu.Lock()
 	defer installationMu.Unlock()
+	unlock, err := pi.lockDirectory()
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	logger.Info(fmt.Sprintf("Uninstalling plugin: %s", packageID))
 	if err := utils.ValidatePluginPackageID(packageID); err != nil {
 		return fmt.Errorf("invalid packageId: %w", err)
@@ -595,4 +619,122 @@ func (pi *PluginInstaller) registerPlugin(manifest *models.PluginMetadata, insta
 		Enabled:   true,
 		Storage:   "{}",
 	})
+}
+
+func (pi *PluginInstaller) lockDirectory() (func(), error) {
+	if err := os.MkdirAll(pi.pluginsDir, 0700); err != nil {
+		return nil, err
+	}
+	return filelock.Acquire(filepath.Join(pi.pluginsDir, ".installation.lock"))
+}
+
+// InstallBatch commits prepared official packages together. Existing revisions and
+// user records remain intact; a later failure restores every earlier pointer.
+// commit joins installation metadata to the same rollback boundary.
+func (pi *PluginInstaller) InstallBatch(paths []string, commit func() error) error {
+	installationMu.Lock()
+	defer installationMu.Unlock()
+	unlock, err := pi.lockDirectory()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	type snapshot struct {
+		id                    string
+		pointer               []byte
+		hadPointer, installed bool
+	}
+	snapshots := make([]snapshot, 0, len(paths))
+	seen := map[string]bool{}
+	for _, path := range paths {
+		archive, err := zip.OpenReader(path)
+		if err != nil {
+			return err
+		}
+		var manifest *models.PluginMetadata
+		for _, entry := range archive.File {
+			if entry.Name != "manifest.json" {
+				continue
+			}
+			if manifest != nil || entry.UncompressedSize64 > 1<<20 {
+				archive.Close()
+				return fmt.Errorf("invalid package manifest")
+			}
+			reader, err := entry.Open()
+			if err != nil {
+				archive.Close()
+				return err
+			}
+			manifest = &models.PluginMetadata{}
+			err = json.NewDecoder(io.LimitReader(reader, (1<<20)+1)).Decode(manifest)
+			reader.Close()
+			if err != nil {
+				archive.Close()
+				return err
+			}
+		}
+		archive.Close()
+		if manifest == nil {
+			return fmt.Errorf("prepared package requires root manifest.json")
+		}
+		if err := pi.validateManifest(manifest); err != nil {
+			return err
+		}
+		if seen[manifest.PackageID] {
+			return fmt.Errorf("duplicate package: %s", manifest.PackageID)
+		}
+		seen[manifest.PackageID] = true
+		_, installed, err := pi.findInstalledPlugin(manifest.PackageID)
+		if err != nil {
+			return err
+		}
+		pointer, err := os.ReadFile(filepath.Join(pi.pluginsDir, manifest.PackageID, "current.json"))
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		snapshots = append(snapshots, snapshot{manifest.PackageID, pointer, err == nil, installed})
+	}
+	rollback := func(cause error, count int) error {
+		for i := count - 1; i >= 0; i-- {
+			old := snapshots[i]
+			dir := filepath.Join(pi.pluginsDir, old.id)
+			pointerPath := filepath.Join(dir, "current.json")
+			if old.hadPointer {
+				staged, err := os.CreateTemp(dir, ".restore-*")
+				if err == nil {
+					_, err = staged.Write(old.pointer)
+					closeErr := staged.Close()
+					if err == nil {
+						err = closeErr
+					}
+					if err == nil {
+						err = os.Rename(staged.Name(), pointerPath)
+					}
+					os.Remove(staged.Name())
+				}
+				if err != nil {
+					cause = errors.Join(cause, fmt.Errorf("restore %s: %w", old.id, err))
+				}
+			} else if err := os.Remove(pointerPath); err != nil && !os.IsNotExist(err) {
+				cause = errors.Join(cause, err)
+			}
+			if !old.installed {
+				if err := pi.database().DeletePlugin(pi.ctx, old.id); err != nil {
+					cause = errors.Join(cause, err)
+				}
+			}
+		}
+		return cause
+	}
+	for i, path := range paths {
+		if err := pi.installFromWtFile(path); err != nil {
+			return rollback(err, i)
+		}
+	}
+	if commit != nil {
+		if err := commit(); err != nil {
+			return rollback(err, len(paths))
+		}
+	}
+	return nil
 }

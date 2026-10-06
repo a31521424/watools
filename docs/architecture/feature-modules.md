@@ -93,3 +93,9 @@
 - 主要实现：`cmd/pluginctl/main.go`、`plugins/README.md`
 - 核心行为：列出插件、打包 `.wt`、安装到本地 WaTools 持久数据目录
 - 注意事项：`plugins/dist/` 是产物目录，不是源码目录
+
+## 本机源码安装与管理中心（2026-10-07）
+
+`/management` 合并本体更新和插件管理，旧管理路由保留为对应标签入口。新增本机能力归入既有 UpdateService，Host API 提供配置、任务状态、启动和取消；未向插件 SDK 增加安装权限。`internal/localinstall` 管理源码配置和异步子任务，界面离开后任务继续，宿主退出时等待取消或提交完成。任务输出限制为 120 行，每行 2000 字节。
+
+CLI 和 GUI 共用 `go run ./cmd/watoolsctl install`：隔离构建全部产物，然后 `cmd/localinstall` 校验并暂存应用、保留备份、切换本体，复用插件安装器批量提交官方插件和安装收据。失败恢复旧 bundle 和插件指针，不重建已有用户记录；运行中小窗继续读取旧 revision。源码、数据及目标应用分别有安装锁。GUI 使用收据中的绝对 Go 路径和工具 PATH，先编译当前源码的轻量 CLI，再直接运行；旧 Node 收据保留 PATH 并重新定位 Go。详细命令、取消和恢复边界见[本地指南](../development/local-workflow.md)。

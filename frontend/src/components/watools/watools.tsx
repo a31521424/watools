@@ -2,9 +2,8 @@ import {WaCommand} from "./wa-command";
 import {resizeWindowHeight, useElementResize} from "@/hooks/useElementResize";
 import {Route} from "wouter";
 import {WaPlugin} from "@/components/watools/wa-plugin";
-import {WaPluginManagement} from "@/components/watools/wa-plugin-management";
+import {WaManagement} from "@/components/watools/wa-management";
 import {WaLogManagement} from "@/components/watools/wa-log-management";
-import {WaUpdateManagement} from "@/components/watools/wa-update-management";
 import {useEffect} from "react";
 import {WaApi} from "@/api/api";
 import {usePluginStore} from "@/stores/pluginStore";
@@ -52,6 +51,7 @@ const Watools = () => {
     }, [flushApplicationUsage, flushPluginUsage]);
 
     const isFixedHeightRoute = location === '/plugin'
+        || location === '/management'
         || location === '/plugin-management'
         || location === '/log-management'
         || location === '/update-management'
@@ -69,14 +69,15 @@ const Watools = () => {
         <Route path='/plugin'>
             <WaPlugin/>
         </Route>
+        <Route path='/management'><WaManagement/></Route>
         <Route path='/plugin-management'>
-            <WaPluginManagement/>
+            <WaManagement initialTab="plugins"/>
         </Route>
         <Route path='/log-management'>
             <WaLogManagement/>
         </Route>
         <Route path='/update-management'>
-            <WaUpdateManagement/>
+            <WaManagement/>
         </Route>
     </div>
 }

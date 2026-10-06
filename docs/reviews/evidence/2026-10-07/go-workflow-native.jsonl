@@ -1,0 +1,5 @@
+{"case": "native-management", "sourceAutoConfigured": true, "officialPlugins": 6}
+{"case": "legacy-receipt-migration", "goResolvedFromRecordedPath": true, "obsoleteNodeFieldRemoved": true}
+{"case": "native-single-plugin-update", "jobPersistsAfterNavigation": true, "selectedRevisionChanged": true, "otherRevisionUnchanged": true, "storagePreserved": true, "disabledStatePreserved": true, "thirdPartyPreserved": true, "detachedEditorPreserved": true}
+{"case": "native-application-and-all-plugins-update", "signedAppInstalled": true, "previousBundleRetained": true, "hostStillRunning": true, "detachedEditorPreserved": true, "restartPromptVisible": true, "storagePreserved": true, "disabledStatePreserved": true, "thirdPartyPreserved": true}
+{"case": "cleanup", "onlyQAHostStopped": true, "compiledInstallerRemoved": true}
