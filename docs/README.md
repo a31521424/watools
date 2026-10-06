@@ -149,6 +149,11 @@ docs/
 │   │   │   └── plugin-window-focus-helper.m.txt
 │   │   ├── 2026-10-07/
 │   │   │   ├── README.md
+│   │   │   ├── ui-redesign-native.jsonl
+│   │   │   ├── ui-redesign-native-probe.py.txt
+│   │   │   ├── ui-json.png
+│   │   │   ├── ui-management.png
+│   │   │   ├── ui-qr-narrow.png
 │   │   │   ├── local-install-native.jsonl
 │   │   │   ├── go-workflow-native.jsonl
 │   │   │   ├── go-workflow-native-probe.py.txt

@@ -1,0 +1,17 @@
+{"case": "native-management", "drag": "drag", "headerHeight": 72, "title": "管理中心"}
+{"case": "native-log-management", "drag": "drag", "headerHeight": 72, "title": "日志"}
+{"case": "native-plugin", "plugin": "calculator", "background": "rgb(246, 247, 249)", "theme": true, "title": "计算器"}
+{"case": "native-plugin", "plugin": "qr", "background": "rgb(246, 247, 249)", "theme": true, "title": "二维码工作区"}
+{"case": "native-plugin", "plugin": "translate", "background": "rgb(246, 247, 249)", "theme": true, "title": "翻译"}
+{"case": "native-plugin", "plugin": "textstats", "background": "rgb(246, 247, 249)", "theme": true, "title": "文本统计"}
+{"case": "native-plugin", "plugin": "json", "background": "rgb(246, 247, 249)", "theme": true, "title": "JSON 编辑器"}
+{"case": "detach", "editorPreserved": true, "customHeaderNotDuplicated": true, "launcherHeight": 64, "onlyDetachedWindowOnScreen": true}
+{"case": "native-resize", "width": 480, "height": 320, "editorPreserved": true, "documentWidth": 481, "editorHeight": 134, "viewportWidth": 481}
+{"case": "native-resize", "width": 640, "height": 500, "editorPreserved": true, "documentWidth": 641, "editorHeight": 378, "viewportWidth": 641}
+{"case": "native-resize", "width": 1100, "height": 800, "editorPreserved": true, "documentWidth": 1101, "editorHeight": 678, "viewportWidth": 1101}
+{"case": "multiple-windows", "instances": 2, "firstEditorPreserved": true}
+{"case": "native-plugin-minimum-size", "plugin": "calculator", "appScrollWidth": 481, "appWidth": 481, "documentWidth": 481, "headerCount": 0, "width": 481}
+{"case": "native-plugin-minimum-size", "plugin": "qr", "appScrollWidth": 475, "appWidth": 475, "documentWidth": 481, "headerCount": 0, "width": 481}
+{"case": "native-plugin-minimum-size", "plugin": "translate", "appScrollWidth": 475, "appWidth": 475, "documentWidth": 481, "headerCount": 0, "width": 481}
+{"case": "native-plugin-minimum-size", "plugin": "textstats", "appScrollWidth": 475, "appWidth": 475, "documentWidth": 481, "headerCount": 0, "width": 481}
+{"case": "cleanup", "onlyQAHostStopped": true}

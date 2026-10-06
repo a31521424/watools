@@ -1,7 +1,8 @@
+import {useLocation} from 'wouter'
+import {WaWorkspaceHeader} from "./wa-workspace-header";
 import React, {useDeferredValue, useEffect, useMemo, useState} from "react"
 import {
     AlertCircle,
-    ArrowLeft,
     ChevronDown,
     ChevronUp,
     ChevronRight,
@@ -11,7 +12,6 @@ import {
     RefreshCcw,
     Search,
 } from "lucide-react"
-import {useLocation} from "wouter"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 import {Sheet, SheetContent} from "@/components/ui/sheet"
@@ -19,18 +19,6 @@ import {cn} from "@/lib/utils"
 import {getLogDirectory, listLogFiles, queryLogs} from "@/api/log"
 import {LogFileInfo, LogRecord} from "@/schemas/log"
 import {host} from "@/api/host"
-
-const SURFACE_STYLE = {
-    "--bg": "#eef2f6",
-    "--surface": "#ffffff",
-    "--surface-soft": "#f5f7fa",
-    "--line": "rgba(15, 23, 42, 0.12)",
-    "--text": "#0f172a",
-    "--muted": "#64748b",
-    "--accent": "#0f172a",
-    "--accent-soft": "rgba(15, 23, 42, 0.06)",
-    fontFamily: "\"IBM Plex Sans\", \"SF Pro Text\", \"PingFang SC\", \"Segoe UI\", sans-serif",
-} as React.CSSProperties
 
 const MONO_FONT = "\"JetBrains Mono\", \"SFMono-Regular\", \"SF Mono\", \"Consolas\", monospace"
 const ALL_FILES_VALUE = "__all__"
@@ -177,13 +165,13 @@ function LogDetails({record, onCopy, onClose}: LogDetailsProps) {
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className={cn("inline-flex h-6 items-center rounded-sm border px-2 text-[11px] font-medium", levelBadgeClassName(record.level))}>
+                            <span className={cn("inline-flex h-6 items-center rounded-md border px-2 text-[11px] font-medium", levelBadgeClassName(record.level))}>
                                 {formatLevelLabel(record.level)}
                             </span>
-                            <span className="inline-flex h-6 items-center rounded-sm border border-[color:var(--line)] bg-[var(--surface-soft)] px-2 text-[11px] font-medium text-[var(--muted)]">
+                            <span className="inline-flex h-6 items-center rounded-md border border-[color:var(--line)] bg-[var(--surface-soft)] px-2 text-[11px] font-medium text-[var(--muted)]">
                                 {formatSourceLabel(record.source)}
                             </span>
-                            <span className="inline-flex h-6 items-center rounded-sm border border-[color:var(--line)] bg-[var(--surface)] px-2 text-[11px] font-medium text-[var(--muted)]">
+                            <span className="inline-flex h-6 items-center rounded-md border border-[color:var(--line)] bg-[var(--surface)] px-2 text-[11px] font-medium text-[var(--muted)]">
                                 {record.parseStatus}
                             </span>
                         </div>
@@ -207,7 +195,7 @@ function LogDetails({record, onCopy, onClose}: LogDetailsProps) {
 
             <div className="flex-1 overflow-y-auto px-5 py-5">
                 <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-2 border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-3">
+                    <div className="space-y-2 rounded-lg border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-3">
                         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                             文件位置
                         </div>
@@ -216,7 +204,7 @@ function LogDetails({record, onCopy, onClose}: LogDetailsProps) {
                         </div>
                     </div>
 
-                    <div className="space-y-2 border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-3">
+                    <div className="space-y-2 rounded-lg border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-3">
                         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                             插件标识
                         </div>
@@ -225,14 +213,14 @@ function LogDetails({record, onCopy, onClose}: LogDetailsProps) {
                         </div>
                     </div>
 
-                    <div className="space-y-2 border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-3">
+                    <div className="space-y-2 rounded-lg border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-3">
                         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                             时间
                         </div>
                         <div className="text-sm text-[var(--text)]">{formatDateTime(record.timestamp)}</div>
                     </div>
 
-                    <div className="space-y-2 border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-3">
+                    <div className="space-y-2 rounded-lg border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-3">
                         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                             错误字段
                         </div>
@@ -459,51 +447,14 @@ export function WaLogManagement() {
 
     return (
         <div
-            className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--bg)] text-[var(--text)]"
-            style={SURFACE_STYLE}
+            className="wa-page flex h-full min-h-0 w-full flex-col overflow-hidden"
         >
-            <div className="border-b border-[color:var(--line)] bg-[var(--surface)] px-5 py-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="min-w-0 space-y-2">
-                        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="h-8 px-2 text-[var(--muted)]">
-                            <ArrowLeft className="mr-2 h-4 w-4"/>
-                            返回命令面板
-                        </Button>
-                        <div className="space-y-0.5">
-                            <h1 className="text-lg font-semibold">日志管理器</h1>
-                            <p className="text-xs text-[var(--muted)]">
-                                面向排障的文件日志查看器。
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsFiltersOpen(open => !open)}
-                            className="min-w-[108px]"
-                        >
-                            {isFiltersOpen ? <ChevronUp className="mr-2 h-4 w-4"/> : <ChevronDown className="mr-2 h-4 w-4"/>}
-                            {isFiltersOpen ? "收起过滤器" : "展开过滤器"}
-                        </Button>
-                        <Button variant="outline" onClick={() => void loadLogFiles()} disabled={isLoadingFiles || isLoadingLogs}>
-                            <RefreshCcw className="mr-2 h-4 w-4"/>
-                            刷新日志
-                        </Button>
-                        <Button variant="outline" onClick={handleOpenLogDirectory} disabled={!logDirectory}>
-                            <FolderOpen className="mr-2 h-4 w-4"/>
-                            打开日志目录
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]" style={{fontFamily: MONO_FONT}}>
-                    <span>files={files.length}</span>
-                    <span>matched={totalMatched}</span>
-                    <span>{selectedFileInfo ? `${selectedFileInfo.name} ${formatBytes(selectedFileInfo.size)}` : "all files"}</span>
-                </div>
-            </div>
-
+            <WaWorkspaceHeader title="日志" subtitle="检索运行记录，查看事件与错误详情" icon={<FileText/>} actions={<>
+                <Button variant="ghost" size="sm" onClick={()=>setIsFiltersOpen(open=>!open)}>{isFiltersOpen ? <ChevronUp className="mr-1 size-3.5"/> : <ChevronDown className="mr-1 size-3.5"/>}筛选</Button>
+                <Button variant="outline" size="sm" onClick={()=>void loadLogFiles()} disabled={isLoadingFiles || isLoadingLogs}><RefreshCcw className="mr-1.5 size-3.5"/>刷新</Button>
+                <Button variant="outline" size="sm" onClick={handleOpenLogDirectory} disabled={!logDirectory} title="打开日志目录"><FolderOpen className="size-3.5"/></Button>
+            </>}/>
+            <div className="flex shrink-0 items-center gap-4 px-5 py-3 text-[11px] text-muted-foreground"><span>{files.length} 个文件</span><span>{totalMatched} 条匹配</span><span className="truncate">{selectedFileInfo ? `${selectedFileInfo.name} · ${formatBytes(selectedFileInfo.size)}` : '全部文件'}</span></div>
             <div className="flex min-h-0 flex-1 flex-col">
                 <div className="border-b border-[color:var(--line)] bg-[var(--surface)] px-5 py-3">
                     <div className="flex flex-col gap-3">
@@ -622,17 +573,17 @@ export function WaLogManagement() {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex min-h-full flex-col">
+                        <div className="wa-log-table flex min-h-full flex-col">
                             <div
                                 className="grid items-center gap-3 border-b border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-2 text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]"
                                 style={{gridTemplateColumns: "90px 78px 96px minmax(180px,220px) 132px minmax(0,1fr)", fontFamily: MONO_FONT}}
                             >
-                                <span>Time</span>
-                                <span>Level</span>
-                                <span>Source</span>
-                                <span>Plugin</span>
-                                <span>File</span>
-                                <span>Message</span>
+                                <span>时间</span>
+                                <span>级别</span>
+                                <span>来源</span>
+                                <span>插件</span>
+                                <span>文件</span>
+                                <span>内容</span>
                             </div>
 
                             <div className="divide-y divide-[color:var(--line)]">
@@ -653,10 +604,10 @@ export function WaLogManagement() {
                                             <span className="truncate text-[var(--muted)]">
                                                 {formatDateTime(record.timestamp)}
                                             </span>
-                                            <span className={cn("inline-flex h-6 w-fit items-center rounded-sm border px-2 text-[10px] font-medium", levelBadgeClassName(record.level))}>
+                                            <span className={cn("inline-flex h-6 w-fit items-center rounded-md border px-2 text-[10px] font-medium", levelBadgeClassName(record.level))}>
                                                 {formatLevelLabel(record.level)}
                                             </span>
-                                            <span className={cn("inline-flex h-6 w-fit items-center rounded-sm border px-2 text-[10px] font-medium", sourceBadgeClassName(record.source))}>
+                                            <span className={cn("inline-flex h-6 w-fit items-center rounded-md border px-2 text-[10px] font-medium", sourceBadgeClassName(record.source))}>
                                                 {formatSourceLabel(record.source)}
                                             </span>
                                             <span className="truncate text-[var(--muted)]">

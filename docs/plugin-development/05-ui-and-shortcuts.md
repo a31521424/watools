@@ -2,7 +2,7 @@
 
 ## iframe UI 设计限制
 
-插件运行在隔离 iframe 环境中。
+插件运行在独立 iframe 文档中；当前是可信插件模型，iframe 不构成安全沙箱。
 
 ### Modal / Dialog
 
@@ -50,42 +50,28 @@
 }
 ```
 
-## 官方风格参考
+## 官方风格与标题栏
 
-核心要求:
+宿主、管理页面和五个官方 UI 插件统一使用 [当前 UI 规范](../design/ui-style.md)。基础样式唯一来源为 `frontend/public/watools-ui.css`；官方打包命令自动把它写入 UI 插件的 `.wt`，旧 revision 保持自己的样式。
 
-- 使用扁平化 iframe 内布局,优先 `topbar + workspace + status/footer`
-- 外层不要再做“大卡片套小卡片”的窗口感容器
-- 页面背景优先浅色中性底,工作区用白色或接近白色的面
-- 控件边界依赖 `1px` 细线和轻微聚焦态,不要依赖厚阴影和大圆角
-- 按钮优先分为 `primary`、`ghost`、默认边框按钮三层级
-- 正文字体优先 `"IBM Plex Sans", "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif`
-- 代码/输入字体优先 `"JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace`
-- 状态提示尽量短,放在底部状态栏或 toast,不要堆大段说明文案
-- 浮层/侧栏只在功能必须时出现,默认优先 inline 或贴边抽屉
-- 同类插件尽量共享以下 token 命名: `--bg`、`--surface`、`--surface-soft`、`--line`、`--text`、`--muted`、`--accent`
+官方 UI HTML 引入：
 
-推荐基线 token:
-
-```css
-:root {
-    --bg: #f3f6fa;
-    --surface: #ffffff;
-    --surface-soft: #f8fbff;
-    --line: rgba(28, 47, 67, 0.12);
-    --text: #162433;
-    --muted: #627487;
-    --accent: #1968ab;
-    --accent-soft: rgba(25, 104, 171, 0.12);
-}
+```html
+<link rel="stylesheet" href="watools-ui.css">
+<body class="wt-plugin">
+  <!-- 工具自己的 topbar、workspace、status/footer -->
+</body>
 ```
 
-避免:
+- 默认采用系统字体、浅灰背景、白色工作面、蓝色主操作和细边框。按钮使用 `primary`、`ghost`、默认边框或 `text-button`。
+- 使用共享 `--wt-*` token；兼容 `--bg`、`--surface`、`--surface-soft`、`--line`、`--text`、`--muted`、`--accent` 别名。不要复制维护第二套颜色或字体。
+- 基础规则使用低优先级 `:where()`；插件只编写自身工作布局和响应式覆盖，不靠 `!important` 调整尺寸。
+- 主窗口展开页的返回、图标、名称、功能简介与分离操作由宿主 `WaWorkspaceHeader` 绘制，空白区域负责窗口拖动。插件不重复添加宿主标题栏。
+- 分离后的独立窗口使用原生标题栏，最小窗口为 480×320。按 iframe 实际尺寸设计，工具栏可换行，双栏工作区在 740px 以下改为上下布局，内容允许滚动。
+- 状态提示短而明确，底部状态栏或 toast 即可。保留可见键盘焦点和细滚动条。
+- 不使用大面积渐变、厚阴影或“窗口套窗口”的容器，不在使用流程暴露 SDK 或内部存储细节。
 
-- 在插件内部再做“窗口中窗口”的大圆角壳
-- 大面积渐变、拟物阴影、厚描边
-- 为了说明功能而长期占据主要阅读区域的大段文案
-- 同一产品里每个官方插件都使用完全不同的字体和控件语言
+共享样式变更后需要重新打包并安装所有官方 UI 插件，单独构建宿主不会替换已安装插件。
 
 ## 跨平台快捷键
 

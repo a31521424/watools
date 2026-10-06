@@ -54,7 +54,7 @@ const Sheet = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "absolute right-0 top-0 flex h-full w-[400px] max-w-full flex-col overflow-hidden bg-white shadow-2xl transition-transform duration-200",
+          "absolute right-0 top-0 flex h-full w-[400px] max-w-full flex-col overflow-hidden bg-card shadow-xl transition-transform duration-200",
           "ease-[cubic-bezier(0.22,1,0.36,1)]",
           visible ? "translate-x-0" : "translate-x-[104%]",
           className
@@ -98,7 +98,7 @@ const SheetDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-gray-500", className)}
+    className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
 ))

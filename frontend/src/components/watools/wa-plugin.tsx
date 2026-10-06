@@ -6,6 +6,10 @@ import {attachPluginSession} from '@/lib/plugin-ui-session';
 import {capturePluginWindowState} from '@/lib/plugin-window-state';
 import {normalizePluginAssetPath} from "@/lib/plugin";
 import {resolvePluginLaunchContext, releasePluginLaunchContext, snapshotPluginContext} from "@/lib/plugin-context";
+import {ExternalLink, Puzzle} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {WaIcon} from "./wa-icon";
+import {WaWorkspaceHeader} from "./wa-workspace-header";
 import type {PluginContext} from '@/schemas/plugin';
 
 type LaunchParams = {packageId: string; file: string | null; launchId: string | null; seed: string};
@@ -45,6 +49,7 @@ const PluginSession = ({packageId, file, launchId, seed}: LaunchParams) => {
         }
     });
     const safeFile = normalizePluginAssetPath(file);
+    const uiEntry = plugin?.entry.find(entry => entry.type === 'ui' && entry.file === safeFile);
     const available = plugin?.enabled && safeFile && launch.context && plugin.entry.some(entry => entry.type === 'ui' && entry.file === safeFile);
     const pluginUrl = available ? plugin.homeUrl + '/' + safeFile + '?t=' + nonce : null;
     useEffect(() => {
@@ -136,13 +141,11 @@ const PluginSession = ({packageId, file, launchId, seed}: LaunchParams) => {
     };
 
     return <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center gap-3 border-b px-3 py-1 text-sm text-gray-600">
-            <button onClick={()=>navigate('/')}>返回</button>
-            <span className="flex-1 truncate">{plugin?.name}</span>
-            <button disabled={detaching || !frameReady || !pluginUrl} onClick={()=>void detach()}>{detaching ? '正在分离…' : '分离 ⌘D'}</button>
-        </div>
-        {detachError && <div role="alert" className="px-3 py-1 text-sm text-red-600">{detachError}</div>}
-        {pluginUrl && <iframe ref={iframeRef} className="block h-full min-h-0 w-full flex-1 border-0" src={pluginUrl} onLoad={handleIframeLoad}/>}
-        {!pluginUrl && <div className="p-6">{launch.error || plugin?.loadError || '插件不可用，请检查启用状态或重新安装。'}<button className="ml-4 underline" onClick={() => navigate('/')}>返回启动器</button></div>}
+        <WaWorkspaceHeader title={plugin?.name || '插件工作区'} subtitle={plugin?.description} icon={uiEntry?.icon ? <WaIcon value={uiEntry.icon}/> : <Puzzle/>} actions={
+            <Button variant="outline" size="sm" disabled={detaching || !frameReady || !pluginUrl} onClick={()=>void detach()} title="分离为独立窗口 · Command+D"><ExternalLink size={14} className="mr-1.5"/>{detaching ? '正在分离…' : '独立窗口'}<kbd className="wa-key ml-2">⌘D</kbd></Button>
+        }/>
+        {detachError && <div role="alert" className="wa-notice">{detachError}</div>}
+        {pluginUrl && <iframe ref={iframeRef} title={plugin?.name || '插件工作区'} className="block h-full min-h-0 w-full flex-1 border-0" src={pluginUrl} onLoad={handleIframeLoad}/>}
+        {!pluginUrl && <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-background p-6 text-sm text-muted-foreground">{launch.error || plugin?.loadError || '插件不可用，请检查启用状态或重新安装。'}<button className="text-primary" onClick={() => navigate('/')}>返回启动器</button></div>}
     </div>;
 };

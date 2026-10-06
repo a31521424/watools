@@ -4,248 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WaTools 计算器</title>
+    <link rel="stylesheet" href="watools-ui.css">
     <style>
-        :root {
-            color-scheme: light;
-            --bg: #f3f6fa;
-            --surface: #ffffff;
-            --surface-soft: #f8fbff;
-            --surface-hover: #f1f6fb;
-            --line: rgba(28, 47, 67, 0.12);
-            --text: #162433;
-            --muted: #627487;
-            --accent: #1968ab;
-            --success: #22724c;
-            --danger: #ac4c45;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            margin: 0;
-            height: 100%;
-        }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font: 14px/1.5 "IBM Plex Sans", "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
-        }
-
-        button,
-        input {
-            font: inherit;
-        }
-
-        .app {
-            height: 100%;
-            display: grid;
-            grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-            gap: 10px;
-            padding: 10px 14px 8px;
-            background: var(--surface-soft);
-        }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            gap: 12px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .topbar h1 {
-            margin: 0;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--muted);
-        }
-
-        .text-button {
-            padding: 0;
-            background: transparent;
-            color: var(--muted);
-            font-size: 12px;
-            border: 0;
-            cursor: pointer;
-        }
-
-        .text-button:hover {
-            color: var(--text);
-        }
-
-        .status {
-            min-height: 18px;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .status.success {
-            color: var(--success);
-        }
-
-        .status.error {
-            color: var(--danger);
-        }
-
-        .expression-input {
-            width: 100%;
-            min-height: 50px;
-            border: 1px solid var(--line);
-            padding: 12px 14px;
-            background: var(--surface);
-            color: var(--text);
-            outline: none;
-            font-size: 22px;
-            line-height: 1.2;
-            letter-spacing: -0.03em;
-        }
-
-        .expression-input::placeholder {
-            color: #9b8b7d;
-        }
-
-        .expression-input:focus {
-            border-color: rgba(25, 104, 171, 0.4);
-            box-shadow: 0 0 0 3px rgba(25, 104, 171, 0.08);
-        }
-
-        .history-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            gap: 12px;
-        }
-
-        .history-title {
-            font-size: 12px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .history-summary {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .history {
-            min-height: 0;
-            display: grid;
-            grid-template-rows: auto minmax(0, 1fr);
-            gap: 8px;
-            padding: 12px;
-            border: 1px solid var(--line);
-            background: var(--surface);
-        }
-
-        .history-list {
-            display: grid;
-            gap: 0;
-            min-height: 0;
-            overflow: auto;
-            border-top: 1px solid var(--line);
-        }
-
-        .history-item {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            grid-template-areas:
-                "expression result"
-                "meta meta";
-            gap: 3px 12px;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--line);
-            cursor: pointer;
-        }
-
-        .history-item:hover {
-            background: var(--surface-hover);
-        }
-
-        .history-expression {
-            grid-area: expression;
-            font-weight: 600;
-            word-break: break-word;
-        }
-
-        .history-result {
-            grid-area: result;
-            font-size: 16px;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            text-align: right;
-        }
-
-        .history-meta {
-            grid-area: meta;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .empty {
-            color: var(--muted);
-            font-size: 13px;
-            padding: 12px 0;
-        }
-
-        .toast {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            background: rgba(43, 34, 26, 0.94);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 10px;
-            opacity: 0;
-            transform: translateY(8px);
-            transition: opacity 120ms ease, transform 120ms ease;
-            pointer-events: none;
-        }
-
-        .toast.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        @media (max-width: 640px) {
-            .app {
-                padding: 12px;
-            }
-
-            .expression-input {
-                font-size: 20px;
-                padding: 12px 13px;
-            }
-
-            .history-item {
-                grid-template-columns: 1fr;
-                grid-template-areas:
-                    "expression"
-                    "result"
-                    "meta";
-            }
-
-            .history-result {
-                text-align: left;
-            }
-        }
+.app { display:grid; grid-template-rows:auto auto auto minmax(0,1fr) auto; }
+.expression-input { min-height:80px; padding:20px; font:26px/1.4 var(--wt-mono); letter-spacing:-.04em; }
+.history { min-height:0; display:grid; grid-template-rows:auto minmax(0,1fr); gap:14px; padding:18px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.history-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.history-title { font-size:12px; font-weight:600; }
+.history-summary { color:var(--muted); font-size:11px; }
+.history-list { min-height:0; overflow:auto; }
+.history-item { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"expression result" "meta meta"; gap:6px 16px; padding:14px 10px; border-bottom:1px solid var(--line); border-radius:6px; cursor:pointer; }
+.history-item:hover { background:var(--surface-hover); }
+.history-expression { grid-area:expression; font:13px var(--wt-mono); overflow-wrap:anywhere; }
+.history-result { grid-area:result; color:var(--accent); font:600 18px var(--wt-mono); overflow-wrap:anywhere; }
+.history-meta { grid-area:meta; color:var(--muted); font-size:11px; }
+.empty { padding:30px 0; color:var(--muted); text-align:center; }
+#shortcut-hint { padding-top:4px; }
+@media(max-height:450px) { .expression-input { min-height:54px; padding:12px; font-size:20px; } #shortcut-hint { display:none; } }
     </style>
 </head>
-<body>
+<body class="wt-plugin" data-tool="calculator">
 <main class="app">
     <div class="topbar">
-        <h1>计算器</h1>
+        <h1>表达式</h1>
         <button id="clear-history-button" class="text-button" type="button">清空历史</button>
     </div>
     <div class="status" id="status">按回车键计算，点击历史记录可重新带入。</div>
-    <input id="expression" class="expression-input" type="text" placeholder="示例：(2 + 3) * 4 / 5">
+    <input id="expression" class="expression-input" type="text" placeholder="输入表达式，例如 (2 + 3) × 4 / 5">
     <section class="history">
         <div class="history-head">
             <div class="history-title">历史记录</div>
@@ -343,7 +128,7 @@
 
         if (!history.length) {
             historySummaryNode.textContent = "还没有计算记录。";
-            historyListNode.innerHTML = '<div class="empty">历史记录会同步到 WaTools 插件存储，并镜像保存到 localStorage。</div>';
+            historyListNode.innerHTML = '<div class="empty">输入表达式后按回车，计算记录将显示在这里。</div>';
             return;
         }
 

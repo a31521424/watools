@@ -2,7 +2,7 @@
   "packageId": "watools.plugin.translate",
   "name": "翻译",
   "description": "官方翻译面板，基于 DeepL Free，支持带入文本、快速互译和持久化配置。",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "WaTools",
   "usage": "输入 fy、translate 或 翻译 打开翻译面板；也可以直接输入普通中英文文本触发。首次使用需要先配置 DeepL Free API Key。",
   "triggerKeywords": [

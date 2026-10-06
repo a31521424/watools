@@ -1,0 +1,94 @@
+/* Shared source for the desktop shell and self-contained official .wt packages.
+   Low-specificity defaults let each tool define its workspace and responsive layout. */
+:root {
+    color-scheme: light;
+    --wt-bg: #f6f7f9;
+    --wt-surface: #ffffff;
+    --wt-soft: #f0f3f8;
+    --wt-border: #e3e7ee;
+    --wt-text: #273247;
+    --wt-muted: #778297;
+    --wt-accent: #356ae6;
+    --wt-accent-soft: #edf2ff;
+    --wt-danger: #c44848;
+    --wt-success: #278264;
+    --wt-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
+    --wt-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --bg: var(--wt-bg);
+    --surface: var(--wt-surface);
+    --surface-soft: var(--wt-soft);
+    --surface-hover: var(--wt-accent-soft);
+    --panel: var(--wt-surface);
+    --panel-strong: var(--wt-bg);
+    --paper: var(--wt-surface);
+    --paper-strong: var(--wt-bg);
+    --line: var(--wt-border);
+    --text: var(--wt-text);
+    --muted: var(--wt-muted);
+    --accent: var(--wt-accent);
+    --accent-soft: var(--wt-accent-soft);
+    --danger: var(--wt-danger);
+    --success: var(--wt-success);
+}
+.wt-plugin, :where(.wt-plugin) * { box-sizing: border-box; }
+html:has(.wt-plugin), body:where(.wt-plugin) { height: 100%; margin: 0; }
+:where(.wt-plugin) { color: var(--text); background: var(--bg); font: 13px/1.55 var(--wt-font); overflow: hidden; }
+:where(.wt-plugin) ::selection { background: #dce7ff; }
+:where(.wt-plugin) :where(button, input, textarea, select) { font: inherit; }
+:where(.wt-plugin) :where(button) {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 32px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 7px;
+    color: var(--text); background: var(--surface); cursor: pointer; white-space: nowrap;
+    font-size: 12px; font-weight: 500; transition: background 120ms, border-color 120ms;
+}
+:where(.wt-plugin) button:hover:not(:disabled) { background: var(--surface-soft); border-color: #c9d3e5; }
+:where(.wt-plugin) button:disabled { opacity: .45; cursor: not-allowed; }
+:where(.wt-plugin) button.primary, :where(.wt-plugin) .primary-button { color: white; border-color: var(--accent); background: var(--accent); }
+:where(.wt-plugin) button.primary:hover, :where(.wt-plugin) .primary-button:hover { background: #285bd0; }
+:where(.wt-plugin) button.ghost { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+:where(.wt-plugin) .text-button { color: var(--muted); background: transparent; border-color: transparent; }
+:where(.wt-plugin) :where(input, textarea, select) {
+    min-width: 0; width: 100%; padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 9px; color: var(--text); background: var(--surface); outline: none;
+}
+:where(.wt-plugin) :where(input, textarea)::placeholder { color: #98a2b3; }
+:where(.wt-plugin) :where(button, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid #b5c9ff; outline-offset: 2px;
+}
+:where(.wt-plugin) textarea { resize: none; line-height: 1.75; font-size: 14px; }
+:where(.wt-plugin) h1, :where(.wt-plugin) h2, :where(.wt-plugin) h3, :where(.wt-plugin) p { margin: 0; }
+:where(.wt-plugin) h1, :where(.wt-plugin) h2 { font-size: 13px; font-weight: 600; }
+:where(.wt-plugin) h3 { font-size: 12px; font-weight: 600; }
+:where(.wt-plugin) :where(.app) { height: 100%; min-height: 0; padding: 20px; gap: 16px; }
+:where(.wt-plugin) .topbar, :where(.wt-plugin) .hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+:where(.wt-plugin) .title { min-width: 0; display: grid; gap: 3px; }
+:where(.wt-plugin) .title p, :where(.wt-plugin) .hero p { color: var(--muted); font-size: 12px; }
+:where(.wt-plugin) .toolbar, :where(.wt-plugin) .button-row, :where(.wt-plugin) .panel-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+:where(.wt-plugin) .pane, :where(.wt-plugin) .panel { min-width: 0; min-height: 0; }
+:where(.wt-plugin) .pane-head, :where(.wt-plugin) .pane-label, :where(.wt-plugin) .pane-foot, :where(.wt-plugin) .section-title, :where(.wt-plugin) .panel-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+:where(.wt-plugin) .pane-head, :where(.wt-plugin) .pane-label, :where(.wt-plugin) .section-title { font-size: 12px; font-weight: 500; }
+:where(.wt-plugin) .pane-label > :last-child, :where(.wt-plugin) .section-title span { color: var(--muted); font-size: 11px; font-weight: 400; }
+:where(.wt-plugin) .status, :where(.wt-plugin) .meta, :where(.wt-plugin) .hints, :where(.wt-plugin) .hint-strip, :where(.wt-plugin) .hint-block { color: var(--muted); font-size: 11px; }
+:where(.wt-plugin) .status { min-height: 17px; }
+:where(.wt-plugin) .status.success, :where(.wt-plugin) .status-pill.success { color: var(--success); }
+:where(.wt-plugin) .status.error, :where(.wt-plugin) .status-pill.error { color: var(--danger); }
+:where(.wt-plugin) .mode-pill, :where(.wt-plugin) .status-pill { color: var(--muted); font-size: 11px; }
+:where(.wt-plugin) .mode-pill { border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; background: var(--surface); }
+:where(.wt-plugin) .hint-strip { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+:where(.wt-plugin) .hint-block { display: grid; gap: 5px; }
+:where(.wt-plugin) code { font: 11px var(--wt-mono); padding: 2px 4px; background: var(--surface-soft); border-radius: 4px; }
+:where(.wt-plugin) .toast {
+    position: fixed; z-index: 100; right: 18px; bottom: 18px; max-width: calc(100vw - 36px);
+    padding: 10px 15px; border-radius: 9px; color: white; background: #273247;
+    box-shadow: 0 6px 20px #27324720; opacity: 0; transform: translateY(6px); pointer-events: none;
+    transition: opacity 120ms, transform 120ms;
+}
+:where(.wt-plugin) .toast.visible { opacity: 1; transform: none; }
+:where(.wt-plugin) .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+:where(.wt-plugin) [hidden] { display: none !important; }
+:where(.wt-plugin) ::-webkit-scrollbar { width: 6px; height: 6px; }
+:where(.wt-plugin) ::-webkit-scrollbar-thumb { background: #cbd3df; border-radius: 4px; }
+@media (max-width: 600px) { :where(.wt-plugin) :where(.app) { padding: 14px; gap: 12px; } }
+@media (prefers-reduced-motion: reduce) { :where(.wt-plugin) * { transition: none !important; } }

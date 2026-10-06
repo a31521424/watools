@@ -1,0 +1,111 @@
+import os,pathlib,json,re,subprocess,time,urllib.request
+root=pathlib.Path.cwd();qa=root/'.cache/ui-redesign-qa'
+(qa/'data/hotkeys').mkdir(parents=True,exist_ok=True)
+(qa/'data/hotkeys/config.json').write_text(json.dumps([{'id':'show-hide-window','name':'Show/Hide Window','hotkey':'ctrl+alt+shift+k'}]))
+ids={}
+for p in (root/'frontend/bindings/watools/internal/host').glob('*service.ts'):
+ ids.update({n:int(i) for n,i in re.findall(r'export function (\w+)\([^\n]*\{\n\s+return \$Call.ByID\((\d+)',p.read_text())})
+def tool(name,args):
+ req=urllib.request.Request('http://127.0.0.1:9472/mcp',data=json.dumps({'jsonrpc':'2.0','id':1,'method':'tools/call','params':{'name':name,'arguments':args}}).encode(),headers={'Content-Type':'application/json'})
+ data=json.load(urllib.request.urlopen(req,timeout=20))
+ if data.get('error'):raise RuntimeError(data['error'])
+ result=data['result']
+ if result.get('isError'):raise RuntimeError(result['content'])
+ try:return json.loads(result['content'][0]['text'])
+ except json.JSONDecodeError:return result['content'][0]['text']
+def js(code,window='launcher'):
+ r=tool('js_eval',{'window':window,'js':'try {'+code+'} catch(e){return {qaError:e.message}}','timeout_ms':12000})
+ if isinstance(r,dict) and r.get('qaError'):raise RuntimeError(r['qaError'])
+ return r
+def wait(fn,timeout=35):
+ end=time.monotonic()+timeout
+ while time.monotonic()<end:
+  try:
+   value=fn()
+   if value:return value
+  except Exception:
+   if host.poll() is not None:raise RuntimeError('QA host exited')
+  time.sleep(.15)
+ raise RuntimeError('QA condition timed out')
+def record(case,**r):print(json.dumps({'case':case,**r},ensure_ascii=False),flush=True)
+def route(path):
+ js('history.pushState(null,"",'+json.dumps(path)+');window.dispatchEvent(new PopStateEvent("popstate"));return true;')
+def plugin(name,seed=''):
+ from urllib.parse import urlencode
+ route('/plugin?'+urlencode({'packageId':'watools.plugin.'+name,'file':'index.html','seed':seed}))
+ wait(lambda:js('return !!document.querySelector("iframe")?.contentWindow.watoolsSession && !document.querySelector(".wa-workspace-actions button")?.disabled;'))
+def call(name,args=[]):return js('return await window.__qaCall('+str(ids[name])+','+json.dumps(args)+');')
+log=open(qa/'native-host.log','w')
+host=subprocess.Popen([str(qa/'watools-qa.app/Contents/MacOS/watools')],env=dict(os.environ,WATOOLS_DATA_DIR=str(qa/'data'),WATOOLS_CACHE_DIR=str(qa/'cache'),WAILS_MCP_HOST='127.0.0.1',WAILS_MCP_PORT='9472',WAILS_MCP_HIDE_CURSOR='1'),stdout=log,stderr=subprocess.STDOUT)
+try:
+ wait(lambda:js('return !!document.querySelector("input[role=combobox]");'))
+ js('''window.__qaCall=async(id,args=[])=>{const r=await fetch(window.location.origin+'/wails/runtime',{method:'POST',headers:{'Content-Type':'application/json','x-wails-client-id':'ui-redesign-qa','x-wails-window-name':'launcher'},body:JSON.stringify({object:0,method:0,args:{'call-id':crypto.randomUUID(),methodID:id,args}})});if(!r.ok)throw Error(await r.text());return r.headers.get('Content-Type')?.includes('application/json')?await r.json():await r.text()};return true;''')
+ for name in ['management','log-management']:
+  route('/'+name)
+  wait(lambda:js('return !!document.querySelector(".wa-workspace-header h1");'))
+  r=js('return {title:document.querySelector("h1").textContent,headerHeight:document.querySelector(".wa-workspace-header").getBoundingClientRect().height,drag:getComputedStyle(document.querySelector(".wa-workspace-header")).getPropertyValue("--wails-draggable")};')
+  assert r['headerHeight']==72 and r['drag'].strip()=='drag',r
+  record('native-'+name,**r)
+  js('window.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true,cancelable:true}));return true;')
+  wait(lambda:js('return location.pathname==="/";'))
+ for name,seed in [('calculator','2+3'),('qr','hello WaTools'),('translate','Hello WaTools'),('textstats','Hello 你好 😀'),('json','{"native":true}')]:
+  plugin(name,seed)
+  r=js('const d=document.querySelector("iframe").contentDocument;return {title:document.querySelector("h1").textContent,background:d.defaultView.getComputedStyle(d.body).backgroundColor,theme:[...d.querySelectorAll("link")].some(e=>e.getAttribute("href")==="watools-ui.css" && !!e.sheet)};')
+  assert r['background']=='rgb(246, 247, 249)' and r['theme'],r
+  if name=='calculator':
+   js('const f=document.querySelector("iframe").contentWindow;const x=f.document.getElementById("expression");x.focus();x.dispatchEvent(new f.KeyboardEvent("keydown",{key:"Enter",bubbles:true,cancelable:true}));return true;')
+   wait(lambda:js('return document.querySelector("iframe").contentDocument.getElementById("history-list").textContent.includes("5");'))
+  if name=='qr':
+   wait(lambda:js('return document.querySelector("iframe").contentDocument.getElementById("status").textContent.includes("已更新");'))
+  if name=='textstats':
+   assert js('return document.querySelector("iframe").contentDocument.getElementById("overview-label").textContent.includes("已统计");')
+  if name=='json':
+   js('const f=document.querySelector("iframe").contentWindow;f.monaco.editor.getModels()[0].setValue(JSON.stringify({edited:true,tools:[1,2]}));f.document.getElementById("format-button").click();return true;')
+   wait(lambda:js('return document.querySelector("iframe").contentDocument.getElementById("status-pill").textContent.includes("已格式化");'))
+  record('native-plugin',plugin=name,**r)
+ edited=js('return await document.querySelector("iframe").contentWindow.watoolsSession.capture();')
+ js('document.querySelector("iframe").contentWindow.dispatchEvent(new KeyboardEvent("keydown",{key:"d",metaKey:true,bubbles:true,cancelable:true}));return true;')
+ wait(lambda:js('return location.pathname==="/";'))
+ children=[w for w in tool('windows_list',{}) if w['name'].startswith('plugin-')];assert len(children)==1
+ child=children[0]['name']
+ assert js('return {text:(await document.querySelector("iframe").contentWindow.watoolsSession.capture()).text};',child)['text']==edited['text']
+ assert js('return document.querySelectorAll(".wa-workspace-header").length;',child)==0
+ launcher=wait(lambda:next((w for w in tool('windows_list',{}) if w['name']=='launcher' and w['height']==64),None))
+ def hidden_launcher():
+  snapshot=json.loads(subprocess.check_output(['/private/tmp/watools-window-order',str(host.pid)],text=True))
+  return snapshot if len([w for w in snapshot['windows'] if w['pid']==host.pid and w['layer']==0])==1 else None
+ wait(hidden_launcher,timeout=10)
+ record('detach',editorPreserved=True,customHeaderNotDuplicated=True,launcherHeight=launcher['height'],onlyDetachedWindowOnScreen=True)
+ for width,height in [(480,320),(640,500),(1100,800)]:
+  tool('window_control',{'window':child,'action':'set_size','width':width,'height':height})
+  wait(lambda:next((w for w in tool('windows_list',{}) if w['name']==child and w['width']==width and w['height']==height),None))
+  r=wait(lambda:js('const d=document.querySelector("iframe").contentDocument;return {viewportWidth:d.documentElement.clientWidth,documentWidth:d.documentElement.scrollWidth,editorHeight:d.getElementById("editor-container").getBoundingClientRect().height};',child))
+  assert r['documentWidth']<=r['viewportWidth'] and r['editorHeight']>80,r
+  assert js('return {text:(await document.querySelector("iframe").contentWindow.watoolsSession.capture()).text};',child)['text']==edited['text']
+  record('native-resize',width=width,height=height,editorPreserved=True,**r)
+ call('HideOrShowAppApi')
+ plugin('json','{"second":true}')
+ js('document.querySelector("iframe").contentWindow.dispatchEvent(new KeyboardEvent("keydown",{key:"d",metaKey:true,bubbles:true,cancelable:true}));return true;')
+ wait(lambda:js('return location.pathname==="/";'))
+ assert len([w for w in tool('windows_list',{}) if w['name'].startswith('plugin-')])==2
+ record('multiple-windows',instances=2,firstEditorPreserved=js('return {text:(await document.querySelector("iframe").contentWindow.watoolsSession.capture()).text};',child)['text']==edited['text'])
+ plugins={p['packageId']:p for p in call('GetPluginsApi')}
+ for name in ['calculator','qr','translate','textstats']:
+  plugin(name,'Hello 你好 😀' if name!='calculator' else '2+3')
+  state=js('return await document.querySelector("iframe").contentWindow.watoolsSession.capture();')
+  package='watools.plugin.'+name
+  session=call('DetachPluginApi',[{'packageId':package,'file':'index.html','homeUrl':plugins[package]['homeUrl'],'context':{'input':{'valueType':'text','value':''},'clipboard':None},'state':{'kind':'hooks','value':state}}])
+  wait(lambda:call('GetPluginWindowStatusApi',[session])['ready'])
+  window='plugin-'+session
+  tool('window_control',{'window':window,'action':'set_size','width':480,'height':320})
+  wait(lambda:next((w for w in tool('windows_list',{}) if w['name']==window and w['width']==480 and w['height']==320),None))
+  r=js('const d=document.querySelector("iframe").contentDocument;const a=d.querySelector(".app");return {width:d.documentElement.clientWidth,documentWidth:d.documentElement.scrollWidth,appScrollWidth:a.scrollWidth,appWidth:a.clientWidth,headerCount:document.querySelectorAll(".wa-workspace-header").length};',window)
+  assert r['documentWidth']<=r['width'] and r['appScrollWidth']<=r['appWidth']+1 and r['headerCount']==0,r
+  record('native-plugin-minimum-size',plugin=name,**r)
+  tool('window_control',{'window':window,'action':'close'})
+
+finally:
+ host.terminate()
+ try:host.wait(timeout=20)
+ except subprocess.TimeoutExpired:host.kill();host.wait()
+ log.close();record('cleanup',onlyQAHostStopped=True)

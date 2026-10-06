@@ -1,27 +1,16 @@
-import React, {useEffect, useMemo, useState} from 'react'
-import {ArrowLeft, ExternalLink, Package2, Plus, Puzzle, RefreshCcw, Search} from 'lucide-react'
 import {useLocation} from 'wouter'
+import {WaWorkspaceHeader} from "./wa-workspace-header";
+import React, {useEffect, useMemo, useState} from 'react'
+import {ExternalLink, Package2, Plus, Puzzle, RefreshCcw, Search} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
-import {Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle} from '@/components/ui/sheet'
+import {Sheet, SheetContent} from '@/components/ui/sheet'
 import {Switch} from '@/components/ui/switch'
 import {cn} from '@/lib/utils'
 import {Plugin} from '@/schemas/plugin'
 import {usePluginStore} from '@/stores/pluginStore'
 import {host} from "@/api/host"
 import {BrowserOpenURL} from '@/lib/legacy-runtime'
-
-const SURFACE_STYLE = {
-    '--bg': '#f3f6fa',
-    '--surface': '#ffffff',
-    '--surface-soft': '#f8fbff',
-    '--line': 'rgba(28, 47, 67, 0.12)',
-    '--text': '#162433',
-    '--muted': '#627487',
-    '--accent': '#1968ab',
-    '--accent-soft': 'rgba(25, 104, 171, 0.12)',
-    fontFamily: '"IBM Plex Sans", "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif',
-} as React.CSSProperties
 
 const MONO_FONT = '"JetBrains Mono", "SFMono-Regular", "SF Mono", "Consolas", monospace'
 
@@ -59,7 +48,7 @@ function PluginHelpSection({title, items, mono = false}: PluginHelpSectionProps)
     }
 
     return (
-        <div className="border border-[color:var(--line)] bg-[var(--surface)]">
+        <div className="rounded-lg border border-[color:var(--line)] bg-[var(--surface)]">
             <div className="border-b border-[color:var(--line)] px-4 py-3">
                 <h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
             </div>
@@ -92,7 +81,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose, 
                         <div className="flex flex-wrap items-center gap-2">
                             <span
                                 className={cn(
-                                    'inline-flex h-6 items-center rounded-sm border px-2 text-[11px] font-medium',
+                                    'inline-flex h-6 items-center rounded-md border px-2 text-[11px] font-medium',
                                     plugin.enabled
                                         ? 'border-transparent bg-[var(--accent-soft)] text-[var(--accent)]'
                                         : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--muted)]'
@@ -101,11 +90,11 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose, 
                                 {plugin.enabled ? '已启用' : '已停用'}
                             </span>
                             {plugin.uiEnabled && (
-                                <span className="inline-flex h-6 items-center rounded-sm border border-[color:var(--line)] bg-[var(--surface-soft)] px-2 text-[11px] font-medium text-[var(--muted)]">
+                                <span className="inline-flex h-6 items-center rounded-md border border-[color:var(--line)] bg-[var(--surface-soft)] px-2 text-[11px] font-medium text-[var(--muted)]">
                                     UI 插件
                                 </span>
                             )}
-                            <span className="inline-flex h-6 items-center rounded-sm border border-[color:var(--line)] bg-[var(--surface)] px-2 text-[11px] font-medium text-[var(--muted)]">
+                            <span className="inline-flex h-6 items-center rounded-md border border-[color:var(--line)] bg-[var(--surface)] px-2 text-[11px] font-medium text-[var(--muted)]">
                                 v{plugin.version || '未标注'}
                             </span>
                         </div>
@@ -129,7 +118,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose, 
 
             <div className="flex-1 overflow-y-auto px-5 py-5">
                 <div className="grid gap-5 sm:grid-cols-2">
-                    <div className="space-y-2 border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-4">
+                    <div className="space-y-2 rounded-lg border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-4">
                         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                             Package ID
                         </div>
@@ -138,21 +127,21 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose, 
                         </div>
                     </div>
 
-                    <div className="space-y-2 border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-4">
+                    <div className="space-y-2 rounded-lg border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-4">
                         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                             作者
                         </div>
                         <div className="text-sm text-[var(--text)]">{plugin.author || '未标注'}</div>
                     </div>
 
-                    <div className="space-y-2 border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-4">
+                    <div className="space-y-2 rounded-lg border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-4">
                         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                             使用次数
                         </div>
                         <div className="text-sm text-[var(--text)]">{plugin.usedCount} 次</div>
                     </div>
 
-                    <div className="space-y-2 border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-4">
+                    <div className="space-y-2 rounded-lg border border-[color:var(--line)] bg-[var(--surface-soft)] px-4 py-4">
                         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
                             最近使用
                         </div>
@@ -160,7 +149,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose, 
                     </div>
                 </div>
 
-                <div className="mt-5 border border-[color:var(--line)] bg-[var(--surface)]">
+                <div className="mt-5 rounded-lg border border-[color:var(--line)] bg-[var(--surface)]">
                     <div className="border-b border-[color:var(--line)] px-4 py-3">
                         <h3 className="text-sm font-semibold text-[var(--text)]">运行信息</h3>
                     </div>
@@ -188,7 +177,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose, 
 
                 <div className="mt-5 space-y-5">
                     {hasQuickStart && (
-                        <div className="border border-[color:var(--line)] bg-[var(--surface)]">
+                        <div className="rounded-lg border border-[color:var(--line)] bg-[var(--surface)]">
                             <div className="border-b border-[color:var(--line)] px-4 py-3">
                                 <h3 className="text-sm font-semibold text-[var(--text)]">快速上手</h3>
                             </div>
@@ -207,7 +196,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose, 
                                             {plugin.triggerKeywords.map(keyword => (
                                                 <span
                                                     key={keyword}
-                                                    className="inline-flex items-center rounded-sm border border-[color:var(--line)] bg-[var(--surface-soft)] px-2 py-1 text-xs text-[var(--text)]"
+                                                    className="inline-flex items-center rounded-md border border-[color:var(--line)] bg-[var(--surface-soft)] px-2 py-1 text-xs text-[var(--text)]"
                                                     style={{fontFamily: MONO_FONT}}
                                                 >
                                                     {keyword}
@@ -251,6 +240,7 @@ function PluginDetails({plugin, onToggle, onUninstall, onOpenHomepage, onClose, 
 }
 
 export function WaPluginManagement({embedded = false, busy = false}: {embedded?: boolean; busy?: boolean}) {
+    const [, navigate] = useLocation()
     const plugins = usePluginStore(state => state.plugins)
     const isLoading = usePluginStore(state => state.isLoading)
     const error = usePluginStore(state => state.error)
@@ -261,7 +251,6 @@ export function WaPluginManagement({embedded = false, busy = false}: {embedded?:
     const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
-    const [, navigate] = useLocation()
 
     useEffect(() => {
         const handleHotkey = (e: KeyboardEvent) => {
@@ -395,23 +384,12 @@ export function WaPluginManagement({embedded = false, busy = false}: {embedded?:
 
     return (
         <div
-            className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--bg)] text-[var(--text)]"
-            style={SURFACE_STYLE}
+            className="wa-page flex h-full min-h-0 w-full flex-col overflow-hidden"
         >
-            <div className="border-b border-[color:var(--line)] px-6 py-5">
+            {!embedded && <WaWorkspaceHeader title="插件" subtitle="管理工具、启用状态与插件信息" icon={<Puzzle/>}/> }
+            <div className="border-b border-[color:var(--line)] bg-card px-6 py-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    {!embedded && <div className="min-w-0 space-y-3">
-                        <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="h-8 px-2 text-[var(--muted)]">
-                            <ArrowLeft className="mr-2 h-4 w-4"/>
-                            返回命令面板
-                        </Button>
-                        <div className="space-y-1">
-                            <h1 className="text-2xl font-semibold tracking-tight">插件管理器</h1>
-                            <p className="text-sm text-[var(--muted)]">
-                                管理已安装插件、启用状态与插件元信息。
-                            </p>
-                        </div>
-                    </div>}
+                    <div className="min-w-0"><h2 className="wa-section-heading">已安装插件</h2><p className="wa-section-caption">选择插件查看详情，或导入 .wt 安装包。</p></div>
 
                     <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" onClick={() => void handleRefreshPlugins()} disabled={isLoading || busy}>
@@ -426,15 +404,15 @@ export function WaPluginManagement({embedded = false, busy = false}: {embedded?:
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                    <div className="inline-flex items-center gap-2 border border-[color:var(--line)] bg-[var(--surface)] px-3 py-2 text-sm">
+                    <div className="inline-flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-xs">
                         <Package2 className="h-4 w-4 text-[var(--accent)]"/>
                         <span>共 {plugins.length} 个插件</span>
                     </div>
-                    <div className="inline-flex items-center gap-2 border border-[color:var(--line)] bg-[var(--surface)] px-3 py-2 text-sm">
+                    <div className="inline-flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-xs">
                         <Puzzle className="h-4 w-4 text-[var(--accent)]"/>
                         <span>已启用 {enabledCount} 个</span>
                     </div>
-                    <div className="inline-flex items-center gap-2 border border-[color:var(--line)] bg-[var(--surface)] px-3 py-2 text-sm">
+                    <div className="inline-flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-xs">
                         <span className="h-2 w-2 rounded-full bg-[var(--accent)]"/>
                         <span>UI 插件 {uiPluginCount} 个</span>
                     </div>
@@ -484,7 +462,7 @@ export function WaPluginManagement({embedded = false, busy = false}: {embedded?:
                                     <div
                                         key={plugin.packageId}
                                         className={cn(
-                                            'flex items-center gap-4 px-6 py-4 transition-colors',
+                                            'flex items-center gap-4 px-6 py-4 transition-colors hover:bg-[var(--accent-soft)]',
                                             isSelected && 'bg-[var(--accent-soft)]'
                                         )}
                                     >
@@ -499,7 +477,7 @@ export function WaPluginManagement({embedded = false, busy = false}: {embedded?:
                                                 </h2>
                                                 <span className="text-xs text-[var(--muted)]">v{plugin.version || '未标注'}</span>
                                                 {plugin.uiEnabled && (
-                                                    <span className="inline-flex h-5 items-center rounded-sm border border-[color:var(--line)] bg-[var(--surface)] px-1.5 text-[10px] font-medium text-[var(--muted)]">
+                                                    <span className="inline-flex h-5 items-center rounded-md border border-[color:var(--line)] bg-[var(--surface)] px-1.5 text-[10px] font-medium text-[var(--muted)]">
                                                         UI
                                                     </span>
                                                 )}
@@ -547,13 +525,7 @@ export function WaPluginManagement({embedded = false, busy = false}: {embedded?:
             <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen} className="w-full max-w-[720px] border-l border-[color:var(--line)]">
                 {selectedPlugin && (
                     <>
-                        <SheetHeader>
-                            <SheetTitle>{selectedPlugin.name || '插件详情'}</SheetTitle>
-                            <SheetDescription>
-                                查看插件元信息、状态与管理操作。
-                            </SheetDescription>
-                        </SheetHeader>
-                        <SheetContent className="p-0">
+                        <SheetContent className="min-h-0 overflow-hidden p-0">
                             <PluginDetails
                                 busy={busy}
                                 plugin={selectedPlugin}
@@ -563,7 +535,6 @@ export function WaPluginManagement({embedded = false, busy = false}: {embedded?:
                                 onClose={() => setIsDrawerOpen(false)}
                             />
                         </SheetContent>
-                        <SheetFooter className="hidden"/>
                     </>
                 )}
             </Sheet>

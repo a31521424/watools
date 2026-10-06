@@ -2,7 +2,7 @@
   "packageId": "watools.plugin.calculator",
   "name": "计算器",
   "description": "官方计算器，支持直接输入表达式求值，或打开面板连续计算并查看历史。",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "WaTools",
   "usage": "启用后可直接输入算式获得结果；输入 calc、calculator、jsq、计算 或 计算器 可打开面板。",
   "triggerKeywords": [

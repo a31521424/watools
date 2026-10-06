@@ -4,309 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WaTools 文本统计</title>
+    <link rel="stylesheet" href="watools-ui.css">
     <style>
-        :root {
-            color-scheme: light;
-            --bg: #f3f6fa;
-            --paper: #ffffff;
-            --paper-strong: #f8fbff;
-            --line: rgba(28, 47, 67, 0.12);
-            --text: #162433;
-            --muted: #627487;
-            --accent: #1968ab;
-            --accent-soft: rgba(25, 104, 171, 0.12);
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            margin: 0;
-            height: 100%;
-        }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font: 14px/1.5 "IBM Plex Sans", "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
-        }
-
-        button,
-        textarea {
-            font: inherit;
-        }
-
-        .app {
-            height: 100%;
-            overflow: auto;
-            display: grid;
-            grid-template-rows: auto minmax(0, 1fr);
-            gap: 12px;
-            background: var(--paper-strong);
-        }
-
-        .hero {
-            display: grid;
-            gap: 4px;
-            padding: 10px 14px;
-            border-bottom: 1px solid var(--line);
-            background: var(--paper);
-        }
-
-        .hero h1 {
-            margin: 0;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--muted);
-        }
-
-        .hero p {
-            margin: 0;
-            color: var(--muted);
-        }
-
-        .layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
-            gap: 14px;
-            align-items: stretch;
-            min-height: 0;
-            padding: 0 14px 14px;
-        }
-
-        .panel {
-            min-height: 0;
-        }
-
-        .panel-body {
-            height: 100%;
-            min-height: 0;
-            padding: 0;
-        }
-
-        .layout > .panel:first-child .panel-body {
-            display: block;
-        }
-
-        .layout > .panel:last-child .panel-body {
-            overflow: auto;
-            padding-right: 2px;
-        }
-
-        .section-title {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .section-title h2 {
-            margin: 0;
-            font-size: 16px;
-        }
-
-        .section-title span {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        textarea {
-            width: 100%;
-            min-height: 320px;
-            border: 1px solid var(--line);
-            padding: 18px;
-            resize: vertical;
-            outline: none;
-            color: var(--text);
-            background: var(--paper);
-            line-height: 1.7;
-            font-size: 15px;
-        }
-
-        textarea:focus {
-            border-color: rgba(25, 104, 171, 0.4);
-            box-shadow: 0 0 0 3px rgba(25, 104, 171, 0.08);
-        }
-
-        textarea::placeholder {
-            color: #8a9791;
-        }
-
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 12px;
-        }
-
-        .button-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        button {
-            border: 0;
-            padding: 10px 15px;
-            cursor: pointer;
-            transition: transform 120ms ease, opacity 120ms ease;
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-        }
-
-        .primary {
-            background: var(--accent);
-            color: #fff;
-        }
-
-        .secondary {
-            background: var(--accent-soft);
-            color: var(--accent);
-        }
-
-        .ghost {
-            background: rgba(30, 45, 38, 0.06);
-            color: var(--text);
-        }
-
-        .status {
-            min-height: 20px;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .summary-card {
-            background: var(--paper);
-            border: 1px solid var(--line);
-            padding: 14px;
-        }
-
-        .summary-card strong {
-            display: block;
-            font-size: 28px;
-            line-height: 1.1;
-            letter-spacing: -0.03em;
-            margin-top: 6px;
-        }
-
-        .summary-card span {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .detail-panels {
-            display: grid;
-            gap: 10px;
-            margin-top: 12px;
-        }
-
-        .detail-panel {
-            background: var(--paper);
-            border: 1px solid var(--line);
-            padding: 14px;
-        }
-
-        .detail-panel h3 {
-            margin: 0 0 10px;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--muted);
-        }
-
-        .metric-list {
-            display: grid;
-            gap: 8px;
-        }
-
-        .metric {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .metric-label {
-            color: var(--muted);
-        }
-
-        .metric-value {
-            font-variant-numeric: tabular-nums;
-            font-weight: 600;
-        }
-
-        .hint-block {
-            margin-top: 12px;
-            padding-top: 12px;
-            color: var(--muted);
-            font-size: 12px;
-            display: grid;
-            gap: 6px;
-        }
-
-        .hint-block code {
-            padding: 2px 6px;
-            border-radius: 999px;
-            background: rgba(30, 45, 38, 0.06);
-            color: var(--text);
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 16px;
-            right: 16px;
-            padding: 9px 13px;
-            border-radius: 10px;
-            background: rgba(30, 45, 38, 0.94);
-            color: #fff;
-            opacity: 0;
-            transform: translateY(8px);
-            transition: opacity 120ms ease, transform 120ms ease;
-            pointer-events: none;
-        }
-
-        .toast.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        @media (max-width: 980px) {
-            .layout {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 640px) {
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-
-            textarea {
-                min-height: 240px;
-            }
-        }
+.app { display:grid; grid-template-rows:auto minmax(0,1fr); }
+.hero { align-items:baseline; }
+.layout { min-height:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; }
+.panel-body { height:100%; min-height:0; }
+.panel:first-child .panel-body { display:flex; flex-direction:column; gap:14px; }
+.panel:last-child .panel-body { overflow:auto; }
+.section-title { margin-bottom:12px; }
+.panel:first-child .section-title { margin-bottom:0; }
+textarea { flex:1; min-height:180px; padding:18px; }
+.toolbar { justify-content:space-between; }
+.summary-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.summary-card { padding:16px; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+.summary-card span { display:block; color:var(--muted); font-size:11px; }
+.summary-card strong { display:block; margin:10px 0 4px; font-size:28px; line-height:1.2; font-weight:600; letter-spacing:-.045em; font-variant-numeric:tabular-nums; }
+.summary-card:first-child { background:var(--accent-soft); border-color:#dbe5ff; }
+.summary-card:first-child strong { color:var(--accent); }
+.detail-panels { display:grid; gap:12px; margin-top:16px; }
+.detail-panel { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; }
+.detail-panel h3 { margin-bottom:12px; }
+.metric-list { display:grid; gap:9px; }
+.metric { display:flex; justify-content:space-between; gap:10px; font-size:12px; }
+.metric-label { color:var(--muted); }
+.metric-value { font-variant-numeric:tabular-nums; font-weight:500; }
+@media(max-width:740px) { .app { display:block; overflow:auto; } .hero { display:grid; margin-bottom:16px; } .layout { grid-template-columns:1fr; } .panel:last-child .panel-body { overflow:visible; } textarea { min-height:240px; } }
     </style>
 </head>
-<body>
+<body class="wt-plugin" data-tool="textstats">
 <main class="app">
     <div class="hero">
-        <h1>字符统计</h1>
-        <p>显式指令唤起，按字符、字母、汉字、数字、标点、表情符号和行段结构、字节维度实时统计。</p>
+        <h1>文本分析</h1>
+        <p>字符、结构与阅读时间，随输入实时更新。</p>
     </div>
 
     <div class="layout">
@@ -316,7 +46,7 @@
                     <h2>文本输入</h2>
                     <span id="seed-label">等待输入</span>
                 </div>
-                <textarea id="editor" placeholder="输入或粘贴要统计的文本。也可以在 WaTools 中直接输入：字符统计 你好 world 123"></textarea>
+                <textarea id="editor" placeholder="输入或粘贴文本，即时查看统计。"></textarea>
                 <div class="toolbar">
                     <div class="button-row">
                         <button class="primary" id="copy-summary-button" type="button">复制统计摘要</button>
@@ -351,7 +81,7 @@
                     <div class="summary-card">
                         <span>单词数</span>
                         <strong id="stat-words">0</strong>
-                        <span>优先使用 `Intl.Segmenter`</span>
+                        <span>按自然语言边界识别</span>
                     </div>
                     <div class="summary-card">
                         <span>行数 / 段落</span>

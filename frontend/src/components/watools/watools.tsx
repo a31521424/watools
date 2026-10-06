@@ -59,7 +59,7 @@ const Watools = () => {
     return <div
         ref={windowRef}
         className={cn(
-            "scrollbar-hide relative flex min-h-0 w-full flex-col overflow-hidden rounded-xl border-0 bg-white",
+            "wa-shell relative flex min-h-0 w-full flex-col overflow-hidden",
             isFixedHeightRoute && FIXED_PANEL_HEIGHT_CLASS
         )}
     >

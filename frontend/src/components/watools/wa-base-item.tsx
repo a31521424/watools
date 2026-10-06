@@ -23,7 +23,7 @@ export const WaBaseItem = ({ triggerId, icon, title, subtitle, badge, onSelect, 
       className='gap-x-4 py-3'
       onSelect={onSelect}
     >
-      <div className="shrink-0">
+      <div className="wa-item-icon shrink-0">
         {icon}
       </div>
       <div className="flex flex-1 items-center justify-between min-w-0">
@@ -35,7 +35,7 @@ export const WaBaseItem = ({ triggerId, icon, title, subtitle, badge, onSelect, 
           {children}
         </div>
         {badge && (
-          <span className="text-xs text-muted-foreground bg-border px-2 py-1 rounded shrink-0 ml-2">
+          <span className="text-xs text-muted-foreground border border-border bg-card px-2 py-0.5 rounded-md shrink-0 ml-2">
             {badge}
           </span>
         )}

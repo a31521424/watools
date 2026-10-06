@@ -40,6 +40,6 @@ export default function DetachedPlugin({id}: {id: string}) {
     };
     return <div className="flex h-screen min-h-0 flex-col bg-white">
         {error && <div role="alert" className="p-4 text-red-600">{error}</div>}
-        {session && <iframe ref={frame} src={`${session.homeUrl}/${session.file}?instance=${id}`} onLoad={()=>void load()} className="block min-h-0 w-full flex-1 border-0"/>}
+        {session && <iframe ref={frame} title={session.title} src={`${session.homeUrl}/${session.file}?instance=${id}`} onLoad={()=>void load()} className="block min-h-0 w-full flex-1 border-0"/>}
     </div>;
 }

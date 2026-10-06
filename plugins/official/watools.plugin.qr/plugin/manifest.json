@@ -2,7 +2,7 @@
   "packageId": "watools.plugin.qr",
   "name": "二维码工作区",
   "description": "二维码工作区，可根据文本生成二维码，也可从图片中解析二维码内容。",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "Codex",
   "usage": "输入 qr、qrcode 或 二维码 打开工作区；后面可直接跟文本生成二维码，若剪贴板是图片则会优先尝试解析其中的二维码。",
   "triggerKeywords": [

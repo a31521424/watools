@@ -224,7 +224,7 @@ func readPluginManifest(manifestPath string) (*models.PluginMetadata, error) {
 	return &metadata, nil
 }
 
-func packagePlugin(pluginDir string, outputFile string) error {
+func packagePlugin(pluginDir string, outputFile string) (result error) {
 	if err := os.RemoveAll(outputFile); err != nil {
 		return err
 	}
@@ -233,10 +233,27 @@ func packagePlugin(pluginDir string, outputFile string) error {
 	if err != nil {
 		return err
 	}
-	defer output.Close()
+	defer func() { result = errors.Join(result, output.Close()) }()
 
 	zipWriter := zip.NewWriter(output)
-	defer zipWriter.Close()
+	defer func() { result = errors.Join(result, zipWriter.Close()) }()
+	// Official UI packages carry the exact same design source as the host.
+	// Keep it in the archive so revisions remain self-contained when detached.
+	if _, err := os.Stat(filepath.Join(pluginDir, "index.html")); err == nil {
+		content, err := os.ReadFile(filepath.Join("frontend", "public", "watools-ui.css"))
+		if err != nil {
+			return fmt.Errorf("shared UI stylesheet: %w", err)
+		}
+		writer, err := zipWriter.Create("watools-ui.css")
+		if err != nil {
+			return err
+		}
+		if _, err := writer.Write(content); err != nil {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
 
 	return filepath.Walk(pluginDir, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
@@ -251,6 +268,9 @@ func packagePlugin(pluginDir string, outputFile string) error {
 			return err
 		}
 		archivePath := filepath.ToSlash(relPath)
+		if archivePath == "watools-ui.css" {
+			return fmt.Errorf("watools-ui.css is reserved for the shared UI stylesheet")
+		}
 		if strings.HasPrefix(archivePath, ".") {
 			return nil
 		}

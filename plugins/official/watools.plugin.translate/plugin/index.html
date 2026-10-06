@@ -4,268 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WaTools 翻译</title>
+    <link rel="stylesheet" href="watools-ui.css">
     <style>
-        :root {
-            color-scheme: light;
-            --bg: #f3f6fa;
-            --panel: #ffffff;
-            --panel-strong: #f8fbff;
-            --line: rgba(28, 47, 67, 0.12);
-            --text: #162433;
-            --muted: #627487;
-            --accent: #1968ab;
-            --danger: #ac4c45;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            margin: 0;
-            height: 100%;
-        }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font: 14px/1.5 "IBM Plex Sans", "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
-            overflow: hidden;
-        }
-
-        button,
-        input,
-        textarea {
-            font: inherit;
-        }
-
-        .app {
-            height: 100%;
-            overflow: auto;
-            display: grid;
-            grid-template-rows: auto auto minmax(0, 1fr) auto;
-            gap: 12px;
-            background: var(--panel-strong);
-        }
-
-        .topbar {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 10px 14px;
-            border-bottom: 1px solid var(--line);
-            background: var(--panel);
-        }
-
-        .title {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            min-width: 0;
-        }
-
-        .title h1 {
-            margin: 0;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--muted);
-        }
-
-        .title p {
-            margin: 0;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .text-button {
-            border: 0;
-            background: transparent;
-            color: var(--muted);
-            padding: 0;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .text-button:hover {
-            color: var(--text);
-        }
-
-        .settings {
-            display: none;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 10px;
-            align-items: center;
-            padding: 0 14px 12px;
-            border-bottom: 1px solid var(--line);
-            background: var(--panel);
-        }
-
-        .settings.visible {
-            display: grid;
-        }
-
-        .settings input {
-            width: 100%;
-            border: 1px solid var(--line);
-            outline: none;
-            background: var(--panel-strong);
-            color: var(--text);
-            padding: 10px 12px;
-        }
-
-        .settings input:focus {
-            border-color: rgba(25, 104, 171, 0.4);
-            box-shadow: 0 0 0 3px rgba(25, 104, 171, 0.08);
-        }
-
-        .primary-button {
-            border: 0;
-            padding: 10px 14px;
-            background: var(--accent);
-            color: #fff;
-            cursor: pointer;
-        }
-
-        .workspace {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 14px;
-            min-height: 0;
-            padding: 0 14px;
-        }
-
-        .pane {
-            min-width: 0;
-            min-height: 0;
-            display: grid;
-            grid-template-rows: auto minmax(0, 1fr);
-            gap: 8px;
-        }
-
-        .pane-label {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .editor-wrap {
-            min-height: 0;
-            display: flex;
-            background: var(--panel);
-            border: 1px solid var(--line);
-            overflow: hidden;
-        }
-
-        .editor-wrap:focus-within {
-            border-color: rgba(25, 104, 171, 0.4);
-            box-shadow: 0 0 0 3px rgba(25, 104, 171, 0.08);
-        }
-
-        textarea {
-            width: 100%;
-            flex: 1;
-            min-height: 520px;
-            border: 0;
-            resize: none;
-            padding: 16px 16px 18px;
-            background: transparent;
-            color: var(--text);
-            line-height: 1.68;
-            font-size: 15px;
-            outline: none;
-        }
-
-        textarea::placeholder,
-        input::placeholder {
-            color: #8c9992;
-        }
-
-        .footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 8px 14px 10px;
-            border-top: 1px solid var(--line);
-            background: var(--panel);
-        }
-
-        .status {
-            min-height: 20px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .status.error {
-            color: var(--danger);
-        }
-
-        .status.success {
-            color: var(--accent);
-        }
-
-        .hints {
-            color: var(--muted);
-            font-size: 12px;
-            text-align: right;
-            white-space: nowrap;
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 16px;
-            right: 16px;
-            padding: 9px 13px;
-            border-radius: 10px;
-            background: rgba(23, 50, 39, 0.94);
-            color: #fff;
-            opacity: 0;
-            transform: translateY(8px);
-            transition: opacity 120ms ease, transform 120ms ease;
-            pointer-events: none;
-        }
-
-        .toast.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        @media (max-width: 980px) {
-            .workspace {
-                grid-template-columns: 1fr;
-            }
-
-            textarea {
-                min-height: 260px;
-            }
-
-            .footer {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
-            .hints {
-                text-align: left;
-                white-space: normal;
-            }
-        }
+.app { display:flex; flex-direction:column; }
+.settings { display:none; align-items:center; gap:10px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--surface); }
+.settings.visible { display:flex; }
+.settings input { flex:1; }
+.workspace { min-height:0; flex:1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; }
+.pane { display:flex; flex-direction:column; gap:12px; }
+.editor-wrap { min-height:0; flex:1; display:flex; border:1px solid var(--line); border-radius:10px; background:var(--surface); overflow:hidden; }
+.editor-wrap:focus-within { border-color:#9eb9f9; }
+textarea { flex:1; border:0; padding:18px; min-height:0; border-radius:0; }
+.footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+@media(max-width:740px) { .app { overflow:auto; } .workspace { flex:none; grid-template-columns:1fr; } .pane { min-height:280px; } .hints { font-size:10px; } }
     </style>
 </head>
-<body>
+<body class="wt-plugin" data-tool="translate">
 <main class="app">
     <header class="topbar">
         <div class="title">
-            <h1>翻译</h1>
+            <h1>语言转换</h1>
             <p id="direction-label">自动检测源语言，目标语言为英文</p>
         </div>
-        <button id="toggle-settings" class="text-button" type="button">API 密钥</button>
+        <button id="toggle-settings" class="text-button" type="button">翻译设置</button>
     </header>
 
     <section id="settings-panel" class="settings">
@@ -273,7 +34,7 @@
         <button id="save-api-key" class="primary-button" type="button">保存</button>
     </section>
 
-    <main class="workspace">
+    <section class="workspace">
         <section class="pane">
             <div class="pane-label">
                 <span>原文</span>
@@ -293,7 +54,7 @@
                 <textarea id="target-text" spellcheck="false" placeholder="翻译结果会显示在这里。" readonly></textarea>
             </div>
         </section>
-    </main>
+    </section>
 
     <footer class="footer">
         <div class="status" id="status"></div>

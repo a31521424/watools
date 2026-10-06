@@ -276,7 +276,7 @@ export const WaCommand = () => {
     return <Command
         value={selectedKey}
         shouldFilter={false}
-        className="rounded-lg border shadow-md w-full p-2"
+        className="wa-launcher rounded-none w-full"
         disablePointerSelection={true}
     >
         <WaComplexInput
@@ -289,10 +289,10 @@ export const WaCommand = () => {
                 setTextValue(value)
             }}
             onPaste={handlePaste}
-            className="text-gray-800"
+            className="text-foreground"
             textPreview={compressedDisplay ? displayValue : null}
             onCopyOrigin={copyOrigin}
-            classNames={{wrapper: cn("text-xl", isPanelOpen ? undefined : "!border-none")}}
+            classNames={{wrapper: "text-base"}}
             value={compressedDisplay ? '' : displayValue}
         />
         {launching && <div role="status" className="px-3 py-1 text-sm text-gray-500">正在打开插件…</div>}
@@ -310,5 +310,6 @@ export const WaCommand = () => {
                 <WaBaseItem key={item.triggerId} {...item} />
             ))}
         </CommandList>
+        {isPanelOpen && <footer className="wa-launcher-footer"><span>WaTools <span className="ml-1 opacity-60">让工具随手可得</span></span><span><kbd className="wa-key">↑↓</kbd>选择 <kbd className="wa-key">↵</kbd>打开 <kbd className="wa-key">esc</kbd>返回</span></footer>}
     </Command>
 }

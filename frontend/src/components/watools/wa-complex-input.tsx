@@ -1,3 +1,4 @@
+import {Search} from "lucide-react";
 import {cn} from "@/lib/utils";
 import {Command as CommandPrimitive} from "cmdk";
 import * as React from "react";
@@ -18,7 +19,7 @@ export const WaComplexInput = (
                 {files.map(item => {
                     return <div
                         key={`file-preview-${item}`}
-                        className="flex border-2 border-dotted h-full items-center overflow-hidden p-1"
+                        className="flex rounded-lg border border-dashed h-full items-center overflow-hidden p-1"
                     >
                         {imageBase64 && <img
                             draggable={false}
@@ -33,7 +34,7 @@ export const WaComplexInput = (
                 })}
             </div>
         } else if (imageBase64 != null) {
-            return <div className="h-full w-auto shrink-0 p-1 border-2 border-dotted object-contain">
+            return <div className="h-full w-auto shrink-0 p-1 rounded-lg border border-dashed object-contain">
                 <img
                     draggable={false}
                     className="max-h-full select-none"
@@ -49,10 +50,11 @@ export const WaComplexInput = (
             data-slot="command-input-wrapper"
             className={cn("flex h-9 gap-x-1 w-full items-center", classNames?.wrapper)}
         >
+            <Search size={19} className="shrink-0 text-muted-foreground" aria-hidden="true"/>
             {previewAssets}
             {textPreview && <div className="flex max-w-[65%] min-w-0 shrink-0 items-center gap-2 rounded border border-dashed px-2 py-1 text-sm" aria-label="剪贴板文本摘要">
                 <span className="truncate select-none">{textPreview}</span>
-                <button type="button" className="shrink-0 text-xs text-gray-500 hover:text-gray-900" onMouseDown={event => event.preventDefault()} onClick={onCopyOrigin}>复制原文</button>
+                <button type="button" className="shrink-0 text-xs text-primary" onMouseDown={event => event.preventDefault()} onClick={onCopyOrigin}>复制原文</button>
             </div>}
             <CommandPrimitive.Input
                 data-slot="command-input"
@@ -62,7 +64,7 @@ export const WaComplexInput = (
                     "h-auto flex-1",
                     className
                 )}
-                placeholder="Hello Watools"
+                placeholder="搜索应用、插件或输入指令…"
                 {...props}
             />
         </div>

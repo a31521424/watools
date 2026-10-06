@@ -846,7 +846,7 @@ test('management retries a completed installation refresh and clears only its re
         'react/jsx-runtime': {jsx: () => null, jsxs: () => null},
         wouter: {useLocation: () => ['/', () => {}]}, 'lucide-react': {},
         '@/api/host': {host: {GetLocalInstallationApi: async () => status}},
-        '@/components/ui/button': {}, '@/components/ui/input': {}, './wa-plugin-management': {},
+        '@/components/ui/button': {}, '@/components/ui/input': {}, './wa-plugin-management': {}, './wa-workspace-header': {},
         '@/stores/pluginStore': {usePluginStore: selector => selector({refreshPlugins})},
     }, {setTimeout: callback => {retry = callback; return 1}, clearTimeout() {}});
     WaManagement({});
@@ -1243,6 +1243,16 @@ test('launcher resize restores its minimum height and ignores delayed plugin mea
     await resizeWindowHeight([{target:{clientHeight:54}}]);
     finishOld({w:1280,h:64});await old;
     assert.deepEqual(writes,[{w:1280,h:64}]);
+});
+
+test('browser preview without native window geometry does not request an invalid resize', async () => {
+    const writes=[];
+    const {resizeWindowHeight}=loadTS('frontend/src/hooks/useElementResize.ts',{
+        react:{},'@/lib/legacy-runtime':{WindowGetSize:async()=>({w:0,h:0}),
+            WindowSetSize:async(w,h)=>writes.push({w,h})},
+    });
+    await resizeWindowHeight([{target:{clientHeight:760}}]);
+    assert.deepEqual(writes,[]);
 });
 
 function officialWindowHooks(plugin, globals) {

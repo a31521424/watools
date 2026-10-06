@@ -2,7 +2,7 @@
   "packageId": "watools.plugin.textstats",
   "name": "文本统计",
   "description": "官方文本统计面板，支持字符、词类、标点、Emoji 等多维度统计。",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "WaTools",
   "usage": "输入 textcount、count、chars、字符统计、字数统计 或 文本统计 打开面板；后面可直接跟待分析文本。",
   "triggerKeywords": [

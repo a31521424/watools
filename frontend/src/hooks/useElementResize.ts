@@ -35,7 +35,7 @@ export const resizeWindowHeight = async (entries: ResizeObserverEntry[]) => {
     }
     if (height) height = Math.max(64, height)
     const currentSize = await WindowGetSize()
-    if (revision === resizeRevision && height && currentSize.h !== height) {
+    if (revision === resizeRevision && height && currentSize.w > 0 && currentSize.h !== height) {
         await WindowSetSize(currentSize.w, height)
     }
 }

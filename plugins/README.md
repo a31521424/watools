@@ -14,7 +14,7 @@ This directory is the source of truth for WaTools official plugins.
 - `watools.plugin.calculator`: executable calculator + calculator panel with history
 - `watools.plugin.json`: JSON editor with bounded object/array candidate matching, seed/paste auto-formatting, expanded preview, and minified copy
 - `watools.plugin.qr`: two-pane QR workspace for seeded text generation and clipboard image decoding
-- `watools.plugin.translate`: translation panel with OS-backed API key storage
+- `watools.plugin.translate`: translation panel with host-managed API key storage
 - `watools.plugin.textstats`: explicit-trigger text statistics panel with multidimensional counts
 
 ## Local application installation
@@ -58,13 +58,14 @@ go run ./cmd/pluginctl install watools.plugin.translate
 ## Development Notes
 
 - For an isolated macOS development installation, use `go run ./cmd/watoolsctl plugins list|package|install [package-id...]`. Packages go to `.cache/dev/packages/`; installation shares `.cache/dev/data/` with `go run ./cmd/watoolsctl dev`. See the [local workflow](../docs/development/local-workflow.md). Direct `go run ./cmd/pluginctl install` uses the normal installation unless data/cache overrides are supplied.
-- Package contents come only from each plugin's `plugin/` directory.
+- Runtime files come from each plugin's `plugin/` directory. UI packages also receive the canonical `frontend/public/watools-ui.css` at archive root; that name is reserved by the packager.
 - The generated `.wt` archive contains the files at the root of `plugin/`, not the parent directory.
 - `go run ./cmd/pluginctl install ...` uses the same backend installer logic as the app.
 - `fronted-plugin/` is now legacy reference material. New official plugins belong here.
 - UI plugins should read launch data from `window.pluginContext` and `watools:context-ready`.
 - `seed` query params and `window.inputValue` are compatibility fallbacks only. The host does not put input text in URLs.
 - Repackage and reinstall changed official plugins; updating the host alone does not replace installed plugin files.
+- All five official UI plugins use the shared desktop design from version 0.3.0. Include `watools-ui.css` and use `<body class="wt-plugin">`; keep tool-specific styles to workspace layout. See the [UI guide](../docs/design/ui-style.md).
 - All five official UI plugins provide `watoolsSession.capture/restore` from version 0.2.0. JSON preserves the edited model and panel; QR preserves its current image; translation preserves results without repeating requests; calculator preserves its current view; textstats preserves selection/scroll.
 - The host injects `window.watools.session.windowMode` before `watools:context-ready`. Detached pages restore their snapshot instead of reapplying launch input or starting automatic work.
 - After upgrading a plugin, save any open document, return to the launcher, refresh the plugin list (or restart), and reopen it. Existing pages keep their old immutable revision.

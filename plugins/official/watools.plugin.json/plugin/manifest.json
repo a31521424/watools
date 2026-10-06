@@ -2,7 +2,7 @@
   "packageId": "watools.plugin.json",
   "name": "JSON 编辑器",
   "description": "官方 JSON 编辑器，支持格式化、URL Query 转 JSON、路径提取与快速复制。",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "WaTools",
   "usage": "输入 json、url2params、query2params 或 qs2params 打开编辑器；后面可直接跟 JSON、URL 或 Query 内容作为初始输入。",
   "triggerKeywords": [
