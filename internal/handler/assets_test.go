@@ -34,7 +34,7 @@ func TestShellRoutesReloadWithoutSwallowingMissingAssets(t *testing.T) {
 		"frontend/dist/assets/index.js": {Data: []byte("export const ready = true;")},
 	}
 	handler := WithAssets(application.AssetFileServerFS(assets))
-	for _, route := range []string{"/", "/plugin?packageId=probe&file=index.html", "/plugin-management", "/log-management", "/update-management"} {
+	for _, route := range []string{"/", "/plugin?packageId=probe&file=index.html", "/management", "/management?category=plugins", "/plugin-management", "/log-management", "/update-management"} {
 		req := httptest.NewRequest("GET", route, nil)
 		original := req.URL.String()
 		res := httptest.NewRecorder()

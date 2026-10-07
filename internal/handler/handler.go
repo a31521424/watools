@@ -46,7 +46,7 @@ func WithAssets(assets http.Handler, selectors ...func(string) bool) http.Handle
 		// v3 does not provide v2's index fallback for client-side routes.
 		// Keep missing static/plugin assets as errors rather than serving HTML.
 		switch req.URL.Path {
-		case "/plugin", "/plugin-management", "/log-management", "/update-management":
+		case "/plugin", "/management", "/plugin-management", "/log-management", "/update-management":
 			req = req.Clone(req.Context())
 			req.URL.Path = "/"
 			req.URL.RawPath = ""
