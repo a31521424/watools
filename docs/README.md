@@ -13,7 +13,7 @@
 | 插件开发 | [专题索引](./plugin-development/README.md)：按需读取六个章节 |
 | Backlog | [目标索引](./backlog/README.md)：优先级、依赖、实施范围和验收标准 |
 | 调研 | [框架与语言调研](./research/technology-direction-2026-10-02.md)、[剪贴板与插件启动性能](./research/clipboard-launch-performance-2026-10-06.md)：保留讨论与实验依据，最新路线以 backlog 为准 |
-| 审查 | [原始审查](./reviews/review-2026-10-02.md)、[修复记录](./reviews/remediation-2026-10-03.md)、[证据索引](./reviews/evidence/README.md)：有日期的发现和验证边界 |
+| 审查 | [架构与代码精简审查](./reviews/architecture-and-simplification-2026-10-07.md)：当前 20 模块的设计判断、编码实践与 Go 错误处理专项、待 review 实施批次；[原始审查](./reviews/review-2026-10-02.md)、[修复记录](./reviews/remediation-2026-10-03.md)、[证据索引](./reviews/evidence/README.md)：有日期的发现和验证边界 |
 
 ## 按需阅读
 
@@ -22,6 +22,7 @@
 - 修改后端：实现机制 → 对应包；涉及历史缺陷时读取修复记录和指定证据。
 - 开发插件：插件开发索引 → 相关章节 → 对应官方插件示例。
 - 推进优化：backlog 索引 → 本次目标文档 → 依赖和源码；不要默认启动整个 backlog。
+- Review 架构与精简方案：[2026-10-07 审查报告](./reviews/architecture-and-simplification-2026-10-07.md) → 对应模块源码；报告待 review，不自动授权实施或改变 backlog 状态。
 - 调整需求或验收：开发者自用需求 → backlog 索引 → 本次目标文档；延期平台项不混入当前阶段完成条件。
 - 修改发布：发布流程 → CI 和更新源码。
 - 启动、检查或调试：本地开发指南 → 对应任务；可选 Host API 固定场景见本地开发指南；原生多窗口仍按 backlog 推进。
@@ -162,6 +163,7 @@ docs/
 │   │   │   ├── go-dev-native.jsonl
 │   │   │   └── go-dev-native-probe.py.txt
 │   │   └── README.md
+│   ├── architecture-and-simplification-2026-10-07.md
 │   ├── remediation-2026-10-03.md
 │   └── review-2026-10-02.md
 └── README.md
