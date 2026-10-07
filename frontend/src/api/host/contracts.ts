@@ -18,6 +18,8 @@ export type UpdateInfo = {currentVersion: string; latestVersion: string; release
 export type InstallResult = {status: string; message: string; openPath: string; shouldQuit: boolean; requiresManualInstall: boolean}
 export type DetachPluginRequest = {packageId: string; file: string; homeUrl: string; context: PluginContext; state: PluginWindowState}
 export type PluginWindowSession = DetachPluginRequest & {id: string; windowName: string; title: string}
+export type HotkeyConfiguration = {id: string; name: string; hotkey: string}
+export type HotkeyStatus = HotkeyConfiguration & {registered: boolean; registeredHotkey: string}
 
 export type LocalInstallationConfiguration = {sourceRoot: string; goExecutable: string; toolPath: string; applicationPath: string; installedAt: string; version: string}
 export type LocalInstallationStatus = {configuration: LocalInstallationConfiguration; officialPlugins: {packageId: string; name: string; version: string}[]; jobId: number; state: string; scope: string; message: string; output: string[]; canCancel: boolean; restartRequired: boolean}
@@ -39,6 +41,8 @@ export interface HostAPI {
  ReleaseClipboardSnapshotApi(id: string): Promise<void>
  RetainClipboardSnapshotApi(id: string): Promise<void>
  GetHotkeyEnvironmentStatusApi(): Promise<{secureEventInputEnabled: boolean; note: string}>
+ GetHotkeysApi(): Promise<HotkeyStatus[]>
+ UpdateHotkeyApi(request: HotkeyConfiguration): Promise<void>
  GetApplicationCommandsApi(): Promise<ApplicationCommand[]>
  GetOperatorCommandsApi(): Promise<OperationCommand[]>
  TriggerCommandApi(id: string, category: string): Promise<void>

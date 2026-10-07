@@ -21,9 +21,11 @@ func (f failingInstallation) Status() (localinstall.Status, error) {
 func (f failingInstallation) Configure(localinstall.Configuration) error        { return f.err }
 func (f failingInstallation) Start(context.Context, localinstall.Request) error { return f.err }
 func (f failingInstallation) Cancel() error                                     { return f.err }
-func (f failingInstallation) Shutdown()                                         {}
+func (f failingInstallation) Shutdown() error                                   { return f.err }
 
 func TestLocalInstallationFailureMappingKeepsCauseAndSafeMessages(t *testing.T) {
+	t.Setenv("WATOOLS_DATA_DIR", t.TempDir())
+	t.Setenv("WATOOLS_CACHE_DIR", t.TempDir())
 	secret := errors.New("synthetic credential in process or configuration path")
 	for _, test := range []struct {
 		name string
@@ -45,6 +47,7 @@ func TestLocalInstallationFailureMappingKeepsCauseAndSafeMessages(t *testing.T) 
 				{"installation.configure", func() error { return service.ConfigureLocalInstallationApi(localinstall.Configuration{}) }},
 				{"installation.start", func() error { return service.StartLocalInstallationApi(localinstall.Request{}) }},
 				{"installation.cancel", service.CancelLocalInstallationApi},
+				{"installation.shutdown", service.ServiceShutdown},
 			} {
 				err := call.fn()
 				errorCode(t, err, test.code)

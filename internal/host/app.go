@@ -8,6 +8,7 @@ import (
 
 	"watools/config"
 	"watools/internal/app"
+	"watools/pkg/logger"
 )
 
 type AppService struct {
@@ -60,6 +61,49 @@ func (s *AppService) RetainClipboardSnapshotApi(id string) error {
 }
 func (s *AppService) GetHotkeyEnvironmentStatusApi() app.HotkeyEnvironmentStatus {
 	return s.core.GetHotkeyEnvironmentStatus()
+}
+
+type HotkeyUpdateRequest struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Hotkey string `json:"hotkey"`
+}
+
+func (s *AppService) GetHotkeysApi() []app.HotkeyConfigAPI {
+	return s.core.GetHotkeys()
+}
+
+func (s *AppService) UpdateHotkeyApi(request HotkeyUpdateRequest) error {
+	if request.ID != "show-hide-window" {
+		return invalid("未知快捷键标识")
+	}
+	if len(request.Name) > 256 || len(request.Hotkey) > 128 {
+		return invalid("快捷键名称或组合过长")
+	}
+	cfg := app.HotkeyConfig{ID: request.ID, Name: request.Name, Hotkey: request.Hotkey}
+	if _, _, err := cfg.ParseHotkey(); err != nil {
+		return &Error{Code: "INVALID_ARGUMENT", Message: "快捷键组合格式无效", Operation: "app.hotkeyUpdate", cause: err}
+	}
+	err := s.core.UpdateHotkey(app.HotkeyConfigAPI{ID: cfg.ID, Name: cfg.Name, Hotkey: cfg.Hotkey})
+	if err != nil {
+		logger.Error(err, "Failed to update hotkey")
+	}
+	return hotkeyFailure(err)
+}
+
+func hotkeyFailure(err error) error {
+	if err == nil {
+		return nil
+	}
+	var updateErr *app.HotkeyUpdateError
+	if errors.As(err, &updateErr) {
+		message := "快捷键更新失败，旧配置和注册已恢复"
+		if updateErr.RecoveryErr != nil {
+			message = "快捷键更新失败，恢复也失败，请核对配置和实际注册状态并查看日志"
+		}
+		return &Error{Code: "OPERATION_FAILED", Message: message, Operation: "app.hotkeyUpdate", cause: err}
+	}
+	return failure("app.hotkeyUpdate", err)
 }
 
 // WindowGeometry is the native window boundary needed by the launcher layout.

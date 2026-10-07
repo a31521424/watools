@@ -4,19 +4,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
 	"watools/config"
 	"watools/pkg/logger"
+
+	"golang.design/x/hotkey"
 )
 
+type hotkeyConfigFile interface {
+	io.WriteCloser
+	Name() string
+}
+
 type HotkeyManager struct {
-	listeners      map[string]*HotkeyListener
-	configs        map[string]HotkeyConfig
-	configDir      string
-	mu             sync.RWMutex
-	registrationMu sync.Mutex
+	listeners        map[string]*HotkeyListener
+	configs          map[string]HotkeyConfig
+	configDir        string
+	mu               sync.RWMutex
+	registrationMu   sync.Mutex
+	newHotkey        func([]hotkey.Modifier, hotkey.Key) registeredHotkey
+	createConfigTemp func(string, string) (hotkeyConfigFile, error)
 }
 
 var (
@@ -89,8 +99,8 @@ func (hm *HotkeyManager) SaveConfigs() error {
 	return hm.saveConfigsUnsafe(configs)
 }
 
-// saveConfigsUnsafe saves configs without acquiring locks
-// Should only be called when lock is already held
+// saveConfigsUnsafe saves an explicit snapshot without acquiring locks. When
+// no snapshot is provided, the caller must hold hm.mu.
 func (hm *HotkeyManager) saveConfigsUnsafe(configs ...[]HotkeyConfig) error {
 	var configsToSave []HotkeyConfig
 	if len(configs) > 0 {
@@ -110,21 +120,35 @@ func (hm *HotkeyManager) saveConfigsUnsafe(configs ...[]HotkeyConfig) error {
 
 	// Save to file
 	configFile := filepath.Join(hm.configDir, "config.json")
-	file, err := os.CreateTemp(hm.configDir, ".config-*")
-	if err != nil {
-		return err
+	create := hm.createConfigTemp
+	if create == nil {
+		create = func(dir, pattern string) (hotkeyConfigFile, error) { return os.CreateTemp(dir, pattern) }
 	}
-	defer os.Remove(file.Name())
-	_, err = file.Write(data)
-	closeErr := file.Close()
+	file, err := create(hm.configDir, ".config-*")
 	if err != nil {
-		return err
+		return fmt.Errorf("create temporary hotkey configuration: %w", err)
+	}
+	defer func() {
+		if err := os.Remove(file.Name()); err != nil && !errors.Is(err, os.ErrNotExist) {
+			logger.Error(err, "Failed to remove temporary hotkey configuration")
+		}
+	}()
+	n, writeErr := file.Write(data)
+	if writeErr == nil && n != len(data) {
+		writeErr = io.ErrShortWrite
+	}
+	closeErr := file.Close()
+	if writeErr != nil {
+		writeErr = fmt.Errorf("write hotkey configuration: %w", writeErr)
 	}
 	if closeErr != nil {
-		return closeErr
+		closeErr = fmt.Errorf("close hotkey configuration: %w", closeErr)
+	}
+	if err := errors.Join(writeErr, closeErr); err != nil {
+		return err
 	}
 	if err := os.Rename(file.Name(), configFile); err != nil {
-		return err
+		return fmt.Errorf("replace hotkey configuration: %w", err)
 	}
 
 	return nil
@@ -169,23 +193,27 @@ func (hm *HotkeyManager) RegisterAll() error {
 func (hm *HotkeyManager) registerAll() error {
 	hm.registrationMu.Lock()
 	defer hm.registrationMu.Unlock()
-	// Get WaApp instance first
-	// Note: We don't directly call GetHotkeyManager in GetWaApp to avoid circular dependencies
+	return hm.registerConfigsLocked(hm.GetAllConfigs())
+}
+
+// registerConfigs restores a captured registration set without consulting
+// current configuration, which may itself have failed to recover.
+func (hm *HotkeyManager) registerConfigs(configs []HotkeyConfig) error {
+	return runHotkeyLifecycle(func() error { return hm.registerConfigsOnMain(configs) })
+}
+
+func (hm *HotkeyManager) registerConfigsOnMain(configs []HotkeyConfig) error {
+	hm.registrationMu.Lock()
+	defer hm.registrationMu.Unlock()
+	return hm.registerConfigsLocked(configs)
+}
+
+func (hm *HotkeyManager) registerConfigsLocked(configs []HotkeyConfig) error {
 
 	// Clear existing listeners
 	if err := hm.unregisterAll(); err != nil {
 		return err
 	}
-
-	// Create listener for each config
-	hm.mu.RLock()
-	// For safety, copy configs values
-	configs := make([]HotkeyConfig, 0, len(hm.configs))
-	for _, cfg := range hm.configs {
-		configs = append(configs, cfg)
-	}
-	// Release read lock before performing registration
-	hm.mu.RUnlock()
 
 	var failures []error
 	for _, cfg := range configs {
@@ -199,6 +227,8 @@ func (hm *HotkeyManager) registerAll() error {
 			ID:        cfg.ID,
 			Modifiers: modifiers,
 			Key:       key,
+			hotkey:    cfg.Hotkey,
+			newHotkey: hm.newHotkey,
 		}
 
 		switch cfg.ID {
@@ -222,6 +252,11 @@ func (hm *HotkeyManager) registerAll() error {
 
 		// Register hotkey
 		if err := listener.Register(); err != nil {
+			if listener.hasResources() {
+				hm.mu.Lock()
+				hm.listeners[cfg.ID] = listener
+				hm.mu.Unlock()
+			}
 			failures = append(failures, fmt.Errorf("%s: %w", cfg.ID, err))
 			continue
 		}
@@ -272,4 +307,19 @@ func (hm *HotkeyManager) IsRegistered(id string) bool {
 		return false
 	}
 	return listener.IsRegistered()
+}
+
+func (hm *HotkeyManager) GetHotkeyStates() []HotkeyConfigAPI {
+	hm.mu.RLock()
+	defer hm.mu.RUnlock()
+	states := make([]HotkeyConfigAPI, 0, len(hm.configs))
+	for _, cfg := range hm.configs {
+		state := HotkeyConfigAPI{ID: cfg.ID, Name: cfg.Name, Hotkey: cfg.Hotkey}
+		if listener, ok := hm.listeners[cfg.ID]; ok && listener.IsRegistered() {
+			state.Registered = true
+			state.RegisteredHotkey = listener.hotkey
+		}
+		states = append(states, state)
+	}
+	return states
 }

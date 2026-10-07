@@ -35,9 +35,15 @@ export function GetHotkeyEnvironmentStatusApi(): $CancellablePromise<app$0.Hotke
     });
 }
 
+export function GetHotkeysApi(): $CancellablePromise<app$0.HotkeyConfigAPI[]> {
+    return $Call.ByID(3879557998).then(($result: any) => {
+        return $$createType6($result);
+    });
+}
+
 export function GetLauncherSizeApi(): $CancellablePromise<$models.WindowSize> {
     return $Call.ByID(2994499026).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType7($result);
     });
 }
 
@@ -65,10 +71,16 @@ export function SetLauncherSizeApi(width: number, height: number): $CancellableP
     return $Call.ByID(540259374, width, height);
 }
 
+export function UpdateHotkeyApi(request: $models.HotkeyUpdateRequest): $CancellablePromise<void> {
+    return $Call.ByID(817118898, request);
+}
+
 // Private type creation functions
 const $$createType0 = app$0.AutomaticClipboard.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = app$0.ClipboardContent.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
 const $$createType4 = app$0.HotkeyEnvironmentStatus.createFrom;
-const $$createType5 = $models.WindowSize.createFrom;
+const $$createType5 = app$0.HotkeyConfigAPI.createFrom;
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = $models.WindowSize.createFrom;

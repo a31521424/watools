@@ -5,5 +5,6 @@ export {
     AutomaticClipboard,
     ClipboardContent,
     ClipboardContentType,
+    HotkeyConfigAPI,
     HotkeyEnvironmentStatus
 } from "./models.js";

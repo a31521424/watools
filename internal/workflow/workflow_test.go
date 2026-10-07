@@ -98,7 +98,7 @@ func newFixture(t *testing.T) fixture {
 	temp := t.TempDir()
 	root := filepath.Join(temp, "checkout with spaces")
 	bin := filepath.Join(temp, "bin")
-	for _, dir := range []string{bin, filepath.Join(root, "cmd/watoolsctl"), filepath.Join(root, "frontend/node_modules/typescript"), filepath.Join(root, "build/darwin")} {
+	for _, dir := range []string{bin, filepath.Join(root, "cmd/watoolsctl"), filepath.Join(root, "frontend/node_modules/typescript"), filepath.Join(root, "frontend/bindings"), filepath.Join(root, "build/darwin")} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			t.Fatal(err)
 		}

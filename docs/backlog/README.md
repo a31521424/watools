@@ -15,7 +15,7 @@
 | [macOS 自用原生验收](./native-self-use-acceptance.md) | P0 | in-progress | v3 原生回归已推进；物理输入法、快捷键及完整场景待验 |
 | [插件加载与 SDK](./plugin-loading-and-sdk.md) | P1 | planned | 宿主接口、会话与调用边界 |
 | [日志诊断与 Agent 工具](./diagnostics-and-agent-tools.md) | P1 | planned | 日志约定可先做；MCP 与窗口诊断依赖 v3 |
-| [架构精简与编码实践](./architecture-simplification.md) | P1 | in-progress | 前三轮已实施：错误透传、扫描解析/删除与路径协调、watcher 配置；自动检查及原生边界见实施记录，后续热键/初始化等仍待推进 |
+| [架构精简与编码实践](./architecture-simplification.md) | P1 | in-progress | 前四轮已实施：错误透传、扫描解析/路径协调、watcher 配置、热键恢复、必需清理与停止；显式初始化另轮推进，检查与原生/Windows 限制见实施记录 |
 | [插件信任与权限边界](./plugin-trust-and-permissions.md) | P1 | planned | 威胁模型可先明确；执行依赖 SDK 与会话边界 |
 | [Windows 兼容与实机验收](./windows-compatibility.md) | P2 | deferred | 有明确 Windows 使用需求后恢复 |
 | [对外分发与自更新验收](./distribution-and-update-acceptance.md) | P2 | deferred | 有对外发布或自动升级需求后恢复 |

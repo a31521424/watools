@@ -14,13 +14,16 @@ static OSStatus waHotkeyHandler(EventHandlerCallRef next, EventRef event, void *
     waHotkeyPressed((uintptr_t)userdata);
     return noErr;
 }
-static OSStatus waRegisterHotkey(UInt32 modifiers, UInt32 key, uintptr_t handle, WaHotkeyRegistration *registration) {
+static OSStatus waRegisterHotkey(UInt32 modifiers, UInt32 key, uintptr_t handle, WaHotkeyRegistration *registration, OSStatus *recoveryStatus) {
     EventHotKeyID id={.signature=0x5741544f,.id=(UInt32)handle};
     OSStatus status=RegisterEventHotKey(key,modifiers,id,GetApplicationEventTarget(),kEventHotKeyExclusive,&registration->key);
     if(status!=noErr) return status;
     EventTypeSpec type={kEventClassKeyboard,kEventHotKeyPressed};
     status=InstallApplicationEventHandler(&waHotkeyHandler,1,&type,(void *)handle,&registration->handler);
-    if(status!=noErr) {UnregisterEventHotKey(registration->key);registration->key=NULL;}
+    if(status!=noErr) {
+        *recoveryStatus=UnregisterEventHotKey(registration->key);
+        if(*recoveryStatus==noErr) registration->key=NULL;
+    }
     return status;
 }
 static OSStatus waUnregisterHotkey(WaHotkeyRegistration *registration) {
@@ -40,6 +43,7 @@ static OSStatus waUnregisterHotkey(WaHotkeyRegistration *registration) {
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"runtime/cgo"
 	"sync"
@@ -52,12 +56,14 @@ import (
 // the native registration and handler together so failures reach UpdateHotkey,
 // and release both on the same AppKit thread before deleting the Go callback.
 type macHotkey struct {
-	mu         sync.Mutex
-	modifiers  []hotkey.Modifier
-	key        hotkey.Key
-	native     C.WaHotkeyRegistration
-	handle     cgo.Handle
-	keydown    chan hotkey.Event
+	mu        sync.Mutex
+	modifiers []hotkey.Modifier
+	key       hotkey.Key
+	native    C.WaHotkeyRegistration
+	handle    cgo.Handle
+	keydown   chan hotkey.Event
+	// registered tracks ownership until both the key and handler are released.
+	// IsRegistered separately reports whether the native key still exists.
 	registered bool
 }
 
@@ -96,10 +102,23 @@ func (hk *macHotkey) register() error {
 	// Each registration owns its event stream; an unregistered stream is closed.
 	hk.keydown = make(chan hotkey.Event, 1)
 	handle := cgo.NewHandle(hk)
-	status := C.waRegisterHotkey(C.UInt32(modifiers), C.UInt32(hk.key), C.uintptr_t(handle), &hk.native)
+	var recoveryStatus C.OSStatus
+	status := C.waRegisterHotkey(C.UInt32(modifiers), C.UInt32(hk.key), C.uintptr_t(handle), &hk.native, &recoveryStatus)
 	if status != 0 {
-		handle.Delete()
-		return fmt.Errorf("failed to register hotkey (macOS status %d; the key may be in use)", int(status))
+		if hk.native.key != nil || hk.native.handler != nil {
+			// A failed registration cleanup still owns native resources and its
+			// callback handle until Unregister succeeds.
+			hk.handle = handle
+			hk.registered = true
+		} else {
+			handle.Delete()
+			close(hk.keydown)
+		}
+		registrationErr := fmt.Errorf("failed to register hotkey (macOS status %d; the key may be in use)", int(status))
+		if recoveryStatus != 0 {
+			return errors.Join(registrationErr, fmt.Errorf("clean up failed hotkey registration (macOS status %d): native key retained", int(recoveryStatus)))
+		}
+		return registrationErr
 	}
 	hk.handle = handle
 	hk.registered = true
@@ -125,6 +144,18 @@ func (hk *macHotkey) unregister() error {
 	return nil
 }
 func (hk *macHotkey) Keydown() <-chan hotkey.Event { return hk.keydown }
+
+func (hk *macHotkey) IsRegistered() bool {
+	hk.mu.Lock()
+	defer hk.mu.Unlock()
+	return hk.native.key != nil
+}
+
+func (hk *macHotkey) HasResources() bool {
+	hk.mu.Lock()
+	defer hk.mu.Unlock()
+	return hk.native.key != nil || hk.native.handler != nil
+}
 
 //export waHotkeyPressed
 func waHotkeyPressed(handle C.uintptr_t) {

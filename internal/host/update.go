@@ -10,6 +10,7 @@ import (
 	"watools/config"
 	"watools/internal/localinstall"
 	"watools/internal/update"
+	"watools/pkg/logger"
 )
 
 type UpdateService struct {
@@ -26,7 +27,7 @@ type localInstallation interface {
 	Configure(localinstall.Configuration) error
 	Start(context.Context, localinstall.Request) error
 	Cancel() error
-	Shutdown()
+	Shutdown() error
 }
 
 func NewUpdateService(core *update.Service, quit func()) *UpdateService {
@@ -36,7 +37,13 @@ func (s *UpdateService) ServiceStartup(ctx context.Context, _ application.Servic
 	s.ctx = ctx
 	return nil
 }
-func (s *UpdateService) ServiceShutdown() error { s.local.Shutdown(); return nil }
+func (s *UpdateService) ServiceShutdown() error {
+	err := s.local.Shutdown()
+	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		logger.Error(err, "Failed to shut down local installation")
+	}
+	return installationFailure("installation.shutdown", err)
+}
 func (s *UpdateService) CheckForUpdatesApi() (update.UpdateInfo, error) {
 	v, e := s.core.Check(s.ctx)
 	return v, failure("update.check", e)

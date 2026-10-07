@@ -61,6 +61,8 @@ type HotkeyListener struct {
 	Modifiers []hotkey.Modifier
 	Key       hotkey.Key
 	ID        string
+	hotkey    string
+	newHotkey func([]hotkey.Modifier, hotkey.Key) registeredHotkey
 	mu        sync.Mutex
 	hk        registeredHotkey
 	quit      chan struct{}
@@ -98,15 +100,28 @@ func (l *HotkeyListener) register() error {
 	if l.hk != nil {
 		return fmt.Errorf("hotkey is already registered")
 	}
-	hk := newPlatformHotkey(l.Modifiers, l.Key)
-	if err := hk.Register(); err != nil {
-		return err
+	create := l.newHotkey
+	if create == nil {
+		create = newPlatformHotkey
+	}
+	hk := create(l.Modifiers, l.Key)
+	err := hk.Register()
+	if err != nil {
+		resources := false
+		if state, ok := hk.(interface{ HasResources() bool }); ok {
+			resources = state.HasResources()
+		} else if state, ok := hk.(interface{ IsRegistered() bool }); ok {
+			resources = state.IsRegistered()
+		}
+		if !resources {
+			return err
+		}
 	}
 	quit := make(chan struct{})
 	l.hk = hk
 	l.quit = quit
 	go l.listen(hk, quit)
-	return nil
+	return err
 }
 func (l *HotkeyListener) Unregister() error {
 	return runHotkeyLifecycle(l.unregister)
@@ -126,4 +141,22 @@ func (l *HotkeyListener) unregister() error {
 	l.quit = nil
 	return nil
 }
-func (l *HotkeyListener) IsRegistered() bool { l.mu.Lock(); defer l.mu.Unlock(); return l.hk != nil }
+func (l *HotkeyListener) IsRegistered() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.hk == nil {
+		return false
+	}
+	// A failed native cleanup can leave a handler after the key itself was
+	// released. Keep ownership for retry, but report the actual key state.
+	if state, ok := l.hk.(interface{ IsRegistered() bool }); ok {
+		return state.IsRegistered()
+	}
+	return true
+}
+
+func (l *HotkeyListener) hasResources() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.hk != nil
+}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,17 +18,25 @@ func strconvQuote(value string) string { return strconv.Quote(value) }
 func (r *Runner) wails(ctx context.Context, t Toolchain, args ...string) error {
 	err := r.Run(ctx, r.Root, "go", append([]string{"run", "github.com/wailsapp/wails/v3/cmd/wails3@" + t.Wails}, args...)...)
 	if r.cleanupSafe {
-		_ = filepath.WalkDir(filepath.Join(r.Root, "frontend/bindings"), func(path string, info os.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if !info.IsDir() && (strings.HasSuffix(path, ".ts") || strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".json")) {
-				return os.Chmod(path, 0644)
-			}
-			return nil
-		})
+		err = errors.Join(err, restoreBindingPermissions(filepath.Join(r.Root, "frontend/bindings"), r.walkDir, r.chmod))
 	}
 	return err
+}
+func restoreBindingPermissions(root string, walk func(string, fs.WalkDirFunc) error, chmod func(string, fs.FileMode) error) error {
+	var failures error
+	err := walk(root, func(path string, info fs.DirEntry, err error) error {
+		if err != nil {
+			failures = errors.Join(failures, fmt.Errorf("walk generated bindings at %s: %w", path, err))
+			return nil
+		}
+		if !info.IsDir() && (strings.HasSuffix(path, ".ts") || strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".json")) {
+			if err := chmod(path, 0644); err != nil {
+				failures = errors.Join(failures, fmt.Errorf("restore generated binding permission at %s: %w", path, err))
+			}
+		}
+		return nil
+	})
+	return errors.Join(failures, wrapProcessError("walk generated bindings", err))
 }
 func (r *Runner) bindings(ctx context.Context, t Toolchain) error {
 	dir := filepath.Join(r.Root, "frontend/dist")
@@ -39,6 +48,8 @@ func (r *Runner) bindings(ctx context.Context, t Toolchain) error {
 		if err := os.WriteFile(index, []byte("<!doctype html><title>WaTools build placeholder</title>"), 0644); err != nil {
 			return err
 		}
+	} else if err != nil {
+		return fmt.Errorf("inspect frontend placeholder: %w", err)
 	}
 	return r.wails(ctx, t, "generate", "bindings", "-ts")
 }
@@ -91,7 +102,7 @@ func (r *Runner) bundle(ctx context.Context, t Toolchain, output string, develop
 	}
 	defer func() {
 		if r.cleanupSafe {
-			os.RemoveAll(bundle)
+			r.cleanup(bundle)
 		} else {
 			fmt.Fprintf(r.Err, "Preserved unfinished bundle: %s\n", bundle)
 		}
@@ -152,6 +163,8 @@ func (r *Runner) bundle(ctx context.Context, t Toolchain, output string, develop
 		if err := copyFile(assets, filepath.Join(contents, "Resources/Assets.car")); err != nil {
 			return "", err
 		}
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("inspect optional bundle assets: %w", err)
 	}
 	if err := r.Run(ctx, r.Root, "codesign", "--force", "--deep", "--sign", "-", bundle); err != nil {
 		return "", err
@@ -159,7 +172,7 @@ func (r *Runner) bundle(ctx context.Context, t Toolchain, output string, develop
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	if err := replaceBundle(bundle, target); err != nil {
+	if err := r.replaceBundle(bundle, target); err != nil {
 		return "", err
 	}
 	fmt.Fprintf(r.Out, "Built %s\n", target)
@@ -169,6 +182,9 @@ func (r *Runner) bundle(ctx context.Context, t Toolchain, output string, develop
 // Replace only a complete signed bundle; unsuccessful builds preserve the last
 // usable output. The previous build is temporary, unlike installation backups.
 func replaceBundle(staged, target string) error {
+	return New("", nil, nil).replaceBundle(staged, target)
+}
+func (r *Runner) replaceBundle(staged, target string) error {
 	previous, err := os.MkdirTemp(filepath.Dir(target), ".watools-previous-*")
 	if err != nil {
 		return err
@@ -179,7 +195,7 @@ func replaceBundle(staged, target string) error {
 	moved := false
 	defer func() {
 		if !moved {
-			os.RemoveAll(previous)
+			r.cleanup(previous)
 		}
 	}()
 	if err := os.Rename(target, previous); err == nil {

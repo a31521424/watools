@@ -135,6 +135,46 @@ export enum ClipboardContentType {
     ClipboardTypeEmpty = "empty",
 };
 
+/**
+ * HotkeyConfigAPI represents a hotkey configuration for API responses
+ */
+export class HotkeyConfigAPI {
+    "id": string;
+    "name": string;
+    "hotkey": string;
+    "registered": boolean;
+    "registeredHotkey": string;
+
+    /** Creates a new HotkeyConfigAPI instance. */
+    constructor($$source: Partial<HotkeyConfigAPI> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("hotkey" in $$source)) {
+            this["hotkey"] = "";
+        }
+        if (!("registered" in $$source)) {
+            this["registered"] = false;
+        }
+        if (!("registeredHotkey" in $$source)) {
+            this["registeredHotkey"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HotkeyConfigAPI instance from a string or object.
+     */
+    static createFrom($$source: any = {}): HotkeyConfigAPI {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new HotkeyConfigAPI($$parsedSource as Partial<HotkeyConfigAPI>);
+    }
+}
+
 export class HotkeyEnvironmentStatus {
     "secureEventInputEnabled": boolean;
     "note": string;

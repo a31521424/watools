@@ -25,7 +25,7 @@ func managerFixture(t *testing.T, program string) (*Manager, Configuration) {
 	if err := os.MkdirAll(filepath.Dir(goExecutable), 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(goExecutable, []byte("#!/bin/sh\nif [ \"$1\" = build ]; then cp \"$0\" \"$3\"; chmod 700 \"$3\"; exit 0; fi\n"+program), 0700); err != nil {
+	if err := os.WriteFile(goExecutable, []byte("#!/bin/sh\nif [ \"$1\" = build ]; then cp \"$0\" \"$3\"; chmod 700 \"$3\"; exit 0; fi\ntrap 'exit 130' TERM\n"+program), 0700); err != nil {
 		t.Fatal(err)
 	}
 	value := Configuration{SourceRoot: root, GoExecutable: goExecutable, ToolPath: "/usr/bin:/bin", ApplicationPath: filepath.Join(temp, "Applications/watools.app")}
@@ -76,9 +76,23 @@ func TestRunnerArgumentsEnvironmentAndBoundedOutput(t *testing.T) {
 	}
 }
 func TestRunnerCancellationWaitsAndRejectsConcurrentWork(t *testing.T) {
-	m, value := managerFixture(t, "echo started\nexec sleep 30\n")
+	m, value := managerFixture(t, "sleep 30 &\nchild=$!\ntrap 'kill -TERM \"$child\" 2>/dev/null; wait \"$child\" 2>/dev/null; exit 130' TERM\necho started\nwait \"$child\"\n")
 	if err := m.Start(context.Background(), Request{Scope: "all"}); err != nil {
 		t.Fatal(err)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		status, err := m.Status()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(strings.Join(status.Output, "\n"), "started") {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("installer did not start")
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 	if err := m.Start(context.Background(), Request{Scope: "all"}); !errors.Is(err, ErrBusy) {
 		t.Fatalf("concurrent job error = %v", err)

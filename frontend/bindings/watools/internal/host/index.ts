@@ -22,6 +22,7 @@ export {
     ApplicationCommand,
     ApplicationUsage,
     DetachPluginRequest,
+    HotkeyUpdateRequest,
     OperationCommand,
     PackageRequest,
     PluginClipboard,

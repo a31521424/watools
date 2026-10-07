@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,9 +14,46 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, "WaTools:", err)
-		os.Exit(1)
+		code := exitCode(err)
+		if code != 130 {
+			fmt.Fprintln(os.Stderr, "WaTools:", err)
+		}
+		os.Exit(code)
 	}
+}
+
+// The local installer distinguishes an acknowledged cancellation from a build
+// or stop failure. Mixed failures must keep the failure exit code.
+func exitCode(err error) int {
+	if errors.Is(err, workflow.ErrInstallationCommitted) {
+		return 131
+	}
+	if cancellationOnly(err) {
+		return 130
+	}
+	return 1
+}
+
+func cancellationOnly(err error) bool {
+	if err == nil {
+		return false
+	}
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		causes := joined.Unwrap()
+		if len(causes) == 0 {
+			return false
+		}
+		for _, cause := range causes {
+			if !cancellationOnly(cause) {
+				return false
+			}
+		}
+		return true
+	}
+	if wrapped, ok := err.(interface{ Unwrap() error }); ok {
+		return cancellationOnly(wrapped.Unwrap())
+	}
+	return err == context.Canceled
 }
 func run() error {
 	options, err := workflow.Parse(os.Args[1:])

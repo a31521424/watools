@@ -92,6 +92,12 @@ export function createMockHost(options: MockHostOptions = {}): HostAPI {
             if (!clipboardSnapshots.has(id)) throw new HostError('UNAVAILABLE', '剪贴板快照已释放或过期，请重新复制文本')
         },
         GetHotkeyEnvironmentStatusApi: async () => ({secureEventInputEnabled: false, note: '固定浏览器场景，不检测系统状态'}),
+        GetHotkeysApi: async () => [{id: 'show-hide-window', name: '显示/隐藏窗口', hotkey: 'cmd+Space', registered: false, registeredHotkey: ''}],
+        UpdateHotkeyApi: async request => {
+            if (request.id !== 'show-hide-window') invalid('未知快捷键标识')
+            if (typeof request.name !== 'string' || typeof request.hotkey !== 'string' || request.name.length > 256 || request.hotkey.length > 128) invalid('快捷键名称或组合无效')
+            unavailable()
+        },
         GetApplicationCommandsApi: async () => {
             if (options.applicationQuery) applications = clone(await options.applicationQuery())
             return clone(applications)

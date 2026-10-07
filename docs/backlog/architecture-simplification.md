@@ -27,7 +27,8 @@
 | --- | --- | --- | --- |
 | 1 | DB 错误全链透传 E01：DB → command → Host → UI/mock | 首轮事务规则；失败不触发假空初始化，失败保留旧数据，统一重新生成绑定 | implemented，自动验收通过；原生交互待验证 |
 | 2 | 扫描解析/协调 E05/E09、watcher 配置生效与共享规则 | E01；缺失与暂时不可读分开，已提交结果决定通知，并发 reconcile 回归 | implemented；自动验收记录见第三轮，原生/Windows 待验 |
-| 3 | 热键补偿 E04、必需清理 E07、显式初始化 E08、停止 E10 | 独立故障用例与状态契约；涉及原生行为增加原生验收，提交阶段不强杀 | planned |
+| 3 | 热键补偿 E04、必需清理 E07、停止 E10 剩余部分 | 独立故障用例与状态契约；涉及原生行为增加原生验收，提交阶段不强杀；E08 显式初始化另轮推进 | implemented，第四轮自动验收通过；原生/Windows 边界见记录 |
+| 3a | 显式初始化 E08 | 启动失败返回契约、目录/迁移/DB 故障与既有数据保持；本轮明确排除 | planned |
 | 4 | 版本/catalog/解压/usage 调度收缩，store 生命周期 | 前述错误与提交协议；复用机制保留策略差异，不引入万能框架 | planned |
 | 5 | launcher/controller、管理 hooks、iframe 生命周期、官方插件 JS 模块化 | 状态所有权；保留既有回归，直接导入行为模块，加生命周期/多窗测试 | planned |
 | 6 | 加载、图标、日志、Worker、revision 回收等性能工作 | 对应独立 backlog、真实基线、兼容与取消验收；不预设性能数字 | planned |
@@ -125,3 +126,31 @@ Go 检查使用独立临时数据/缓存与仓库 `.cache/tools` 工具缓存，
 | `0242cb8` | E05/E09 四类解析错误、部分扫描与保留规则；周期/watcher/usage 共用协调；删除根复核；配置实际生效；metadata 完整替换与同步取消 | 真实 SQLite、读取/损坏/可选降级、批次故障、重复事件、交错、usage、取消与恢复根用例；统一检查、五包 race、Windows 编译通过 |
 
 未执行原生 GUI、真实安装/替换、Windows 实机、公开发布或推送；平台元数据子进程仍没有新增加的终止/超时机制，只保证取消后的迟到结果失效。整体目标仍为 in-progress。
+
+### 第四轮：E04 热键恢复、E07 必需恢复与 E10 停止
+
+从 `f6af1fe` 开始，工作区干净。用户授权新建 3 个 subagent（均 `fork_turns="none"`）与本地提交：hotkey_recovery 独占 app 热键更新、manager/native 与专属测试；workflow_shutdown 独占 workflow 权限恢复/清理、localinstall manager/process 与专属测试；fault_validation 仅新增独立故障/生命周期测试并交叉审查。主 agent 负责 Host/lifecycle、安全消息、手写契约/mock、统一生成、文档与集成；跨范围先协调，subagent 不提交。
+
+本轮实施：
+
+- E04：热键更新和查询继续串行，先进入 macOS 原生调度再取生命周期锁。分别恢复旧配置与更新前实际注册集合，两步都尝试；`HotkeyUpdateError` 经 `errors.Join` 保留主失败与全部恢复失败。查询分别返回配置和捕获的实际注册值；失败后的配置与注册可不一致，但不伪造恢复成功。Carbon 注册/注销的部分清理失败保留 listener、key/handler 与 callback handle 所有权。原子保存合并 Write/Close，失败不替换旧磁盘配置。
+- Host 暴露状态查询/现有配置能力，安全消息区分完整恢复与恢复失败，无新增设置 UI。同步业务契约、mock 并从 Go 源重新生成 Wails 绑定；Shutdown 返回真实停止故障，生命周期保留 cause 并记录诊断。
+- E07：生成绑定的 WalkDir 与每个 Chmod 失败均影响结果，并与生成主失败合并。必需命令输出、关闭与准备失败停止后续副作用；短写与子进程非零退出可同时保链。无害 bundle/临时目录清理失败记录残留路径，不反转已提交安装；影响后续步骤的准备失败仍返回。
+- E10：bootstrap 有界停止任务组；可信安装 CLI 自己停止普通子任务，提交阶段始终等完成或恢复。采用独立输出管道、并发读取/等待、停止通知文件与标记；读取或停止失败使 Shutdown 可返回诊断，实际所有者保留 process/done、锁与临时资源直到真实退出及输出排空。清理后才统一发布终态，防止旧任务覆盖新任务。纯取消退出 130，不打印错误；helper 已成功提交而输出诊断失败退出 131，管理器仍报告实际安装成功和重启需求并保留故障。bootstrap 的迟到零退出不开始安装，非零提交失败不产生成功标记。
+
+独立新增三个故障文件共 26 个顶层用例，另保留全部既有测试并补专属热键/提交/CLI/Host 用例。覆盖配置与注册恢复组合、残余原生资源、Write/Close/短写、遍历/权限、尽力清理、输出读取/排空/关闭/停止/退出组合、取消与迟到结果、源码锁与未退出资源保持、清理期间拒绝新任务及真实提交事实。交叉审查发现并修复 Wait 提前关 stdout、停止结果尚未完成就清理、旧 reader 未排空、终态提前发布覆盖新任务、并发写输出、非零退出吞写出 cause，以及已提交结果误分类问题。
+
+| 命令/范围 | 结果 |
+| --- | --- |
+| `go run ./cmd/watoolsctl bindings` | 从 Go 源重新生成并构建通过；新增状态/更新 DTO，无手改输出 |
+| `go run ./cmd/watoolsctl check` | 最终通过：81 项前端回归、类型检查/build、Go 全量测试、server-tag app/api、Go vet、production 编译 |
+| `go test -race ./cmd/watoolsctl ./internal/app ./internal/host ./internal/localinstall ./internal/workflow` | 最后短写与停止通知消费补丁后最终五包通过 |
+| 26 个独立故障用例 `-race`；关键取消/提交事实/输出/锁/清理交错 `-race -count=10` | 通过；专属 atomic 边界/短写系列另重复 10 次，正常取消握手重复 5 次通过 |
+| Windows arm64、`CGO_ENABLED=0` 的上述五包 `go test -c` | 最终交叉编译通过，仅编译，未运行 Windows 实机 |
+| 三方交叉复审、gofmt、文档链接与 `git diff --check` | 通过；无剩余本轮阻断项 |
+
+检查采用一次性临时应用数据/缓存，复用仓库 `.cache/tools`，设置 macOS 12 flags。首次新增 Host 方法的前端契约检查在生成前失败，重新生成后通过；独立 race 曾捕获停止通知与子进程输出写入竞争，修复后复验通过。最终统一检查和 race 仍有既有重复 objc/deployment target 链接警告，退出码均为 0。
+
+本轮不实施 E08、SDK、性能、新热键设置 UI 或应用解析子进程的通用超时；不重做前三轮事务补偿、Host/锁分类与扫描协调。不推送、不发布、不安装到正式环境。原生 GUI、物理热键、真实安装替换与 Windows 实机仍未验收，整体目标仍为 in-progress。Windows 沿用的热键库吞掉原生注销结果，状态准确确认有限；可信安装 CLI 暂缺 Windows 优雅取消通道，取消明确报停止失败并保留运行状态，避免强杀可能正在提交的安装。这两项没有因交叉编译通过而标为已验收。
+
+实现与文档由主 agent 交叉审查后统一本地提交，提交号见本轮 git 历史。

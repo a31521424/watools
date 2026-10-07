@@ -1756,6 +1756,21 @@ test('mock queried applications become the trigger and usage snapshot; failed qu
     assert.equal(retained[0].lastUsedAt, '2026-10-07T12:00:00Z');
 });
 
+test('mock hotkeys report no native registration and reject native updates', async () => {
+    const errors = loadTS('frontend/src/api/host/errors.ts');
+    const {createMockHost} = loadTS('frontend/src/api/host/mock.ts', {'./errors': errors});
+    const host = createMockHost();
+    const states = await host.GetHotkeysApi();
+    assert.equal(states[0].registered, false);
+    assert.equal(states[0].registeredHotkey, '');
+    states[0].hotkey = 'mutated';
+    await assert.rejects(host.UpdateHotkeyApi({id:'show-hide-window', name:'Show', hotkey:'cmd+Space'}),
+        err => err.code === 'UNAVAILABLE');
+    await assert.rejects(host.UpdateHotkeyApi({id:'unknown', name:'Show', hotkey:'cmd+Space'}),
+        err => err.code === 'INVALID_ARGUMENT');
+    assert.equal((await host.GetHotkeysApi())[0].hotkey, 'cmd+Space');
+});
+
 test('synchronous diagnostic failure cannot discard usage or skip its retry', async () => {
     const h = applicationStoreHarness({write: async () => {throw new Error('write failure')},
         log: () => {throw new Error('synchronous logger failure')}});

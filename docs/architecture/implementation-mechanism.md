@@ -26,6 +26,8 @@
 
 本机安装使用局部 ValidationError/ErrBusy：可修正输入映射 `INVALID_ARGUMENT`，执行/提交或进程锁争用映射 `UNAVAILABLE`，I/O/启动/停止故障走安全 `OPERATION_FAILED`，取消/超时维持统一分类。转换保留 cause，快照过期映射也保留 sentinel。锁实现仅将实际锁争用标记为 Busy，其余系统故障保持原因。
 
+本机安装 Manager 的 Shutdown 返回 error，Host 生命周期保留停止与排空故障并记录诊断。普通任务与提交的停止策略分开：bootstrap 使用有界任务组收尾，可信安装 CLI 负责其构建子任务和不可强杀的提交。停止失败经独立任务文件及输出标记通知管理进程，输出读取故障也立即使 Shutdown 可返回诊断；后台所有者继续等待真实退出，保留进程、完成通道、源码锁及仍使用中的资源。进程内合并原始 cause，跨进程保留停止失败事实和私有诊断。终态在进程/输出排空和清理完成后统一发布，旧任务不能清空新任务的 process。CLI 纯取消为 130；helper 已成功提交但输出诊断失败为 131，管理器保留提交成功及重启提示，同时保留故障诊断。
+
 前端 [`api/host/contracts.ts`](../../frontend/src/api/host/contracts.ts) 是稳定业务契约，只有 [`api/host/wails.ts`](../../frontend/src/api/host/wails.ts) 接触生成路径。该适配器转换窗口/命令/日志类型与 Wails 错误；mock 同样实现 HostAPI，使用独立内存固定场景。旧插件 SDK 名称、packageId 闭包、Storage 值与 HTTP `status_code` 保持兼容；旧 `internal/coordinator` 生成路径及方法 ID 已删除，直接依赖内部绑定的调用方必须迁移，内部路径不属于插件 SDK。
 
 扩展能力时：在业务模块实现 → 在对应领域服务校验/暴露 → 运行 `go run ./cmd/watoolsctl bindings` → 更新 HostAPI 与两个适配器 → 迁移调用方并补关键契约回归。禁止手改生成文件。
@@ -34,7 +36,11 @@
 
 主窗口是透明无边框 WebviewWindow，macOS 使用 non-activating NSPanel；位置桥接接收启动器的 NativeWindow 句柄，不查找任意 key/main window。原生菜单改为 v3 menu roles；插件安装文件对话框明确附着主窗口。
 
-macOS 全局快捷键使用 Carbon 独占注册，生命周期入口先调度到 AppKit 主线程再取得锁，注册与移除在主线程完成，避免退出清理的锁反转。占用冲突会返回错误，现有配置更新流程恢复旧配置与注册；注册的事件处理器随快捷键释放。Windows 仍使用原有 hotkey 库。启动器呼出仅 Show／Focus 自己的 non-activating NSPanel，获得键盘焦点而不执行应用级激活，因此不会将其他独立插件窗一起置前。隐藏只 order out 启动器，由 AppKit 恢复键盘焦点，不强制激活先前应用，以免打断刚分离的小窗。
+macOS 全局快捷键使用 Carbon 独占注册，生命周期入口先调度到 AppKit 主线程再取得锁，注册与移除在主线程完成，避免退出清理的锁反转。热键更新继续串行：失败后分别恢复旧配置与更新前的实际注册集合，两项恢复都执行，主失败与恢复失败全部保链；原本未注册的项不会在恢复中被强制注册。原子保存的 Write/Close 均成功后才替换文件，失败保留旧磁盘配置。Carbon 注册或注销中途失败时保留残余资源的所有权，供后续恢复继续清理。
+
+AppService 的 `GetHotkeysApi` 返回配置 `hotkey` 与实际 `registered`/`registeredHotkey`，状态不从配置推测；`UpdateHotkeyApi` 只接受配置字段，校验输入并返回安全错误。完整恢复和恢复失败的用户消息分开，后者不会宣称旧热键已恢复；错误树保留配置、注册、写入/关闭及恢复原因。没有新增热键设置 UI，mock 查询明确未注册，更新报原生能力不可用。Windows 仍使用原有 hotkey 库。启动器呼出仅 Show／Focus 自己的 non-activating NSPanel，获得键盘焦点而不执行应用级激活，因此不会将其他独立插件窗一起置前。隐藏只 order out 启动器，由 AppKit 恢复键盘焦点，不强制激活先前应用，以免打断刚分离的小窗。
+
+原生状态的验证边界：macOS 自研后端检查 Carbon key 句柄并保留注销故障；Windows 的既有 `golang.design/x/hotkey` 后端吞掉 `UnregisterHotKey` 返回值，本轮未改写它，Windows 状态只能依据库返回结果，不能视为系统注销确认。Windows 实机与该限制的修复仍待后续验收。
 
 插件继续注入 `window.runtime` 兼容对象，由 `frontend/src/lib/legacy-runtime.ts` 将旧名称转换为 v3 API，包含旧剪贴板成功布尔值、窗口尺寸 `{w,h}` 与事件可变参数。常用日志走显式宿主方法；v3 framework 自动调用日志过滤 args/result。这个兼容对象不是完整 v2 运行时或不可信插件沙箱，具体支持边界见插件指南。
 

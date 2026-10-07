@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"watools/pkg/logger"
@@ -21,7 +20,6 @@ type WaApp struct {
 	desktop          *application.App
 	window           *application.WebviewWindow
 	isHidden         atomic.Bool
-	hotkeyListener   []*HotkeyListener
 	lastScreenWidth  int
 	lastScreenHeight int
 }
@@ -104,9 +102,11 @@ func (a *WaApp) getPrimaryScreen() (application.Screen, bool) {
 
 // HotkeyConfigAPI represents a hotkey configuration for API responses
 type HotkeyConfigAPI struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Hotkey string `json:"hotkey"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	Hotkey           string `json:"hotkey"`
+	Registered       bool   `json:"registered"`
+	RegisteredHotkey string `json:"registeredHotkey"`
 }
 
 type HotkeyEnvironmentStatus struct {
@@ -200,25 +200,14 @@ func (a *WaApp) unregisterHotkeys() {
 	hm.UnregisterAll()
 }
 
-// GetHotkeys returns all hotkey configurations (Wails binding method)
+// GetHotkeys returns a consistent snapshot of configured and registered hotkeys.
 func (a *WaApp) GetHotkeys() []HotkeyConfigAPI {
-	hm := GetHotkeyManager()
-	configs := hm.GetAllConfigs()
-
-	// Convert to API format
-	apiConfigs := make([]HotkeyConfigAPI, len(configs))
-	for i, cfg := range configs {
-		apiConfigs[i] = HotkeyConfigAPI{
-			ID:     cfg.ID,
-			Name:   cfg.Name,
-			Hotkey: cfg.Hotkey,
-		}
-	}
-
-	return apiConfigs
+	a.hotkeyUpdateMu.Lock()
+	defer a.hotkeyUpdateMu.Unlock()
+	return GetHotkeyManager().GetHotkeyStates()
 }
 
-// UpdateHotkey updates a hotkey configuration (Wails binding method)
+// UpdateHotkey updates configuration and native registration for the Host API.
 func (a *WaApp) UpdateHotkey(apiConfig HotkeyConfigAPI) error {
 	return runHotkeyLifecycle(func() error { return a.updateHotkey(apiConfig) })
 }
@@ -226,39 +215,7 @@ func (a *WaApp) UpdateHotkey(apiConfig HotkeyConfigAPI) error {
 func (a *WaApp) updateHotkey(apiConfig HotkeyConfigAPI) error {
 	a.hotkeyUpdateMu.Lock()
 	defer a.hotkeyUpdateMu.Unlock()
-	hm := GetHotkeyManager()
-
-	// Create app layer config
-	cfg := HotkeyConfig{
-		ID:     apiConfig.ID,
-		Name:   apiConfig.Name,
-		Hotkey: apiConfig.Hotkey,
-	}
-
-	old, exists := hm.GetConfig(cfg.ID)
-	if !exists {
-		return fmt.Errorf("unknown hotkey ID: %s", cfg.ID)
-	}
-	if err := hm.SetConfig(cfg); err != nil {
-		return err
-	}
-	rollback := func() {
-		_ = hm.SetConfig(old)
-		if err := hm.RegisterAll(); err != nil {
-			logger.Error(err, "Failed to restore hotkeys")
-		}
-	}
-	if err := hm.RegisterAll(); err != nil {
-		rollback()
-		return err
-	}
-	if err := hm.SaveConfigs(); err != nil {
-		rollback()
-		return err
-	}
-
-	logger.Info("Hotkey updated successfully")
-	return nil
+	return a.updateHotkeyWithManager(apiConfig, GetHotkeyManager())
 }
 
 func (a *WaApp) GetHotkeyEnvironmentStatus() HotkeyEnvironmentStatus {

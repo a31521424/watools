@@ -139,6 +139,35 @@ export class DetachPluginRequest {
     }
 }
 
+export class HotkeyUpdateRequest {
+    "id": string;
+    "name": string;
+    "hotkey": string;
+
+    /** Creates a new HotkeyUpdateRequest instance. */
+    constructor($$source: Partial<HotkeyUpdateRequest> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("hotkey" in $$source)) {
+            this["hotkey"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HotkeyUpdateRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): HotkeyUpdateRequest {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new HotkeyUpdateRequest($$parsedSource as Partial<HotkeyUpdateRequest>);
+    }
+}
+
 export class OperationCommand {
     "triggerId": string;
     "name": string;

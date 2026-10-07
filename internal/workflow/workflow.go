@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,12 @@ import (
 )
 
 const CommitMessage = "Artifacts ready. Applying application and plugin revisions."
+const StopFailureMessage = "WATOOLS_TASK_STOP_FAILED"
+const StopFailureFileEnv = "WATOOLS_INSTALL_STOP_FAILURE_FILE"
+
+var ErrTaskStopFailed = errors.New("installation task could not be stopped")
+var ErrInstallationCommitted = errors.New("installation committed with an output diagnostic failure")
+
 const Help = `WaTools project CLI
 
   go run ./cmd/watoolsctl doctor
@@ -58,7 +65,7 @@ func (r *Runner) Execute(ctx context.Context, args []string) error {
 		}
 		defer func() {
 			if r.cleanupSafe {
-				os.RemoveAll(temporary)
+				r.cleanup(temporary)
 			} else {
 				fmt.Fprintf(r.Err, "Preserved temporary artifacts: %s\n", temporary)
 			}
@@ -163,7 +170,9 @@ func (r *Runner) Execute(ctx context.Context, args []string) error {
 	return fmt.Errorf("unhandled command: %s", o.Task)
 }
 func (r *Runner) install(ctx context.Context, t Toolchain, o Options, temp string, original []string) error {
-	fmt.Fprintln(r.Out, "Preparing dependencies and installation artifacts (user data untouched).")
+	if _, err := fmt.Fprintln(r.Out, "Preparing dependencies and installation artifacts (user data untouched)."); err != nil {
+		return fmt.Errorf("write installation preparation: %w", err)
+	}
 	if err := r.Run(ctx, r.Root, "go", "mod", "download"); err != nil {
 		return err
 	}
@@ -204,7 +213,9 @@ func (r *Runner) install(ctx context.Context, t Toolchain, o Options, temp strin
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	fmt.Fprintln(r.Out, CommitMessage)
+	if _, err := fmt.Fprintln(r.Out, CommitMessage); err != nil {
+		return fmt.Errorf("write installation commit marker: %w", err)
+	}
 	for _, key := range []string{"WATOOLS_DATA_DIR", "WATOOLS_CACHE_DIR"} {
 		r.SetEnv(key, EnvValue(original, key))
 	}
