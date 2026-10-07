@@ -26,7 +26,7 @@
 | 顺序 | 范围 | 依赖及验收重点 | 状态 |
 | --- | --- | --- | --- |
 | 1 | DB 错误全链透传 E01：DB → command → Host → UI/mock | 首轮事务规则；失败不触发假空初始化，失败保留旧数据，统一重新生成绑定 | implemented，自动验收通过；原生交互待验证 |
-| 2 | 扫描解析/协调 E05/E09、watcher 配置生效与共享规则 | E01；缺失与暂时不可读分开，已提交结果决定通知，并发 reconcile 回归 | planned |
+| 2 | 扫描解析/协调 E05/E09、watcher 配置生效与共享规则 | E01；缺失与暂时不可读分开，已提交结果决定通知，并发 reconcile 回归 | implemented；自动验收记录见第三轮，原生/Windows 待验 |
 | 3 | 热键补偿 E04、必需清理 E07、显式初始化 E08、停止 E10 | 独立故障用例与状态契约；涉及原生行为增加原生验收，提交阶段不强杀 | planned |
 | 4 | 版本/catalog/解压/usage 调度收缩，store 生命周期 | 前述错误与提交协议；复用机制保留策略差异，不引入万能框架 | planned |
 | 5 | launcher/controller、管理 hooks、iframe 生命周期、官方插件 JS 模块化 | 状态所有权；保留既有回归，直接导入行为模块，加生命周期/多窗测试 | planned |
@@ -93,3 +93,35 @@ Go 检查使用独立临时数据/缓存与仓库 `.cache/tools` 工具缓存，
 | 交叉复审、gofmt、文档链接与 `git diff --check` | 通过 |
 
 沿用临时数据/缓存、仓库工具缓存和 macOS 12 flags；既有链接警告仍在。本轮没有执行真实安装、原生 GUI、物理热键、真实 React 组件挂载、Windows 实机或公开发布；原生重试交互仍待验证。
+
+### 第三轮：E05/E09 扫描解析、路径协调与 watcher 配置
+
+2026-10-07，从 `a4932ad` 开始。按用户授权创建 3 个新 subagent（均 `fork_turns="none"`），分别独占 application 解析、watcher 配置/事件、新增独立故障与并发测试；主 agent 负责 command 协调、默认 handler、DB 元数据提交语义、文档和集成。保留 E01 与已有测试，未扩展至热键、初始化、SDK 或性能批次。
+
+本轮实施：
+
+- 解析返回四类 sentinel 与原始 cause；应用根缺失、非应用、读取故障、无效元数据分开。缺 plist 不删除旧记录，可选名称/图标/cache 失败明确降级。扫描保留有效部分并聚合故障；首次空库初始化仍遇故障停止，后台扫描可提交有效部分。
+- 周期与 watcher 路径入口共享应用串行所有权，usage、查询/初始化与 runner 发布参与协调；事件携带路径提示，所有权内重新解析，保留 ID/TriggerID/usage。删除提交前再次检查根路径，防止替换窗口误删后重建身份。
+- debounce/buffer 配置实际生效；共用配置验证/getter，保留平台默认 delay 和原生路径规则；构造和读取配置隔离可变目录列表。重复及交错事件按路径合并，以最终磁盘状态处理。
+- SQL 元数据完整替换，允许清空不可用的可选图标/描述，保留 usage；修改 sqlc 源查询并用 v1.30.0 重新生成。通知和日志依据已提交批次，失败上抛；服务/任务取消同步检查，迟到解析不开始写入或发布通知。
+
+交叉审查与独立真实 SQLite 验证发现并修复三处边界：Time 的内部表示不能用于判定元数据变化；旧 COALESCE 查询无法清空可选值，会反复更新/通知；AfterFunc 的异步取消不能代替写入前同步检查 owner context。另补安装期间根路径重新出现的删除竞态，避免 ID/usage 丢失。
+
+实际验证：
+
+| 命令/范围 | 结果 |
+| --- | --- |
+| `go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0 generate` | 从源查询生成应用 metadata 更新；排除无关 plugin 输出的函数排序变化，无手改生成内容 |
+| `go run ./cmd/watoolsctl check` | 最终通过：80 项前端回归、类型检查/build、Go 全量测试、server-tag app/api、Go vet、production 编译 |
+| `go test -race ./pkg/db ./internal/command/application ./internal/command ./internal/command/watcher ./internal/host` | 最终五包通过；独立故障验证新增 20 个 command 行为用例，保留原有测试 |
+| command 的取消/交错/路径恢复选择用例 `-race -count=20` | 通过；watcher 跨路径组合事件额外 `-race -count=5` 通过 |
+| Windows arm64、`CGO_ENABLED=0` 的上述五包 `go test -c` | 交叉编译通过；Windows 解析测试包括读取/损坏/可选降级与部分成功，未执行 Windows 运行时 |
+| 交叉复审、gofmt、文档链接与 `git diff --check` | 通过；最终无待处理逻辑阻断 |
+
+测试使用一次性临时应用数据/缓存，复用仓库 `.cache/tools` 工具缓存，并设置 macOS 12 flags。统一检查的前几次失败定位到 SQLite 可选值未清空及生成后残留 import；修复后完整重跑通过。既有 objc/deployment target 链接警告仍在，退出码为 0。初次直接启动检查遇系统默认 Go cache 的沙箱权限错误，改用仓库工具缓存后正常执行，没有访问真实数据或凭据。
+
+| 实施提交 | 完成范围 | 验收边界 |
+| --- | --- | --- |
+| `0242cb8` | E05/E09 四类解析错误、部分扫描与保留规则；周期/watcher/usage 共用协调；删除根复核；配置实际生效；metadata 完整替换与同步取消 | 真实 SQLite、读取/损坏/可选降级、批次故障、重复事件、交错、usage、取消与恢复根用例；统一检查、五包 race、Windows 编译通过 |
+
+未执行原生 GUI、真实安装/替换、Windows 实机、公开发布或推送；平台元数据子进程仍没有新增加的终止/超时机制，只保证取消后的迟到结果失效。整体目标仍为 in-progress。
