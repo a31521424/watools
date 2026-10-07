@@ -141,15 +141,14 @@ func (d *WaDB) withTx(ctx context.Context, f func(tx *sql.Tx) error) (result err
 	return nil
 }
 
-func (d *WaDB) GetCommands(ctx context.Context) []*models.ApplicationCommand {
+func (d *WaDB) GetCommands(ctx context.Context) ([]*models.ApplicationCommand, error) {
 	dbCommands, err := d.query.GetApplications(ctx)
 	if err != nil {
-		logger.Error(err, "Failed to get commands")
-		return nil
+		return nil, fmt.Errorf("failed to get commands: %w", err)
 	}
 	return lo.Map(dbCommands, func(item Application, _ int) *models.ApplicationCommand {
 		return ConvertApplicationCommand(item)
-	})
+	}), nil
 }
 
 func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
@@ -178,16 +177,15 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Appli
 	return nil
 }
 
-func (d *WaDB) GetExpiredCommands(ctx context.Context) []*models.ApplicationCommand {
+func (d *WaDB) GetExpiredCommands(ctx context.Context) ([]*models.ApplicationCommand, error) {
 	expiredTime := time.Now().Add(-time.Hour * 24)
 	dbCommands, err := d.query.GetExpiredApplications(ctx, expiredTime)
 	if err != nil {
-		logger.Error(err, "Failed to get expired commands")
-		return nil
+		return nil, fmt.Errorf("failed to get expired commands: %w", err)
 	}
 	return lo.Map(dbCommands, func(item Application, _ int) *models.ApplicationCommand {
 		return ConvertApplicationCommand(item)
-	})
+	}), nil
 }
 
 func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
@@ -222,18 +220,19 @@ func (d *WaDB) DeleteCommands(ctx context.Context, ids []string) error {
 	})
 }
 
-func (d *WaDB) GetCommandIsUpdatedDir(ctx context.Context, path string, dirUpdatedAt time.Time) *models.ApplicationCommand {
+// GetCommandIsUpdatedDir returns nil, nil when no matching command exists.
+func (d *WaDB) GetCommandIsUpdatedDir(ctx context.Context, path string, dirUpdatedAt time.Time) (*models.ApplicationCommand, error) {
 	command, err := d.query.GetApplicationIsUpdatedDir(ctx, GetApplicationIsUpdatedDirParams{
 		Path:         path,
 		DirUpdatedAt: dirUpdatedAt,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil
+			return nil, nil
 		}
-		logger.Error(err, "Failed to get command is updated dir")
+		return nil, fmt.Errorf("failed to get command by directory update: %w", err)
 	}
-	return ConvertApplicationCommand(command)
+	return ConvertApplicationCommand(command), nil
 }
 
 func (d *WaDB) GetPlugins(ctx context.Context) ([]*models.PluginState, error) {

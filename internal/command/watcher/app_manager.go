@@ -265,16 +265,29 @@ func (awm *appWatchManager) GetConfig() *WatcherConfig {
 }
 
 // defaultAppEventHandler default app event handler darwin implementation
+type ApplicationRepository interface {
+	GetCommands(context.Context) ([]*models.ApplicationCommand, error)
+	BatchInsertCommands(context.Context, []*models.ApplicationCommand) error
+	BatchUpdateCommands(context.Context, []*models.ApplicationCommand) error
+	DeleteCommands(context.Context, []string) error
+}
+
 type defaultAppEventHandler struct {
 	notify func()
-	db     *db.WaDB
+	db     ApplicationRepository
 	ctx    context.Context
 }
 
 // NewDefaultAppEventHandler create default event handler
 func NewDefaultAppEventHandler(ctx context.Context, notify func()) DefaultAppEventHandler {
+	return NewDefaultAppEventHandlerWithRepository(ctx, notify, db.GetWaDB())
+}
+
+// NewDefaultAppEventHandlerWithRepository shares the command persistence boundary
+// without creating a native watcher or depending on the global database.
+func NewDefaultAppEventHandlerWithRepository(ctx context.Context, notify func(), repository ApplicationRepository) DefaultAppEventHandler {
 	return &defaultAppEventHandler{
-		db:     db.GetWaDB(),
+		db:     repository,
 		ctx:    ctx,
 		notify: notify,
 	}
@@ -283,7 +296,10 @@ func NewDefaultAppEventHandler(ctx context.Context, notify func()) DefaultAppEve
 // OnAppAdded handle app added
 func (h *defaultAppEventHandler) OnAppAdded(command *models.ApplicationCommand) error {
 	// check if already exists
-	existingCommands := h.db.GetCommands(h.ctx)
+	existingCommands, err := h.db.GetCommands(h.ctx)
+	if err != nil {
+		return fmt.Errorf("read application commands before add: %w", err)
+	}
 	for _, existing := range existingCommands {
 		if existing.Path == command.Path {
 			// if exists, update instead of insert (no event emission here to avoid duplicate)
@@ -292,7 +308,7 @@ func (h *defaultAppEventHandler) OnAppAdded(command *models.ApplicationCommand) 
 	}
 
 	// insert new app
-	err := h.db.BatchInsertCommands(h.ctx, []*models.ApplicationCommand{command})
+	err = h.db.BatchInsertCommands(h.ctx, []*models.ApplicationCommand{command})
 	if err == nil {
 		h.emitApplicationChanged()
 	}
@@ -302,7 +318,10 @@ func (h *defaultAppEventHandler) OnAppAdded(command *models.ApplicationCommand) 
 // OnAppRemoved handle app removed
 func (h *defaultAppEventHandler) OnAppRemoved(path string) error {
 	// find and delete command by path
-	commands := h.db.GetCommands(h.ctx)
+	commands, err := h.db.GetCommands(h.ctx)
+	if err != nil {
+		return fmt.Errorf("read application commands before remove: %w", err)
+	}
 	for _, command := range commands {
 		if command.Path == path {
 			err := h.db.DeleteCommands(h.ctx, []string{command.ID})
@@ -327,7 +346,10 @@ func (h *defaultAppEventHandler) OnAppModified(command *models.ApplicationComman
 // onAppModifiedInternal internal method for handling app modified without emitting events
 func (h *defaultAppEventHandler) onAppModifiedInternal(command *models.ApplicationCommand) error {
 	// find existing command and update
-	commands := h.db.GetCommands(h.ctx)
+	commands, err := h.db.GetCommands(h.ctx)
+	if err != nil {
+		return fmt.Errorf("read application commands before modify: %w", err)
+	}
 	for _, existing := range commands {
 		if existing.Path == command.Path {
 			command.ID = existing.ID

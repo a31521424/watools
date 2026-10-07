@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -27,9 +28,52 @@ type WaLaunchApp struct {
 	applicationRunner []models.CommandRunner
 	operationRunner   []models.CommandRunner
 	watchManager      watcher.AppWatchManager
+	repository        ApplicationRepository
+	source            ApplicationSource
 }
 
-func NewWaLaunch() *WaLaunchApp { return &WaLaunchApp{} }
+// ApplicationRepository is the persistence boundary for application commands.
+type ApplicationRepository interface {
+	watcher.ApplicationRepository
+	BatchUpdateApplicationUsage(context.Context, []models.ApplicationUsageUpdate) error
+}
+
+// ApplicationSource supplies the platform application scan and parsing boundary.
+type ApplicationSource interface {
+	Scan() ([]*models.ApplicationCommand, error)
+	Paths() []application.AppPathInfo
+	Parse(string) (*models.ApplicationCommand, error)
+}
+
+type platformApplicationSource struct{}
+
+func (platformApplicationSource) Scan() ([]*models.ApplicationCommand, error) {
+	return application.GetApplications()
+}
+func (platformApplicationSource) Paths() []application.AppPathInfo {
+	return application.GetAppPathInfos()
+}
+func (platformApplicationSource) Parse(path string) (*models.ApplicationCommand, error) {
+	return application.ParseApplication(path)
+}
+
+func NewWaLaunch() *WaLaunchApp { return NewWaLaunchWithDependencies(nil, nil) }
+
+// NewWaLaunchWithDependencies supports isolated command consumers without
+// starting native watchers. Nil dependencies retain the platform defaults.
+func NewWaLaunchWithDependencies(repository ApplicationRepository, source ApplicationSource) *WaLaunchApp {
+	if source == nil {
+		source = platformApplicationSource{}
+	}
+	return &WaLaunchApp{ctx: context.Background(), repository: repository, source: source}
+}
+
+func (w *WaLaunchApp) database() ApplicationRepository {
+	if w.repository != nil {
+		return w.repository
+	}
+	return db.GetWaDB()
+}
 
 func (w *WaLaunchApp) OnStartup(ctx context.Context, notify func()) {
 	w.notify = notify
@@ -61,7 +105,7 @@ func (w *WaLaunchApp) asyncUpdateApplications(delay time.Duration) {
 			return
 		case <-timer.C:
 		}
-		w.updateApplications()
+		w.refreshApplications()
 		ticker := time.NewTicker(2 * time.Minute)
 		defer ticker.Stop()
 		for {
@@ -69,22 +113,37 @@ func (w *WaLaunchApp) asyncUpdateApplications(delay time.Duration) {
 			case <-w.ctx.Done():
 				return
 			case <-ticker.C:
-				w.updateApplications()
+				w.refreshApplications()
 			}
 		}
 	}()
 }
 
-func (w *WaLaunchApp) updateApplications() {
+func (w *WaLaunchApp) refreshApplications() {
+	if err := w.updateApplications(); err != nil && !errors.Is(err, context.Canceled) {
+		logger.Error(err, "Failed to refresh applications; keeping the last available runners")
+	}
+}
+
+func (w *WaLaunchApp) updateApplications() error {
 	ApiMutex.Lock()
 	defer ApiMutex.Unlock()
 	w.reconcileMu.Lock()
 	defer w.reconcileMu.Unlock()
 	if w.ctx.Err() != nil {
-		return
+		return w.ctx.Err()
 	}
-	dbInstance := db.GetWaDB()
-	commands := dbInstance.GetCommands(w.ctx)
+	dbInstance := w.database()
+	commands, err := dbInstance.GetCommands(w.ctx)
+	if err != nil {
+		return fmt.Errorf("read application commands for refresh: %w", err)
+	}
+	changed := false
+	defer func() {
+		if changed && w.notify != nil {
+			w.notify()
+		}
+	}()
 	seen := make(map[string]struct{})
 	var updateCommands []*models.ApplicationCommand
 	var insertCommands []*models.ApplicationCommand
@@ -106,7 +165,7 @@ func (w *WaLaunchApp) updateApplications() {
 			continue
 		}
 		logger.Info(fmt.Sprintf("Update dir updated for command: %s, %s", command.Name, command.Path))
-		parsedCommand, err := application.ParseApplication(command.Path)
+		parsedCommand, err := w.source.Parse(command.Path)
 		if err != nil {
 			logger.Error(err, "Failed to parse application")
 			removeCommands = append(removeCommands, command)
@@ -115,76 +174,94 @@ func (w *WaLaunchApp) updateApplications() {
 		parsedCommand.ID = id
 		updateCommands = append(updateCommands, parsedCommand)
 	}
-	logger.Info(fmt.Sprintf("Update commands result: updated %d / total %d", len(updateCommands), len(commands)))
-	err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands)
-	if err != nil {
-		logger.Error(err, "Failed to batch update updated commands to db")
+	if len(updateCommands) > 0 {
+		if err := dbInstance.BatchUpdateCommands(w.ctx, updateCommands); err != nil {
+			return fmt.Errorf("persist updated application commands: %w", err)
+		}
+		changed = true
+		logger.Info(fmt.Sprintf("Updated %d application commands", len(updateCommands)))
 	}
-	logger.Info(fmt.Sprintf("Delete commands result: removed %d / total %d", len(removeCommands), len(commands)))
-	err = dbInstance.DeleteCommands(w.ctx, lo.Map(removeCommands, func(command *models.ApplicationCommand, _ int) string {
-		return command.ID
-	}))
-	if err != nil {
-		logger.Error(err, "Failed to delete commands")
+	if len(removeCommands) > 0 {
+		if err := dbInstance.DeleteCommands(w.ctx, lo.Map(removeCommands, func(command *models.ApplicationCommand, _ int) string {
+			return command.ID
+		})); err != nil {
+			return fmt.Errorf("delete missing application commands: %w", err)
+		}
+		changed = true
+		logger.Info(fmt.Sprintf("Removed %d application commands", len(removeCommands)))
 	}
 
 	logger.Info("Checking commands from disk")
-	appPathInfos := application.GetAppPathInfos()
+	appPathInfos := w.source.Paths()
 	for _, appPathInfo := range appPathInfos {
 		if _, exists := seen[appPathInfo.Path]; exists {
 			continue
 		}
 		logger.Info(fmt.Sprintf("Adding command from path: %s", appPathInfo.Path))
-		command, err := application.ParseApplication(appPathInfo.Path)
+		command, err := w.source.Parse(appPathInfo.Path)
 		if err != nil {
 			logger.Error(err, "Failed to parse application")
 			continue
 		}
 		insertCommands = append(insertCommands, command)
 	}
-	logger.Info(fmt.Sprintf("Scan disk commands result: added %d / total %d", len(insertCommands), len(appPathInfos)))
-	err = dbInstance.BatchInsertCommands(w.ctx, insertCommands)
-	if err != nil {
-		logger.Error(err, "Failed to batch insert new commands to db")
-	}
-	if len(insertCommands)+len(updateCommands)+len(removeCommands) > 0 {
-		if w.notify != nil {
-			w.notify()
+	if len(insertCommands) > 0 {
+		if err := dbInstance.BatchInsertCommands(w.ctx, insertCommands); err != nil {
+			return fmt.Errorf("persist new application commands: %w", err)
 		}
+		changed = true
+		logger.Info(fmt.Sprintf("Added %d application commands", len(insertCommands)))
 	}
+	return nil
 }
 
 var ApiMutex sync.Mutex
 
-func (w *WaLaunchApp) getApplicationCommands() []*models.ApplicationCommand {
-	ApiMutex.Lock()
-	defer ApiMutex.Unlock()
-	dbInstance := db.GetWaDB()
-	commands := dbInstance.GetCommands(w.ctx)
+func (w *WaLaunchApp) getApplicationCommands() ([]*models.ApplicationCommand, error) {
+	if err := w.ctx.Err(); err != nil {
+		return nil, err
+	}
+	dbInstance := w.database()
+	commands, err := dbInstance.GetCommands(w.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("read application commands: %w", err)
+	}
 	if len(commands) == 0 {
-		scanned, err := application.GetApplications()
+		scanned, err := w.source.Scan()
+		if err != nil {
+			return nil, fmt.Errorf("scan application commands: %w", err)
+		}
+		if err := w.ctx.Err(); err != nil {
+			return nil, err
+		}
+		if len(scanned) > 0 {
+			if err := dbInstance.BatchInsertCommands(w.ctx, scanned); err != nil {
+				return nil, fmt.Errorf("initialize application commands: %w", err)
+			}
+		}
 		commands = scanned
-		if err != nil {
-			logger.Error(err, "Failed to get application")
-			return []*models.ApplicationCommand{}
-		}
-		err = dbInstance.BatchInsertCommands(w.ctx, commands)
-		if err != nil {
-			logger.Error(err, "Failed to batch insert commands")
-		}
 	}
 	for _, command := range commands {
 		if command.IconPath.IsNone() {
 			command.IconPath = mo.Some(application.GetDefaultIconPath())
 		}
 	}
-	return commands
+	return commands, nil
 }
 
-func (w *WaLaunchApp) GetApplicationCommands() []*models.ApplicationCommand {
+func (w *WaLaunchApp) GetApplicationCommands() ([]*models.ApplicationCommand, error) {
+	ApiMutex.Lock()
+	defer ApiMutex.Unlock()
 	var runners []models.CommandRunner
 
-	apps := lo.UniqBy(w.getApplicationCommands(), func(app *models.ApplicationCommand) string {
+	commands, err := w.getApplicationCommands()
+	if err != nil {
+		return nil, err
+	}
+	if err := w.ctx.Err(); err != nil {
+		return nil, err
+	}
+	apps := lo.UniqBy(commands, func(app *models.ApplicationCommand) string {
 		if app.ID != "" {
 			return app.ID
 		}
@@ -195,7 +272,7 @@ func (w *WaLaunchApp) GetApplicationCommands() []*models.ApplicationCommand {
 	w.runnersMu.Lock()
 	w.applicationRunner = runners
 	w.runnersMu.Unlock()
-	return apps
+	return apps, nil
 }
 
 func (w *WaLaunchApp) GetOperationCommands() []*models.OperationCommand {
@@ -243,7 +320,7 @@ func (w *WaLaunchApp) TriggerCommand(uniqueTriggerID string, triggerCategory mod
 }
 
 func (w *WaLaunchApp) initAppWatcher() {
-	eventHandler := watcher.NewDefaultAppEventHandler(w.ctx, w.notify)
+	eventHandler := watcher.NewDefaultAppEventHandlerWithRepository(w.ctx, w.notify, w.database())
 
 	watchManager, err := watcher.NewAppWatchManager(eventHandler, w.ctx)
 	if err != nil {
@@ -292,6 +369,5 @@ func (w *WaLaunchApp) GetWatchMetrics() *watcher.WatcherMetrics {
 }
 
 func (w *WaLaunchApp) UpdateApplicationUsage(usageUpdates []models.ApplicationUsageUpdate) error {
-	dbInstance := db.GetWaDB()
-	return dbInstance.BatchUpdateApplicationUsage(w.ctx, usageUpdates)
+	return w.database().BatchUpdateApplicationUsage(w.ctx, usageUpdates)
 }

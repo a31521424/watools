@@ -51,13 +51,16 @@ func commandInfo(c models.Command) CommandInfo {
 	}
 	return v
 }
-func (s *CommandService) GetApplicationCommandsApi() []ApplicationCommand {
-	items := s.core.GetApplicationCommands()
+func (s *CommandService) GetApplicationCommandsApi() ([]ApplicationCommand, error) {
+	items, err := s.core.GetApplicationCommands()
+	if err != nil {
+		return nil, failure("command.applications", err)
+	}
 	result := make([]ApplicationCommand, 0, len(items))
 	for _, c := range items {
 		result = append(result, ApplicationCommand{CommandInfo: commandInfo(c.Command), ID: c.ID, Path: c.Path, IconPath: c.IconPath.OrEmpty(), IsUserApp: c.IsUserApp})
 	}
-	return result
+	return result, nil
 }
 func (s *CommandService) GetOperatorCommandsApi() []OperationCommand {
 	items := s.core.GetOperationCommands()
