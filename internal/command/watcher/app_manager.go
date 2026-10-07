@@ -4,6 +4,7 @@ package watcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -159,6 +160,9 @@ func (awm *appWatchManager) processAppEvent(event AppChangeEvent) {
 	retryableOp := NewRetryableOperation(operation, awm.errorHandler, &awm.config.RetryConfig)
 
 	if err := retryableOp.ExecuteContext(awm.ctx); err != nil {
+		if awm.ctx.Err() != nil || errors.Is(err, context.Canceled) {
+			return
+		}
 		awm.errorHandler.HandleEventError(err, event)
 		awm.mu.Lock()
 		awm.metrics.IncrementErrorsCount()

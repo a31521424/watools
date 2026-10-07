@@ -1,10 +1,16 @@
+//go:build darwin || windows
+
 package watcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 	"watools/pkg/logger"
+
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 // ErrorHandler error handler interface
@@ -21,9 +27,11 @@ type DefaultErrorHandler struct {
 
 // NewDefaultErrorHandler create default error handler
 func NewDefaultErrorHandler(config *RetryConfig) *DefaultErrorHandler {
-	return &DefaultErrorHandler{
-		config: config,
+	if config == nil {
+		return &DefaultErrorHandler{}
 	}
+	copy := *config
+	return &DefaultErrorHandler{config: &copy}
 }
 
 // HandleWatcherError handle watcher error
@@ -33,17 +41,47 @@ func (h *DefaultErrorHandler) HandleWatcherError(err error, context string) {
 
 // HandleEventError handle event error
 func (h *DefaultErrorHandler) HandleEventError(err error, event AppChangeEvent) {
+	if errors.Is(err, context.Canceled) {
+		return
+	}
 	logger.Error(err, fmt.Sprintf("Failed to process %s event for %s",
 		h.getEventTypeName(event.Type), event.Path))
 }
 
 // ShouldRetry check if should retry
 func (h *DefaultErrorHandler) ShouldRetry(err error, attempt int) bool {
-	if h.config == nil {
+	if h.config == nil || err == nil || attempt >= h.config.MaxRetries ||
+		errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return false
 	}
+	// The watcher retries the entire DB operation after its transaction has ended.
+	// Unknown parse/I/O errors are not evidence of a transient failure. SQLITE_LOCKED
+	// may require fixing a cursor on the same connection rather than waiting.
+	return retryableDatabaseError(err)
+}
 
-	return attempt < h.config.MaxRetries
+// A busy primary error does not make a failed rollback safe to retry. Every
+// leaf must be a known contention error, including errors joined during cleanup.
+func retryableDatabaseError(err error) bool {
+	switch cause := err.(type) {
+	case interface{ Unwrap() []error }:
+		children := cause.Unwrap()
+		if len(children) == 0 {
+			return false
+		}
+		for _, child := range children {
+			if !retryableDatabaseError(child) {
+				return false
+			}
+		}
+		return true
+	case interface{ Unwrap() error }:
+		return retryableDatabaseError(cause.Unwrap())
+	case *sqlite.Error:
+		return cause.Code()&0xff == sqlite3.SQLITE_BUSY
+	default:
+		return false
+	}
 }
 
 // getEventTypeName get event type name
@@ -64,15 +102,22 @@ func (h *DefaultErrorHandler) getEventTypeName(eventType AppChangeType) string {
 type RetryableOperation struct {
 	operation func() error
 	handler   ErrorHandler
-	config    *RetryConfig
+	config    RetryConfig
 }
 
 // NewRetryableOperation create retryable operation
 func NewRetryableOperation(operation func() error, handler ErrorHandler, config *RetryConfig) *RetryableOperation {
+	var retry RetryConfig
+	if config != nil {
+		retry = *config
+	}
+	if handler == nil {
+		handler = NewDefaultErrorHandler(&retry)
+	}
 	return &RetryableOperation{
 		operation: operation,
 		handler:   handler,
-		config:    config,
+		config:    retry,
 	}
 }
 
@@ -80,10 +125,15 @@ func NewRetryableOperation(operation func() error, handler ErrorHandler, config 
 func (ro *RetryableOperation) Execute() error { return ro.ExecuteContext(context.Background()) }
 
 func (ro *RetryableOperation) ExecuteContext(ctx context.Context) error {
+	if ro.config.MaxRetries < 0 || ro.config.RetryInterval < 0 {
+		return fmt.Errorf("retry count and interval must be non-negative")
+	}
 	var lastErr error
+	attempts := 0
 
 	for attempt := 0; attempt <= ro.config.MaxRetries; attempt++ {
 		if attempt > 0 {
+			// wait retry interval
 			delay := ro.calculateRetryDelay(attempt)
 			timer := time.NewTimer(delay)
 			select {
@@ -99,37 +149,51 @@ func (ro *RetryableOperation) ExecuteContext(ctx context.Context) error {
 		}
 		if err := ro.operation(); err != nil {
 			lastErr = err
-
-			if !ro.handler.ShouldRetry(err, attempt) {
+			attempts++
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				lastErr = errors.Join(err, ctxErr)
 				break
 			}
 
-			logger.Error(err, fmt.Sprintf("Operation failed, attempt %d/%d",
-				attempt+1, ro.config.MaxRetries+1))
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) ||
+				attempt == ro.config.MaxRetries || !ro.handler.ShouldRetry(err, attempt) {
+				break
+			}
+
+			logger.Debug(fmt.Sprintf("Retrying operation after attempt %d/%d: %v",
+				attempt+1, ro.config.MaxRetries+1, err))
 			continue
 		}
 
+		// operation succeeded
 		return nil
 	}
 
 	return fmt.Errorf("operation failed after %d attempts: %w",
-		ro.config.MaxRetries+1, lastErr)
+		attempts, lastErr)
 }
 
 // calculateRetryDelay calculate retry delay
 func (ro *RetryableOperation) calculateRetryDelay(attempt int) time.Duration {
-	baseDelay := time.Duration(ro.config.RetryInterval) * time.Millisecond
+	const maxDelay = time.Duration(1<<63 - 1)
+	if uint64(ro.config.RetryInterval) > uint64(maxDelay/time.Millisecond) {
+		return maxDelay
+	}
+	delay := time.Duration(ro.config.RetryInterval) * time.Millisecond
 
 	if !ro.config.ExponentialBackoff {
-		return baseDelay
+		return delay
 	}
 
-	multiplier := 1
+	// exponential backoff strategy
 	for i := 1; i < attempt; i++ {
-		multiplier *= 2
+		if delay > maxDelay/2 {
+			return maxDelay
+		}
+		delay *= 2
 	}
 
-	return baseDelay * time.Duration(multiplier)
+	return delay
 }
 
 // Metrics methods for WatcherMetrics
