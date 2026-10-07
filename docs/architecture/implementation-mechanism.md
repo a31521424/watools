@@ -24,6 +24,8 @@
 
 请求使用具名 DTO：统计时间/次数、HTTP、日志查询、存储的 packageId/key 均由生成绑定提供类型。统计整批校验后才写入；缺失次数、非整数、无效时间、`enabled: null` 和凭据 `value: null` 返回 `INVALID_ARGUMENT`。存储值保留动态 JSON，允许显式 null，缺失 value 被拒绝；读取返回 RawMessage，避免 Wails 把 nil 响应与空字符串混淆。统一错误提供 code/message/operation，Go `Unwrap` 保留底层原因，展示文本与传输外层错误不包含原始凭据或请求内容。
 
+本机安装使用局部 ValidationError/ErrBusy：可修正输入映射 `INVALID_ARGUMENT`，执行/提交或进程锁争用映射 `UNAVAILABLE`，I/O/启动/停止故障走安全 `OPERATION_FAILED`，取消/超时维持统一分类。转换保留 cause，快照过期映射也保留 sentinel。锁实现仅将实际锁争用标记为 Busy，其余系统故障保持原因。
+
 前端 [`api/host/contracts.ts`](../../frontend/src/api/host/contracts.ts) 是稳定业务契约，只有 [`api/host/wails.ts`](../../frontend/src/api/host/wails.ts) 接触生成路径。该适配器转换窗口/命令/日志类型与 Wails 错误；mock 同样实现 HostAPI，使用独立内存固定场景。旧插件 SDK 名称、packageId 闭包、Storage 值与 HTTP `status_code` 保持兼容；旧 `internal/coordinator` 生成路径及方法 ID 已删除，直接依赖内部绑定的调用方必须迁移，内部路径不属于插件 SDK。
 
 扩展能力时：在业务模块实现 → 在对应领域服务校验/暴露 → 运行 `go run ./cmd/watoolsctl bindings` → 更新 HostAPI 与两个适配器 → 迁移调用方并补关键契约回归。禁止手改生成文件。
@@ -59,6 +61,8 @@ macOS 全局快捷键使用 Carbon 独占注册，生命周期入口先调度到
 - 应用扫描与图标处理包含平台分支
 - 命令触发依赖内存中的 runner 列表
 - SQLite 既是缓存也是使用统计存储
+
+watcher 错误处理与重试已收敛为 darwin/windows 共用实现；未知解析/I/O 故障不再按次数盲目重试，取消/超时立即结束。默认仅当整棵错误树都由 SQLite BUSY 构成时重试完整操作，包含未知回滚失败则不重试；等待可取消，最终失败报告实际次数，服务退出取消不增加失败指标。扫描解析与 DB 查询的全链失败语义仍按 [实施计划](../backlog/architecture-simplification.md) 推进，当前不能把缓存读取失败与合法空库视为已彻底区分。
 
 ### 系统操作命令
 
@@ -181,6 +185,8 @@ WaTools 不是纯静态前端资源加载模式，`/api/*` 路由由自定义 ha
 
 这也是插件 UI 页面能够通过宿主 URL 访问包内资源的基础。
 
+桌面 shell 的已知管理入口（含 `/management`）与插件页面入口回退到 index；未知路径和缺失静态资源仍返回原始错误。日志页通过纯 reducer 与请求 generation 原子更新选择/记录/游标，旧响应、错误和 finally 不影响新查询；分页沿用已完成查询快照，筛选变化或卸载后失效。前端 warn 使用宿主 warning 方法。
+
 ## 本地持久化机制
 
 当前本地持久化主要包括：
@@ -199,6 +205,8 @@ WaTools 不是纯静态前端资源加载模式，`/api/*` 路由由自定义 ha
 - [`internal/app/`](../../internal/app)
 
 未设置 `WATOOLS_DATA_DIR` 时，正式安装使用系统应用数据目录，并按既有流程迁移旧缓存；显式设置此变量时视为独立安装，不导入旧缓存。开发入口 `cmd/watoolsctl` 同时隔离数据和缓存，具体目录与临时检查行为见 [本地开发指南](../development/local-workflow.md)。
+
+`pkg/db` 的批处理由 `withTx` 统一完成事务提交，回调只执行 SQL；回调故障的 Rollback 失败会与主错误一起返回，已结束事务的 `sql.ErrTxDone` 不作为额外失败。Commit 或真实 Rollback 失败额外保留 `ErrTransactionOutcomeUnknown`，防止按底层 BUSY 盲目重试结果不明的事务。插入成功日志在 Commit 成功之后产生。插件安装/卸载的主操作与补偿同时失败时使用 `errors.Join`，调用者可分别识别原因；错误链保留不代表补偿失败时数据已自动恢复。
 
 ## 本机源码安装与管理中心（2026-10-07）
 

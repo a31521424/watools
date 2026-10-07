@@ -1,0 +1,69 @@
+# 架构精简与编码实践实施计划
+
+[Backlog 索引](./README.md) · [审查依据](../reviews/architecture-and-simplification-2026-10-07.md)
+
+日期：2026-10-07。优先级：P1。状态：in-progress。报告基线提交为 `4665624`（原代码基线 `fb22aa1`）。用户已要求提交工作区、制定计划并充分使用 subagent 开始实施；本计划登记执行范围，历史审查的“待 review”描述保留作为当时状态。
+
+## 目标与约束
+
+保留 Go/Wails/React 模块化单体和七领域 Host 服务，改善失败语义、任务所有权和规则复用。每个模块按报告 C01–C11 验收，不以行数下降代替行为正确。保留用户数据、`.wt` 兼容、可信插件模型和 macOS 明文凭据策略；Windows 现有代码保留，实机和公开分发继续延期。
+
+## 首轮并行实施
+
+| 工作项 | 负责人/文件范围 | 报告对应 | 完成条件 |
+| --- | --- | --- | --- |
+| 安装补偿与 DB 事务 | installation_transactions：plugin installer/测试、wa_db/测试 | E02、E09 的事务部分、M06/M09 | 两个失败的 cause 都保留；helper 统一 Commit；Commit 后才记录成功；结果不明标记禁止重试；实际 SQLite 故障用例 |
+| 本机安装与 Host 错误语义 | host_error_semantics：localinstall、host app/update/error、filelock/测试 | E03、E10 的锁分类部分 | 参数、忙碌、I/O、取消分开；安全 wire 消息且保留 cause；不新增错误码和绑定签名 |
+| 日志异步与管理路由 | ui_route_reliability：日志页面及必要纯状态模块/测试、logger/兼容 bridge、handler/测试 | M10/M15/M16、C08/C09 | 旧响应/旧失败/旧 finally 不污染新查询；分页归属正确；updater 纯；warn 正确；管理路由有效且未知路由404 |
+| watcher 重试与集成 | 主 agent：watcher 通用错误/重试/测试、文档与集成 | E06、M04/C01/C02/C10 | 平台重复收敛；取消/永久错误不重试；只重试明确可恢复故障；实际次数正确；等待可取消 |
+
+并行采用共享工作区与明确文件所有权；subagent 不提交，主 agent 审查差异后统一集成。跨范围修改先协调，生成操作统一执行，避免覆盖其他修改。各分支使用独立临时数据/缓存，复用仓库工具缓存。
+
+首轮不自动覆盖整份报告：扫描的部分成功与删除规则、热键恢复、全局初始化、SDK 并发、旧 revision 回收仍需按后续批次推进。
+
+## 后续批次和依赖
+
+| 顺序 | 范围 | 依赖及验收重点 | 状态 |
+| --- | --- | --- | --- |
+| 1 | DB 错误全链透传 E01：DB → command → Host → UI/mock | 首轮事务规则；失败不触发假空初始化，失败保留旧数据，统一重新生成绑定 | planned，首轮后优先 |
+| 2 | 扫描解析/协调 E05/E09、watcher 配置生效与共享规则 | E01；缺失与暂时不可读分开，已提交结果决定通知，并发 reconcile 回归 | planned |
+| 3 | 热键补偿 E04、必需清理 E07、显式初始化 E08、停止 E10 | 独立故障用例与状态契约；涉及原生行为增加原生验收，提交阶段不强杀 | planned |
+| 4 | 版本/catalog/解压/usage 调度收缩，store 生命周期 | 前述错误与提交协议；复用机制保留策略差异，不引入万能框架 | planned |
+| 5 | launcher/controller、管理 hooks、iframe 生命周期、官方插件 JS 模块化 | 状态所有权；保留既有回归，直接导入行为模块，加生命周期/多窗测试 | planned |
+| 6 | 加载、图标、日志、Worker、revision 回收等性能工作 | 对应独立 backlog、真实基线、兼容与取消验收；不预设性能数字 | planned |
+
+可并行的范围由文件所有权和依赖决定；有数据一致性或契约依赖的工作必须按顺序集成。需要进一步选择的产品语义沿用报告 review 决策，不擅自改变统计含义、卸载凭据和共享草稿范围。
+
+## 检查与交付
+
+先跑对应故障/交错测试，再统一运行 `pnpm test`、前端 build/type 检查、Go 测试、Go vet、production 编译及相关 race 检查。采用本地统一工作流的临时数据隔离和 macOS 12 deployment flags。涉及 Host 返回签名的后续批次重新生成，不手改绑定。
+
+每轮记录实际命令、结果、提交和剩余验收，更新对应现状文档；历史报告保持当时的证据。原生 GUI、物理热键、Windows 实机、真实安装与发布未执行时明确记录，目标整体仍保持 in-progress。
+
+## 实施记录
+
+- 2026-10-07：审查报告与索引已提交为 `4665624`；3 个 subagent 与主 agent 完成首轮并行实现及交叉复审。首轮代码已提交，目标整体仍为 in-progress，下一批优先 E01。
+
+| 实施提交 | 完成范围 | 验收边界 |
+| --- | --- | --- |
+| `5aecf01` | E02 双错误保链、withTx 统一提交、成功日志时机、ErrTransactionOutcomeUnknown | 真实文件 rename 双故障、SQLite 中途回滚/批处理/延迟外键 Commit 故障、driver 生命周期故障通过；未实现底层故障连接恢复 |
+| `ac70267` | E03 语义映射与快照 cause；E10 争锁分类与取消失败状态 | 安全消息、参数/文件/I/O/启动/取消故障、context、真实锁争用通过；Shutdown/强制停止机制仍待后续 |
+| `dd70fa1` | watcher 共用错误/重试，保留平台默认配置；只重试明确 BUSY | 取消、次数、真实 BUSY、永久失败、BUSY+回滚故障/结果不明通过；解析类型与安装就绪策略待 E05 |
+| `361be1d` | `/management` shell fallback | 真实 Wails HTTP handler 检查 query 参数、请求保持及未知路由404；未进行原生导航验收 |
+| `d516f66` | 日志纯 reducer/generation/分页归属、选择ID派生、warn bridge | 前端回归新增8项，共68项通过；协调器 cleanup/restart 已测，真实 React StrictMode 挂载和原生 GUI 未执行 |
+
+复审修正了三个边界：BUSY 主错误叠加回滚故障不可重试；Commit/真实 Rollback 失败必须保留结果不明标记；普通文件作为源码路径属于验证错误，真实权限/I/O 错误仍属操作失败。未新增 Host wire 错误码或公开方法签名，因此本轮无需重新生成绑定。
+
+实际检查：
+
+| 命令/范围 | 结果 |
+| --- | --- |
+| `go run ./cmd/watoolsctl check` | 通过：68项前端回归、前端 build、Go全量测试、server-tag app/api测试、Go vet、production编译 |
+| `pnpm exec tsc --noEmit`（frontend） | 通过 |
+| 最后事务标记补充后 `go test ./...` | 全量通过 |
+| `go test -race ./internal/command/watcher ./internal/host ./internal/localinstall ./internal/filelock ./pkg/db ./internal/plugin` | 最终6包通过 |
+| 最后补充后 `go vet ./...`、`go build -tags production,private_mac_apis ./...` | 通过 |
+| Windows watcher/filelock/localinstall 测试交叉编译；filelock 额外 amd64 编译 | 通过；没有运行 Windows 实机测试 |
+| 交叉复审、文档链接与 `git diff --check` | 通过 |
+
+Go 检查使用独立临时数据/缓存与仓库 `.cache/tools` 工具缓存，设置 macOS 12 CGO/deployment flags。仍存在既有 objc/deployment target 链接警告，退出码为0；本轮未修改工具链链接策略。没有执行真实安装、原生 GUI、物理热键、真实 React 组件挂载、公开发布或性能基准。

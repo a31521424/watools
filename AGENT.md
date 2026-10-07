@@ -26,6 +26,7 @@
 10. 未经用户要求不主动分派子 agent。外部消息、发布和推送遵循用户明确授权；不要把本地提交等同于远端发布。
 11. 修改行为、接口或开发流程时，同步更新对应现状文档与入口索引。移动文档须修正引用和探针路径，保留有价值的历史证据。
 12. 完成任务后说明结果、验证及未解决事项；只有验收实际满足后才将 backlog 标记完成。
+13. 新增与修改的手写代码遵循 [编码与故障处理约定](./docs/development/coding-practices.md)；错误、提交、取消和异步状态按适用行为验收，历史缺项按实施计划逐步修复。
 
 ## 按任务读取文档
 
@@ -39,7 +40,7 @@
 | 修改发布和更新流程 | [发布说明](./docs/development/release-cd.md) | `.github/workflows/`、`internal/update/` |
 | 本机启动、检查、构建或插件调试 | [本地开发指南](./docs/development/local-workflow.md) | `cmd/watoolsctl`、可选 Host API mock；原生小窗验收见 backlog |
 | 验证已知缺陷或安全边界 | [修复记录](./docs/reviews/remediation-2026-10-03.md) | [原始审查](./docs/reviews/review-2026-10-02.md)、[证据索引](./docs/reviews/evidence/README.md) |
-| 推进下一轮优化 | [Backlog 入口](./docs/backlog/README.md) | 本次任务对应的目标文档及其依赖 |
+| 推进下一轮优化 | [Backlog 入口](./docs/backlog/README.md) | [架构与编码实践实施计划](./docs/backlog/architecture-simplification.md)、本次任务对应的目标文档及其依赖 |
 | 重新评估框架和语言 | [历史技术调研](./docs/research/technology-direction-2026-10-02.md) | 官方最新资料；当前推进顺序以 backlog 为准 |
 
 ## 文档分类
