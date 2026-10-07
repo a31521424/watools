@@ -25,7 +25,7 @@
 
 | 顺序 | 范围 | 依赖及验收重点 | 状态 |
 | --- | --- | --- | --- |
-| 1 | DB 错误全链透传 E01：DB → command → Host → UI/mock | 首轮事务规则；失败不触发假空初始化，失败保留旧数据，统一重新生成绑定 | planned，首轮后优先 |
+| 1 | DB 错误全链透传 E01：DB → command → Host → UI/mock | 首轮事务规则；失败不触发假空初始化，失败保留旧数据，统一重新生成绑定 | implemented，自动验收通过；原生交互待验证 |
 | 2 | 扫描解析/协调 E05/E09、watcher 配置生效与共享规则 | E01；缺失与暂时不可读分开，已提交结果决定通知，并发 reconcile 回归 | planned |
 | 3 | 热键补偿 E04、必需清理 E07、显式初始化 E08、停止 E10 | 独立故障用例与状态契约；涉及原生行为增加原生验收，提交阶段不强杀 | planned |
 | 4 | 版本/catalog/解压/usage 调度收缩，store 生命周期 | 前述错误与提交协议；复用机制保留策略差异，不引入万能框架 | planned |
@@ -35,6 +35,10 @@
 可并行的范围由文件所有权和依赖决定；有数据一致性或契约依赖的工作必须按顺序集成。需要进一步选择的产品语义沿用报告 review 决策，不擅自改变统计含义、卸载凭据和共享草稿范围。
 
 ## 检查与交付
+
+第二轮仍使用 3 个 subagent：后端负责查询/扫描调用链与 Host error 返回，前端负责加载状态/安全反馈/重试/usage 保持，独立验证负责真实 SQLite 与业务/Host/watcher 故障测试。主 agent 负责接口集成、统一重新生成 Wails 绑定、文档和最终检查。文件所有权分别限定在生产 Go、手写前端与新 Go 测试，避免共享文件互相覆盖。
+
+E01 的完成条件：合法空库仍能初始化；查询失败不扫描、不写入、不通知、不转换零值记录；扫描/首次入库失败向上返回；失败不清空已有 runner 和前端搜索数据；Host 拒绝有稳定安全错误码并保留 cause；初始失败和事件刷新失败被消费，用户可重试恢复；请求期间的 usage 和待写 buffer 不丢失。
 
 先跑对应故障/交错测试，再统一运行 `pnpm test`、前端 build/type 检查、Go 测试、Go vet、production 编译及相关 race 检查。采用本地统一工作流的临时数据隔离和 macOS 12 deployment flags。涉及 Host 返回签名的后续批次重新生成，不手改绑定。
 
@@ -67,3 +71,25 @@
 | 交叉复审、文档链接与 `git diff --check` | 通过 |
 
 Go 检查使用独立临时数据/缓存与仓库 `.cache/tools` 工具缓存，设置 macOS 12 CGO/deployment flags。仍存在既有 objc/deployment target 链接警告，退出码为0；本轮未修改工具链链接策略。没有执行真实安装、原生 GUI、物理热键、真实 React 组件挂载、公开发布或性能基准。
+
+### 第二轮：E01 查询错误全链透传
+
+2026-10-07，用户要求继续。3 个 subagent 分别实施后端、前端及独立故障验证，并交叉复审；主 agent 集成并提交。本轮自动验收通过，目标整体继续为 in-progress，下一批推进 E05/E09。
+
+| 实施提交 | 完成范围 | 验收边界 |
+| --- | --- | --- |
+| `f465bad` | 三个 DB 查询显式返回 error；合法缺失为 `nil, nil`；command/watcher 查询失败停止副作用；Host 安全拒绝并保留 cause；读取与 runner 发布串行 | 真实 SQLite 空库、关闭连接、缺表、取消/超时；扫描/入库/后续批次故障；旧 runner 保留；确定性并发发布测试通过，恢复旧锁位置的临时 overlay 探针明确失败 |
+| `952d788` | 加载失败保留列表/搜索并提供重试；刷新期间旧命令可见；请求期间的 usage 保持；事件合并并补充后续查询；mock 查询、触发与 usage 使用同一快照 | 新增 12 项前端行为回归，共 80 项通过；初始/事件失败与恢复、合法空结果、并发调用、交错统计、事件突发、mock 克隆与失败、同步诊断故障均覆盖；未进行真实 React 挂载或原生点击验收 |
+
+交叉复审补充修复了旧查询晚发布覆盖新 runner、查询期间事件被合并后丢失、mock 查询成功后触发/统计仍查旧快照，以及同步 Logger 抛错导致 usage 重试未安排的问题。后台 reconcile 后续批次失败时仅通知此前确已提交的变化，不宣称整轮原子提交；暂时不可读/解析失败的删除规则和平台扫描器部分成功仍属于 E05。
+
+| 命令/范围 | 结果 |
+| --- | --- |
+| `go run ./cmd/watoolsctl bindings` | 重新生成并构建通过；生成文件无差异，成功返回仍为 `Promise<ApplicationCommand[]>`，Go error 由 Wails 拒绝 Promise |
+| `go run ./cmd/watoolsctl check` | 通过：80 项前端回归、前端类型检查/build、Go 全量、server-tag app/api、Go vet、production 编译 |
+| `pnpm exec tsc --noEmit`（frontend） | 通过 |
+| `go test -race ./pkg/db ./internal/command ./internal/command/watcher ./internal/host` | 最终四包通过 |
+| Windows arm64、`CGO_ENABLED=0` 的上述四包测试交叉编译 | 通过；未执行 Windows 运行时测试 |
+| 交叉复审、gofmt、文档链接与 `git diff --check` | 通过 |
+
+沿用临时数据/缓存、仓库工具缓存和 macOS 12 flags；既有链接警告仍在。本轮没有执行真实安装、原生 GUI、物理热键、真实 React 组件挂载、Windows 实机或公开发布；原生重试交互仍待验证。
