@@ -119,13 +119,26 @@ func (d *WaDB) Close() error {
 	return d.db.Close()
 }
 
-func (d *WaDB) withTx(ctx context.Context, f func(tx *sql.Tx) error) error {
+// withTx owns transaction completion; callbacks only perform database work.
+func (d *WaDB) withTx(ctx context.Context, f func(tx *sql.Tx) error) (result error) {
 	tx, err := d.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
-	return f(tx)
+	defer func() {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+			result = errors.Join(result, ErrTransactionOutcomeUnknown, fmt.Errorf("failed to roll back transaction: %w", rollbackErr))
+		}
+	}()
+	if err := f(tx); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		// database/sql considers the transaction done after Commit, including a
+		// driver error. The deferred Rollback cannot confirm recovery in that case.
+		return errors.Join(ErrTransactionOutcomeUnknown, fmt.Errorf("failed to commit transaction: %w", err))
+	}
+	return nil
 }
 
 func (d *WaDB) GetCommands(ctx context.Context) []*models.ApplicationCommand {
@@ -141,7 +154,7 @@ func (d *WaDB) GetCommands(ctx context.Context) []*models.ApplicationCommand {
 
 func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.ApplicationCommand) error {
 	logger.Info(fmt.Sprintf("Starting to insert %d commands", len(commands)))
-	return d.withTx(ctx, func(tx *sql.Tx) error {
+	err := d.withTx(ctx, func(tx *sql.Tx) error {
 		txQuery := d.query.WithTx(tx)
 		for _, command := range commands {
 			if _, err := txQuery.CreateApplication(ctx, CreateApplicationParams{
@@ -156,9 +169,13 @@ func (d *WaDB) BatchInsertCommands(ctx context.Context, commands []*models.Appli
 				return err
 			}
 		}
-		logger.Info(fmt.Sprintf("Inserted %d commands", len(commands)))
-		return tx.Commit()
+		return nil
 	})
+	if err != nil {
+		return err
+	}
+	logger.Info(fmt.Sprintf("Inserted %d commands", len(commands)))
+	return nil
 }
 
 func (d *WaDB) GetExpiredCommands(ctx context.Context) []*models.ApplicationCommand {
@@ -190,7 +207,7 @@ func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.Appli
 				return fmt.Errorf("failed to update command: %w", err)
 			}
 		}
-		return tx.Commit()
+		return nil
 	})
 }
 
@@ -201,7 +218,7 @@ func (d *WaDB) DeleteCommands(ctx context.Context, ids []string) error {
 		if err := txQuery.DeleteApplication(ctx, ids); err != nil {
 			return fmt.Errorf("failed to delete command: %w", err)
 		}
-		return tx.Commit()
+		return nil
 	})
 }
 
@@ -264,7 +281,7 @@ func (d *WaDB) BatchUpdateApplicationUsage(ctx context.Context, usageUpdates []m
 				return fmt.Errorf("failed to update application usage: %w", err)
 			}
 		}
-		return tx.Commit()
+		return nil
 	})
 }
 
@@ -281,6 +298,6 @@ func (d *WaDB) BatchUpdatePluginUsage(ctx context.Context, usageUpdates []models
 				return fmt.Errorf("failed to update plugin usage: %w", err)
 			}
 		}
-		return tx.Commit()
+		return nil
 	})
 }

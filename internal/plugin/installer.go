@@ -175,7 +175,10 @@ func (pi *PluginInstaller) installFromWtFile(wtFilePath string) error {
 		os.RemoveAll(versionDir)
 		if !installed {
 			if rollbackErr := pi.database().DeletePlugin(pi.ctx, manifest.PackageID); rollbackErr != nil {
-				return fmt.Errorf("commit failed: %v; rollback failed: %w", err, rollbackErr)
+				return errors.Join(
+					fmt.Errorf("failed to commit plugin revision: %w", err),
+					fmt.Errorf("failed to roll back plugin registration: %w", rollbackErr),
+				)
 			}
 		}
 		return fmt.Errorf("failed to commit plugin revision: %w", err)
@@ -237,7 +240,10 @@ func (pi *PluginInstaller) UninstallPlugin(packageID string) error {
 	if err := dbInstance.DeletePlugin(pi.ctx, packageID); err != nil {
 		if moved {
 			if restoreErr := os.Rename(trash, pluginDir); restoreErr != nil {
-				return fmt.Errorf("delete failed: %v; restore failed: %w", err, restoreErr)
+				return errors.Join(
+					fmt.Errorf("failed to delete plugin from database: %w", err),
+					fmt.Errorf("failed to restore plugin directory: %w", restoreErr),
+				)
 			}
 		}
 		return fmt.Errorf("failed to delete plugin from database: %w", err)
