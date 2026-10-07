@@ -1382,3 +1382,145 @@ test('JSON restoration claims the model before initialization and ignores late l
     initialized();await task;assert.equal(modelText,'edited');
     context.apply({input:{value:'another original'}});assert.equal(modelText,'edited');
 });
+
+function logQueryHarness() {
+    const {createLogQueryController, logQueryReducer, initialLogQueryState} = loadTS('frontend/src/lib/log-query.ts');
+    let state = initialLogQueryState;
+    const requests = [], actions = [];
+    const controller = createLogQueryController(query => new Promise((resolve, reject) => {
+        requests.push({query, resolve, reject});
+    }), action => {actions.push(action); state = logQueryReducer(state, action)});
+    const result = (ids, nextCursor) => ({records: ids.map(id => ({id, message: id})), nextCursor,
+        availableSources: ['app-backend'], availablePluginIds: [], totalMatched: ids.length});
+    return {controller, requests, actions, result, get state() {return state}};
+}
+
+test('log queries ignore old responses without clearing the new request loading state', async () => {
+    const h = logQueryHarness();
+    const old = h.controller.replace({keyword: 'old'});
+    const current = h.controller.replace({keyword: 'new'});
+    h.requests[0].resolve(h.result(['old'], 'old-cursor'));
+    await old;
+    assert.equal(h.state.isLoadingLogs, true);
+    assert.equal(h.state.records.length, 0);
+    h.requests[1].resolve(h.result(['new'], 'new-cursor'));
+    await current;
+    assert.equal(h.state.records[0].id, 'new');
+    assert.equal(h.state.nextCursor, 'new-cursor');
+    assert.equal(h.state.isLoadingLogs, false);
+});
+
+test('late log query failures cannot replace the current result or its error', async () => {
+    const h = logQueryHarness();
+    const old = h.controller.replace({keyword: 'old'});
+    const current = h.controller.replace({keyword: 'new'});
+    h.requests[1].resolve(h.result(['new']));
+    await current;
+    const count = h.actions.length;
+    h.requests[0].reject(new Error('old failure'));
+    await old;
+    assert.equal(h.actions.length, count);
+    assert.equal(h.state.records[0].id, 'new');
+    assert.equal(h.state.error, null);
+});
+
+test('log pagination uses its query snapshot and cannot append into changed filters', async () => {
+    const h = logQueryHarness();
+    const files = ['first.log'];
+    const first = h.controller.replace({files, keyword: 'old'});
+    files.push('other.log');
+    h.requests[0].resolve(h.result(['first'], 'page-two'));
+    await first;
+    const append = h.controller.append();
+    await h.controller.append();
+    assert.equal(h.requests.length, 2, 'duplicate pagination is suppressed');
+    assert.equal(JSON.stringify(h.requests[1].query.files), '["first.log"]');
+    assert.equal(h.requests[1].query.cursor, 'page-two');
+    const current = h.controller.replace({keyword: 'new'});
+    h.requests[1].resolve(h.result(['old-page'], 'page-three'));
+    await append;
+    assert.equal(h.state.isLoadingLogs, true);
+    assert.equal(h.state.isLoadingMore, false);
+    h.requests[2].resolve(h.result(['new']));
+    await current;
+    assert.equal(JSON.stringify(h.state.records.map(record => record.id)), '["new"]');
+    await h.controller.append();
+    assert.equal(h.requests.length, 3, 'exhausted query cannot reuse an old cursor');
+});
+
+test('invalidated log queries do not publish results, errors or finalizers after unmount', async () => {
+    for (const reject of [false, true]) {
+        const h = logQueryHarness();
+        const pending = h.controller.replace({keyword: 'pending'});
+        h.controller.invalidate();
+        const count = h.actions.length;
+        if (reject) h.requests[0].reject(new Error('unmounted'));
+        else h.requests[0].resolve(h.result(['unmounted']));
+        await pending;
+        assert.equal(h.actions.length, count);
+        await h.controller.append();
+        assert.equal(h.requests.length, 1);
+    }
+});
+
+test('log reducer preserves selection by ID and is safe to replay', () => {
+    const {logQueryReducer, initialLogQueryState} = loadTS('frontend/src/lib/log-query.ts');
+    const first = {records: [{id: 'one'}, {id: 'two'}], availableSources: [], availablePluginIds: [], totalMatched: 2};
+    let state = logQueryReducer(initialLogQueryState, {type: 'result', result: first, append: false});
+    state = logQueryReducer(state, {type: 'select', id: 'two'});
+    const action = {type: 'result', result: {...first, records: [{id: 'two', message: 'updated'}]}, append: false};
+    const next = logQueryReducer(state, action);
+    assert.equal(next.selectedRecordId, 'two');
+    assert.equal(next.records[0].message, 'updated');
+    assert.equal(state.records.length, 2, 'input state is not mutated');
+    assert.equal(JSON.stringify(next), JSON.stringify(logQueryReducer(state, action)), 'replaying has no side effects');
+    assert.equal(logQueryReducer(next, {type: 'result', result: {...first, records: [{id:'fallback'}]}, append: false}).selectedRecordId, 'fallback');
+    assert.equal(logQueryReducer(next, {type: 'result', result: {...first, records: []}, append: false}).selectedRecordId, null);
+    const failedFiles = logQueryReducer(next, {type: 'error', message: 'file listing failed'});
+    assert.equal(logQueryReducer(failedFiles, {type: 'reset', preserveError: true}).error, 'file listing failed');
+});
+
+test('frontend warning logger uses the warning bridge', async () => {
+    const calls = [];
+    const mocks = Object.fromEntries(['LogDebug', 'LogError', 'LogInfo', 'LogWarning'].map(name =>
+        [name, async message => {calls.push({name, message})}]));
+    const {Logger} = loadTS('frontend/src/lib/logger.ts', {'@/lib/legacy-runtime': mocks});
+    await Logger.warn('warning probe');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, 'LogWarning');
+    assert.equal(calls[0].message, '[Fronted] warning probe');
+});
+
+test('failed log pagination retains its data and cursor for a successful retry', async () => {
+    const h = logQueryHarness();
+    const first = h.controller.replace({keyword: 'same'});
+    h.requests[0].resolve(h.result(['one'], 'page-two'));
+    await first;
+    const failed = h.controller.append();
+    h.requests[1].reject(new Error('temporary failure'));
+    await failed;
+    assert.equal(h.state.records[0].id, 'one');
+    assert.equal(h.state.nextCursor, 'page-two');
+    assert.ok(h.state.error);
+    assert.equal(h.state.isLoadingMore, false);
+    const retry = h.controller.append();
+    assert.equal(h.requests[2].query.cursor, 'page-two');
+    assert.equal(h.state.error, null);
+    h.requests[2].resolve(h.result(['two']));
+    await retry;
+    assert.equal(JSON.stringify(h.state.records.map(record => record.id)), '["one","two"]');
+});
+
+test('log effect cleanup and restart leave only the restarted request active', async () => {
+    const h = logQueryHarness();
+    const firstMount = h.controller.replace({keyword: 'same'});
+    h.controller.invalidate();
+    const secondMount = h.controller.replace({keyword: 'same'});
+    h.requests[0].resolve(h.result(['first-mount']));
+    await firstMount;
+    assert.equal(h.state.isLoadingLogs, true);
+    h.requests[1].resolve(h.result(['second-mount']));
+    await secondMount;
+    assert.equal(h.state.records[0].id, 'second-mount');
+    assert.equal(h.state.isLoadingLogs, false);
+});

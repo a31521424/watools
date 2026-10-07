@@ -1,6 +1,6 @@
 import {useLocation} from 'wouter'
 import {WaWorkspaceHeader} from "./wa-workspace-header";
-import React, {useDeferredValue, useEffect, useMemo, useState} from "react"
+import React, {useDeferredValue, useEffect, useMemo, useReducer, useRef, useState} from "react"
 import {
     AlertCircle,
     ChevronDown,
@@ -19,6 +19,7 @@ import {cn} from "@/lib/utils"
 import {getLogDirectory, listLogFiles, queryLogs} from "@/api/log"
 import {LogFileInfo, LogRecord} from "@/schemas/log"
 import {host} from "@/api/host"
+import {createLogQueryController, initialLogQueryState, logQueryReducer} from "@/lib/log-query"
 
 const MONO_FONT = "\"JetBrains Mono\", \"SFMono-Regular\", \"SF Mono\", \"Consolas\", monospace"
 const ALL_FILES_VALUE = "__all__"
@@ -284,16 +285,13 @@ export function WaLogManagement() {
     const [levelFilter, setLevelFilter] = useState<string>("all")
     const [sourceFilter, setSourceFilter] = useState<string>("all")
     const [pluginFilter, setPluginFilter] = useState<string>("all")
-    const [records, setRecords] = useState<LogRecord[]>([])
-    const [selectedRecord, setSelectedRecord] = useState<LogRecord | null>(null)
-    const [availableSources, setAvailableSources] = useState<string[]>([])
-    const [availablePluginIds, setAvailablePluginIds] = useState<string[]>([])
-    const [nextCursor, setNextCursor] = useState<string | null>(null)
-    const [totalMatched, setTotalMatched] = useState(0)
-    const [error, setError] = useState<string | null>(null)
+    const [logState, dispatchLogQuery] = useReducer(logQueryReducer, initialLogQueryState)
+    const {records, availableSources, availablePluginIds, nextCursor, totalMatched, error,
+        isLoadingLogs, isLoadingMore} = logState
+    const selectedRecord = records.find(record => record.id === logState.selectedRecordId) ?? null
     const [isLoadingFiles, setIsLoadingFiles] = useState(false)
-    const [isLoadingLogs, setIsLoadingLogs] = useState(false)
-    const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const fileGeneration = useRef(0)
+    const logController = useMemo(() => createLogQueryController(queryLogs, dispatchLogQuery), [])
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [isFiltersOpen, setIsFiltersOpen] = useState(false)
 
@@ -304,11 +302,14 @@ export function WaLogManagement() {
     const fileQuery = useMemo(() => getSelectedFileQuery(selectedFile, files), [selectedFile, files])
 
     const loadLogFiles = async () => {
+        const generation = ++fileGeneration.current
+        logController.invalidate()
+        dispatchLogQuery({type: "invalidated"})
         setIsLoadingFiles(true)
-        setError(null)
 
         try {
             const [directory, fileList] = await Promise.all([getLogDirectory(), listLogFiles()])
+            if (generation !== fileGeneration.current) return
             setLogDirectory(directory)
             setFiles(fileList)
             setSelectedFile(current => {
@@ -318,68 +319,23 @@ export function WaLogManagement() {
                 return fileList[0]?.name || ALL_FILES_VALUE
             })
         } catch (loadError) {
-            setError(loadError instanceof Error ? loadError.message : "Failed to load log files")
+            if (generation !== fileGeneration.current) return
+            logController.reset()
+            dispatchLogQuery({type: "error", message: loadError instanceof Error ? loadError.message : "Failed to load log files"})
             setFiles([])
             setSelectedFile(ALL_FILES_VALUE)
         } finally {
-            setIsLoadingFiles(false)
-        }
-    }
-
-    const loadLogs = async ({cursor, append}: { cursor?: string; append?: boolean } = {}) => {
-        if (append) {
-            setIsLoadingMore(true)
-        } else {
-            setIsLoadingLogs(true)
-            setError(null)
-        }
-
-        try {
-            const result = await queryLogs({
-                files: fileQuery,
-                keyword: deferredSearchValue,
-                levels: levelFilter === "all" ? [] : [levelFilter],
-                sources: sourceFilter === "all" ? [] : [sourceFilter],
-                pluginIds: pluginFilter === "all" ? [] : [pluginFilter],
-                cursor,
-                limit: DEFAULT_PAGE_SIZE,
-            })
-
-            let nextRecords: LogRecord[] = []
-            setRecords(current => {
-                nextRecords = append ? [...current, ...result.records] : result.records
-                return nextRecords
-            })
-            setAvailableSources(result.availableSources)
-            setAvailablePluginIds(result.availablePluginIds)
-            setNextCursor(result.nextCursor || null)
-            setTotalMatched(result.totalMatched)
-            setSelectedRecord(current => {
-                if (!nextRecords.length) {
-                    return null
-                }
-                if (!current) {
-                    return nextRecords[0]
-                }
-                return nextRecords.find(record => record.id === current.id) || nextRecords[0]
-            })
-        } catch (loadError) {
-            setError(loadError instanceof Error ? loadError.message : "Failed to query logs")
-            if (!append) {
-                setRecords([])
-                setSelectedRecord(null)
-                setNextCursor(null)
-                setTotalMatched(0)
-            }
-        } finally {
-            setIsLoadingLogs(false)
-            setIsLoadingMore(false)
+            if (generation === fileGeneration.current) setIsLoadingFiles(false)
         }
     }
 
     useEffect(() => {
         void loadLogFiles()
-    }, [])
+        return () => {
+            fileGeneration.current += 1
+            logController.invalidate()
+        }
+    }, [logController])
 
     useEffect(() => {
         const handleHotkey = (event: KeyboardEvent) => {
@@ -395,17 +351,20 @@ export function WaLogManagement() {
 
     useEffect(() => {
         if (files.length === 0) {
-            setRecords([])
-            setSelectedRecord(null)
-            setAvailableSources([])
-            setAvailablePluginIds([])
-            setNextCursor(null)
-            setTotalMatched(0)
+            logController.reset(true)
             return
         }
 
-        void loadLogs()
-    }, [files, fileQuery, deferredSearchValue, levelFilter, sourceFilter, pluginFilter])
+        void logController.replace({
+            files: fileQuery,
+            keyword: deferredSearchValue,
+            levels: levelFilter === "all" ? [] : [levelFilter],
+            sources: sourceFilter === "all" ? [] : [sourceFilter],
+            pluginIds: pluginFilter === "all" ? [] : [pluginFilter],
+            limit: DEFAULT_PAGE_SIZE,
+        })
+        return () => logController.invalidate()
+    }, [files, fileQuery, deferredSearchValue, levelFilter, sourceFilter, pluginFilter, logController])
 
     useEffect(() => {
         if (sourceFilter !== "all" && !availableSources.includes(sourceFilter)) {
@@ -420,7 +379,7 @@ export function WaLogManagement() {
     }, [availablePluginIds, pluginFilter])
 
     const handleOpenRecord = (record: LogRecord) => {
-        setSelectedRecord(record)
+        dispatchLogQuery({type: "select", id: record.id})
         setIsDrawerOpen(true)
     }
 
@@ -442,7 +401,7 @@ export function WaLogManagement() {
         if (!nextCursor) {
             return
         }
-        await loadLogs({cursor: nextCursor, append: true})
+        await logController.append()
     }
 
     return (
