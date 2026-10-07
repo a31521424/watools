@@ -1524,3 +1524,250 @@ test('log effect cleanup and restart leave only the restarted request active', a
     assert.equal(h.state.records[0].id, 'second-mount');
     assert.equal(h.state.isLoadingLogs, false);
 });
+
+function applicationStoreHarness({write = async () => {}, log = async () => {}} = {}) {
+    const requests = [], timers = [], diagnostics = [];
+    let listener = null;
+    const {useApplicationCommandStore: store} = loadTS('frontend/src/stores/applicationCommandStore.ts', {
+        '@/api/command': {
+            getApplicationCommands: () => new Promise((resolve, reject) => {requests.push({resolve, reject})}),
+            updateApplicationUsage: write,
+        },
+        '@/lib/legacy-runtime': {EventsOn: (_name, callback) => {listener = callback; return () => {listener = null}}},
+        '@/lib/logger': {Logger: {error: message => {diagnostics.push(message); return log(message)}}},
+        'fuse.js': {default: require(path.join(root, 'frontend/node_modules/fuse.js'))},
+    }, {setTimeout: callback => {timers.push(callback); return timers.length}, clearTimeout() {}});
+    const group = (usedCount = 0) => ({category: 'Application', commands: [{id: 'app', triggerId: 'app', name: 'Editor',
+        category: 'Application', description: '', path: '/apps/Editor.app', iconPath: '', isUserApp: true,
+        pathName: 'Editor.app', namePinyin: null, nameInitial: null, usedCount, lastUsedAt: null}]});
+    return {store, requests, group, timers, diagnostics, emit() {assert.ok(listener, 'listener must survive first failure'); return listener()}};
+}
+
+test('application initial query failure is explicit, safely consumed and can recover through its listener', async () => {
+    const h = applicationStoreHarness();
+    await tick();
+    assert.equal(h.store.getState().isLoading, true);
+    h.requests[0].reject(new Error('private database path and cause'));
+    await tick();
+    assert.equal(h.store.getState().isLoading, false);
+    assert.equal(h.store.getState().commandGroup, null);
+    assert.ok(h.store.getState().loadError.includes('请重试'));
+    assert.equal(h.store.getState().loadError.includes('private'), false);
+    assert.equal(h.emit(), undefined, 'event callback owns its promise rejection');
+    await tick();
+    h.requests[1].reject(new Error('event query failed'));
+    await tick(); // node:test also fails on any unhandled rejection.
+    assert.ok(h.store.getState().loadError);
+    const retry = h.store.getState().refreshCommands();
+    await tick();
+    h.requests[2].resolve(h.group());
+    await retry;
+    assert.equal(h.store.getState().loadError, null);
+    assert.equal(h.store.getState().searchCommands('Editor')[0].id, 'app');
+});
+
+test('failed application refresh rejects all coalesced callers and keeps previous searchable commands', async () => {
+    const h = applicationStoreHarness();
+    await tick();
+    h.requests[0].resolve(h.group());
+    await tick();
+    const previous = h.store.getState().commandGroup, fuse = h.store.getState().fuse;
+    const first = h.store.getState().refreshCommands();
+    const second = h.store.getState().refreshCommands();
+    const outcome = Promise.allSettled([first, second]);
+    await tick();
+    assert.equal(h.requests.length, 2, 'one query serves both refresh callers');
+    assert.equal(h.store.getState().isLoading, true);
+    assert.equal(h.store.getState().searchCommands('Editor')[0].id, 'app');
+    const failure = new Error('query unavailable');
+    h.requests[1].reject(failure);
+    const results = await outcome;
+    assert.equal(results[0].status, 'rejected');
+    assert.equal(results[1].status, 'rejected');
+    assert.equal(results[0].reason, failure);
+    assert.equal(results[1].reason, failure);
+    assert.equal(h.store.getState().commandGroup, previous);
+    assert.equal(h.store.getState().fuse, fuse);
+    assert.equal(h.store.getState().searchCommands('Editor')[0].id, 'app');
+    assert.ok(h.store.getState().loadError);
+});
+
+test('a successful empty application query clears stale commands and previous load errors', async () => {
+    const h = applicationStoreHarness();
+    await tick();
+    h.requests[0].resolve(h.group());
+    await tick();
+    const failed = h.store.getState().loadCommands();
+    const assertion = assert.rejects(failed);
+    h.requests[1].reject(new Error('temporary query failure'));
+    await assertion;
+    const recovered = h.store.getState().loadCommands();
+    h.requests[2].resolve({category: 'Application', commands: []});
+    await recovered;
+    assert.equal(h.store.getState().loadError, null);
+    assert.equal(h.store.getState().commandGroup.commands.length, 0);
+    assert.equal(h.store.getState().searchCommands('Editor').length, 0);
+});
+
+test('usage saved during an application reload survives an older successful response', async () => {
+    const writes = [];
+    const h = applicationStoreHarness({write: async items => {writes.push(items)}});
+    await tick();
+    h.requests[0].resolve(h.group(2));
+    await tick();
+    const refreshed = h.store.getState().refreshCommands();
+    await tick();
+    await h.store.getState().updateCommandUsage('app');
+    assert.equal(h.store.getState().updateBuffer.size, 0, 'new usage has already been acknowledged');
+    h.requests[1].resolve(h.group(2));
+    await refreshed;
+    assert.equal(h.store.getState().commandGroup.commands[0].usedCount, 3);
+    assert.ok(h.store.getState().commandGroup.commands[0].lastUsedAt instanceof Date);
+    assert.equal(writes[0][0].usedCount, 3);
+    await h.store.getState().updateCommandUsage('app');
+    assert.equal(writes[1][0].usedCount, 4, 'the next usage must not reuse an older count');
+});
+
+test('unsaved usage blocks application refresh and remains buffered across direct reload', async () => {
+    const h = applicationStoreHarness({write: async () => {throw new Error('private write failure')}});
+    await tick();
+    h.requests[0].resolve(h.group(2));
+    await tick();
+    await h.store.getState().updateCommandUsage('app');
+    await assert.rejects(h.store.getState().refreshCommands(), /使用记录尚未保存/);
+    assert.equal(h.requests.length, 1, 'refresh must not fetch over an unsaved buffer');
+    const buffer = h.store.getState().updateBuffer;
+    const loaded = h.store.getState().loadCommands();
+    h.requests[1].resolve(h.group(2));
+    await loaded;
+    assert.equal(h.store.getState().updateBuffer, buffer);
+    assert.equal(h.store.getState().updateBuffer.get('app').usedCount, 3);
+    assert.equal(h.store.getState().commandGroup.commands[0].usedCount, 3);
+    assert.ok(h.diagnostics.every(message => !message.includes('private')));
+});
+
+test('mock application query distinguishes rejection from empty success and later recovery', async () => {
+    const errors = loadTS('frontend/src/api/host/errors.ts');
+    const {createMockHost} = loadTS('frontend/src/api/host/mock.ts', {'./errors': errors});
+    const {HostError} = errors;
+    let phase = 'failure';
+    const application = {id:'probe', triggerId:'probe', name:'Probe', category:'Application', description:'', path:'/mock',
+        iconPath:'', isUserApp:true, usedCount:0, lastUsedAt:null};
+    const host = createMockHost({applicationQuery: async () => {
+        if (phase === 'failure') throw new HostError('OPERATION_FAILED', '应用列表加载失败，请重试', 'command.list');
+        return phase === 'empty' ? [] : [application];
+    }});
+    await assert.rejects(host.GetApplicationCommandsApi(), error => error.code === 'OPERATION_FAILED');
+    phase = 'empty';
+    assert.equal((await host.GetApplicationCommandsApi()).length, 0);
+    phase = 'success';
+    const result = await host.GetApplicationCommandsApi();
+    assert.equal(result[0].id, 'probe');
+    result[0].name = 'mutated';
+    assert.equal((await host.GetApplicationCommandsApi())[0].name, 'Probe');
+});
+
+test('application reload accepts authoritative usage when no local update occurred during the query', async () => {
+    const h = applicationStoreHarness();
+    await tick();
+    h.requests[0].resolve(h.group(10));
+    await tick();
+    await h.store.getState().updateCommandUsage('app');
+    const reload = h.store.getState().loadCommands();
+    h.requests[1].resolve(h.group(4));
+    await reload;
+    assert.equal(h.store.getState().commandGroup.commands[0].usedCount, 4,
+        'previously saved local statistics must not indefinitely override new host data');
+});
+
+test('Wails application adapter normalizes query rejection and preserves successful empty lists', async () => {
+    const errors = loadTS('frontend/src/api/host/errors.ts');
+    let reject = true;
+    const bindings = Object.fromEntries(['app', 'command', 'plugin', 'storage', 'system', 'update', 'log'].map(name =>
+        [`../../../bindings/watools/internal/host/${name}service`, {}]));
+    bindings['../../../bindings/watools/internal/host/commandservice'] = {
+        GetApplicationCommandsApi: async () => {
+            if (reject) throw {cause: {code: 'OPERATION_FAILED', message: '应用列表加载失败，请重试', operation: 'command.list'}};
+            return [];
+        },
+    };
+    const {wailsHost} = loadTS('frontend/src/api/host/wails.ts', {...bindings, './errors': errors});
+    await assert.rejects(wailsHost.GetApplicationCommandsApi(), error =>
+        error.code === 'OPERATION_FAILED' && error.operation === 'command.list' && error.message === '应用列表加载失败，请重试');
+    reject = false;
+    assert.equal((await wailsHost.GetApplicationCommandsApi()).length, 0);
+});
+
+test('application item hook keeps existing results visible while a refresh is loading', () => {
+    const command = {id:'app', triggerId:'app', name:'Editor', path:'/apps/Editor.app', iconPath:'', usedCount:2, lastUsedAt:null};
+    const state = {commandGroup:{commands:[command]}, isLoading:true, searchCommands: () => [command]};
+    const {useApplicationItems} = loadTS('frontend/src/components/watools/wa-application-item.tsx', {
+        react: {useMemo: factory => factory()},
+        'react/jsx-runtime': {jsx: (type, props) => ({type, props})},
+        '@/components/watools/wa-icon': {WaIcon: () => null},
+        '@/stores/applicationCommandStore': {useApplicationCommandStore: () => state},
+        '@/lib/command-ranking': {compareRankableItems: () => 0},
+    });
+    const items = useApplicationItems({searchKey:'Editor', rankingContext:{}, rankingHistory:[], onTriggerCommand() {}});
+    assert.equal(items.length, 1);
+    assert.equal(items[0].title, 'Editor');
+});
+
+test('application changes during a query fetch a fresh snapshot and coalesce event bursts', async () => {
+    const h = applicationStoreHarness();
+    await tick();
+    h.emit();
+    h.emit();
+    assert.equal(h.requests.length, 1, 'events wait for the pending query');
+    h.requests[0].resolve(h.group(1));
+    await tick();
+    assert.equal(h.requests.length, 2, 'pending events require one fresh query');
+    h.emit();
+    h.emit();
+    h.requests[1].resolve(h.group(2));
+    await tick();
+    assert.equal(h.requests.length, 3, 'an event during the follow-up requires the latest snapshot');
+    h.requests[2].resolve(h.group(3));
+    await tick();
+    await tick();
+    assert.equal(h.store.getState().commandGroup.commands[0].usedCount, 3);
+    assert.equal(h.requests.length, 3, 'completed bursts do not cause an automatic refresh loop');
+});
+
+test('mock queried applications become the trigger and usage snapshot; failed queries retain it', async () => {
+    const errors = loadTS('frontend/src/api/host/errors.ts');
+    const {createMockHost} = loadTS('frontend/src/api/host/mock.ts', {'./errors': errors});
+    const record = {id:'queried', triggerId:'queried', name:'Queried', category:'Application', description:'', path:'/mock',
+        iconPath:'', isUserApp:true, usedCount:0, lastUsedAt:null};
+    const options = {applications: [], applicationQuery: async () => [record]};
+    const host = createMockHost(options);
+    const queried = await host.GetApplicationCommandsApi();
+    queried[0].triggerId = 'mutated';
+    record.triggerId = 'provider-mutated';
+    await host.TriggerCommandApi('queried', 'Application');
+    options.applicationQuery = async () => {throw new Error('query failure')};
+    await assert.rejects(host.GetApplicationCommandsApi());
+    await host.TriggerCommandApi('queried', 'Application');
+    await host.UpdateApplicationUsageApi([{id:'queried', lastUsedAt:'2026-10-07T12:00:00Z', usedCount:4}]);
+    options.applicationQuery = undefined;
+    const retained = await host.GetApplicationCommandsApi();
+    assert.equal(retained[0].triggerId, 'queried');
+    assert.equal(retained[0].usedCount, 4);
+    assert.equal(retained[0].lastUsedAt, '2026-10-07T12:00:00Z');
+});
+
+test('synchronous diagnostic failure cannot discard usage or skip its retry', async () => {
+    const h = applicationStoreHarness({write: async () => {throw new Error('write failure')},
+        log: () => {throw new Error('synchronous logger failure')}});
+    await tick();
+    h.requests[0].resolve(h.group());
+    await tick();
+    await h.store.getState().updateCommandUsage('app');
+    await tick();
+    assert.equal(h.store.getState().updateBuffer.get('app').usedCount, 1);
+    assert.equal(h.timers.length, 1, 'retry is scheduled independently of diagnostic logging');
+    await assert.rejects(h.store.getState().refreshCommands(), /使用记录尚未保存/);
+    await tick();
+    assert.ok(h.store.getState().loadError);
+    assert.equal(h.requests.length, 1);
+});

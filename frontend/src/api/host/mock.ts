@@ -4,6 +4,9 @@ import {getTextDisplay, getTextEdges, MAX_INLINE_TEXT_LENGTH} from '@/lib/input-
 
 export type MockHostOptions = {
     applications?: ApplicationCommand[]
+    // A query boundary for deterministic failure/recovery scenarios. Returned
+    // commands are cloned just like the instance's built-in synthetic records.
+    applicationQuery?: () => Promise<ApplicationCommand[]>
     operations?: OperationCommand[]
     plugins?: PluginInfo[]
     clipboard?: ClipboardContent | null
@@ -36,7 +39,7 @@ const emptyUpdate: UpdateInfo = {
 // Each instance owns its synthetic state. It never loads real credentials,
 // writes disk, opens windows or makes an outgoing request.
 export function createMockHost(options: MockHostOptions = {}): HostAPI {
-    const applications: ApplicationCommand[] = clone<ApplicationCommand[]>(options.applications ?? [{id: 'mock-app', triggerId: 'mock-app', name: '示例应用', description: 'Host API 固定场景', category: 'Application', path: '/mock/Example.app', iconPath: '', isUserApp: true, lastUsedAt: null, usedCount: 0}])
+    let applications: ApplicationCommand[] = clone<ApplicationCommand[]>(options.applications ?? [{id: 'mock-app', triggerId: 'mock-app', name: '示例应用', description: 'Host API 固定场景', category: 'Application', path: '/mock/Example.app', iconPath: '', isUserApp: true, lastUsedAt: null, usedCount: 0}])
     const operations = clone(options.operations ?? [])
     const plugins = clone(options.plugins ?? [{packageId: 'watools.plugin.mock', name: '示例插件', description: '固定模拟数据', version: '1.0.0', author: 'WaTools', usage: '', triggerKeywords: ['mock'], usageExamples: [], shortcuts: [], notes: [], uiEnabled: false, entry: '', enabled: true, lastUsedAt: null, usedCount: 0, homeUrl: ''}])
     let size = {width: 1280, height: 64}
@@ -89,7 +92,11 @@ export function createMockHost(options: MockHostOptions = {}): HostAPI {
             if (!clipboardSnapshots.has(id)) throw new HostError('UNAVAILABLE', '剪贴板快照已释放或过期，请重新复制文本')
         },
         GetHotkeyEnvironmentStatusApi: async () => ({secureEventInputEnabled: false, note: '固定浏览器场景，不检测系统状态'}),
-        GetApplicationCommandsApi: async () => clone(applications), GetOperatorCommandsApi: async () => clone(operations),
+        GetApplicationCommandsApi: async () => {
+            if (options.applicationQuery) applications = clone(await options.applicationQuery())
+            return clone(applications)
+        },
+        GetOperatorCommandsApi: async () => clone(operations),
         TriggerCommandApi: async (id, category) => {
             if (!id || !['Application', 'Operation'].includes(category)) invalid('triggerId 或 category 格式不正确')
             const commands = category === 'Application' ? applications : operations

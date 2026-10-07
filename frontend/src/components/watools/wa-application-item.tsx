@@ -20,13 +20,12 @@ export const useApplicationItems = ({
 }: UseApplicationItemsParams) => {
     const {
         commandGroup,
-        isLoading,
         searchCommands
     } = useApplicationCommandStore();
 
 
     return useMemo((): BaseItemProps[] => {
-        if (!searchKey || !commandGroup || isLoading) {
+        if (!searchKey || !commandGroup) {
             return [];
         }
 
@@ -67,5 +66,5 @@ export const useApplicationItems = ({
                 onTriggerCommand(command);
             }
         }));
-    }, [searchKey, commandGroup, searchCommands, isLoading, onTriggerCommand, rankingContext, rankingHistory]);
+    }, [searchKey, commandGroup, searchCommands, onTriggerCommand, rankingContext, rankingHistory]);
 };

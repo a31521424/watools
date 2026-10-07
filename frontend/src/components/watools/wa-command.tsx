@@ -22,6 +22,7 @@ import {useCommandRankingStore} from "@/stores";
 import {persistPluginLaunchContext} from "@/lib/plugin-context";
 import {getLauncherPresentation} from '@/lib/launcher-input';
 import {ClipboardSetText} from '@/lib/legacy-runtime';
+import {Button} from '@/components/ui/button';
 
 
 export const WaCommand = () => {
@@ -32,6 +33,9 @@ export const WaCommand = () => {
     const launchPending = useRef(false)
     const focusGeneration = useRef(0)
     const updateApplicationUsage = useApplicationCommandStore(state => state.updateCommandUsage)
+    const applicationLoadError = useApplicationCommandStore(state => state.loadError)
+    const applicationLoading = useApplicationCommandStore(state => state.isLoading)
+    const refreshApplicationCommands = useApplicationCommandStore(state => state.refreshCommands)
     const {updatePluginUsage} = usePluginStore()
     const flushPluginUsage = usePluginStore(state => state.flushBufferUpdates)
     const flushApplicationUsage = useApplicationCommandStore(state => state.flushBufferUpdates)
@@ -298,6 +302,13 @@ export const WaCommand = () => {
         {launching && <div role="status" className="px-3 py-1 text-sm text-gray-500">正在打开插件…</div>}
         {compressedDisplay && <div className="px-3 py-1 text-xs text-gray-500">选择插件处理完整文本；输入新查询会替换当前文本。</div>}
         {executionError && <div role="alert" className="px-3 py-2 text-sm text-red-600">{executionError}</div>}
+        {applicationLoadError && <div role="alert" className="flex items-center justify-between gap-3 px-3 py-2 text-sm text-[var(--wt-danger)]">
+            <span>{applicationLoadError}</span>
+            <Button variant="outline" size="sm" disabled={applicationLoading}
+                onClick={() => void refreshApplicationCommands().catch(() => {})}>
+                {applicationLoading ? "正在重试…" : "重试"}
+            </Button>
+        </div>}
         <CommandList
             ref={commandListRef}
             className={cn(
