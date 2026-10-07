@@ -4,6 +4,7 @@ package localinstall
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,22 +69,35 @@ func SaveConfiguration(dataDir string, value Configuration) error {
 
 func ValidateSource(root string) ([]OfficialPlugin, error) {
 	if !filepath.IsAbs(root) {
-		return nil, fmt.Errorf("源码目录必须是绝对路径")
+		return nil, validation("源码目录必须是绝对路径", nil)
+	}
+	info, err := os.Stat(root)
+	if err != nil {
+		return nil, sourcePathError("找不到 WaTools 源码目录", err)
+	}
+	if !info.IsDir() {
+		return nil, validation("源码目录必须是文件夹", nil)
 	}
 	project, err := os.ReadFile(filepath.Join(root, "wails.json"))
 	if err != nil {
-		return nil, fmt.Errorf("找不到 WaTools 源码目录: %w", err)
+		return nil, sourcePathError("找不到 WaTools 源码目录", err)
 	}
 	var identity struct {
 		Name string `json:"name"`
 	}
-	if err := json.Unmarshal(project, &identity); err != nil || identity.Name != "watools" {
-		return nil, fmt.Errorf("目录不是 WaTools 源码")
+	if err := json.Unmarshal(project, &identity); err != nil {
+		return nil, validation("WaTools 项目文件格式不正确", err)
+	}
+	if identity.Name != "watools" {
+		return nil, validation("目录不是 WaTools 源码", nil)
 	}
 	for _, path := range []string{"cmd/watoolsctl/main.go", "go.mod", "frontend/pnpm-lock.yaml"} {
 		info, err := os.Stat(filepath.Join(root, path))
-		if err != nil || !info.Mode().IsRegular() {
-			return nil, fmt.Errorf("源码缺少 %s", path)
+		if err != nil {
+			return nil, sourcePathError("源码缺少 "+path, err)
+		}
+		if !info.Mode().IsRegular() {
+			return nil, validation("源码缺少 "+path, nil)
 		}
 	}
 	files, err := filepath.Glob(filepath.Join(root, "plugins/official/*/plugin/manifest.json"))
@@ -98,21 +112,34 @@ func ValidateSource(root string) ([]OfficialPlugin, error) {
 		}
 		var manifest models.PluginMetadata
 		if err := json.Unmarshal(content, &manifest); err != nil {
-			return nil, err
+			return nil, validation("官方插件 manifest 格式不正确", err)
 		}
 		result = append(result, OfficialPlugin{manifest.PackageID, manifest.Name, manifest.Version})
 	}
 	if len(result) == 0 {
-		return nil, fmt.Errorf("源码缺少官方插件")
+		return nil, validation("源码缺少官方插件", nil)
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].PackageID < result[j].PackageID })
 	return result, nil
 }
 
+// Missing source files are a correctable choice of source tree. Permission and
+// other filesystem failures are operational errors, even during validation.
+func sourcePathError(message string, err error) error {
+	if errors.Is(err, os.ErrNotExist) {
+		return validation(message, err)
+	}
+	return fmt.Errorf("%s: %w", message, err)
+}
+
 func ValidateConfiguration(value Configuration) (Configuration, error) {
-	root, err := filepath.EvalSymlinks(strings.TrimSpace(value.SourceRoot))
+	sourceRoot := strings.TrimSpace(value.SourceRoot)
+	if !filepath.IsAbs(sourceRoot) {
+		return value, validation("源码目录必须是绝对路径", nil)
+	}
+	root, err := filepath.EvalSymlinks(sourceRoot)
 	if err != nil {
-		return value, err
+		return value, sourcePathError("找不到 WaTools 源码目录", err)
 	}
 	value.SourceRoot = root
 	if _, err := ValidateSource(root); err != nil {
@@ -124,15 +151,18 @@ func ValidateConfiguration(value Configuration) (Configuration, error) {
 	if value.GoExecutable == "" {
 		value.GoExecutable, err = workflow.FindExecutable("go", value.ToolPath)
 		if err != nil {
-			return value, fmt.Errorf("找不到 Go，请填写 Go 可执行文件的绝对路径")
+			return value, validation("找不到 Go，请填写 Go 可执行文件的绝对路径", err)
 		}
 	}
 	if !filepath.IsAbs(value.GoExecutable) {
-		return value, fmt.Errorf("Go 必须使用绝对路径")
+		return value, validation("Go 必须使用绝对路径", nil)
 	}
 	info, err := os.Stat(value.GoExecutable)
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&0111 == 0 {
-		return value, fmt.Errorf("Go 路径不可执行")
+	if err != nil {
+		return value, sourcePathError("Go 路径不可执行", err)
+	}
+	if !info.Mode().IsRegular() || info.Mode()&0111 == 0 {
+		return value, validation("Go 路径不可执行", nil)
 	}
 	if !strings.HasPrefix(value.ToolPath, filepath.Dir(value.GoExecutable)+string(os.PathListSeparator)) {
 		value.ToolPath = filepath.Dir(value.GoExecutable) + string(os.PathListSeparator) + value.ToolPath
@@ -141,7 +171,7 @@ func ValidateConfiguration(value Configuration) (Configuration, error) {
 		value.ApplicationPath = "/Applications/watools.app"
 	}
 	if !filepath.IsAbs(value.ApplicationPath) || filepath.Base(value.ApplicationPath) != "watools.app" {
-		return value, fmt.Errorf("应用位置必须是绝对路径且以 watools.app 结尾")
+		return value, validation("应用位置必须是绝对路径且以 watools.app 结尾", nil)
 	}
 	return value, nil
 }

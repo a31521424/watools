@@ -2,6 +2,7 @@ package localinstall
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -79,11 +80,11 @@ func TestRunnerCancellationWaitsAndRejectsConcurrentWork(t *testing.T) {
 	if err := m.Start(context.Background(), Request{Scope: "all"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := m.Start(context.Background(), Request{Scope: "all"}); err == nil {
-		t.Fatal("concurrent job accepted")
+	if err := m.Start(context.Background(), Request{Scope: "all"}); !errors.Is(err, ErrBusy) {
+		t.Fatalf("concurrent job error = %v", err)
 	}
-	if err := m.Configure(value); err == nil {
-		t.Fatal("configuration changed while building")
+	if err := m.Configure(value); !errors.Is(err, ErrBusy) {
+		t.Fatalf("configuration while building error = %v", err)
 	}
 	if err := m.Cancel(); err != nil {
 		t.Fatal(err)
@@ -113,8 +114,8 @@ func TestCommitPhaseCannotBeCancelled(t *testing.T) {
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
-	if err := m.Cancel(); err == nil {
-		t.Fatal("commit interrupted")
+	if err := m.Cancel(); !errors.Is(err, ErrBusy) {
+		t.Fatalf("cancelling commit error = %v", err)
 	}
 	m.Shutdown()
 	status, _ := m.Status()

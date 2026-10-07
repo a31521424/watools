@@ -1,8 +1,11 @@
 package filelock
 
 import (
-	"golang.org/x/sys/windows"
+	"errors"
+	"fmt"
 	"os"
+
+	"golang.org/x/sys/windows"
 )
 
 func Acquire(path string) (func(), error) {
@@ -13,7 +16,10 @@ func Acquire(path string) (func(), error) {
 	overlapped := &windows.Overlapped{}
 	if err = windows.LockFileEx(windows.Handle(f.Fd()), windows.LOCKFILE_EXCLUSIVE_LOCK|windows.LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, overlapped); err != nil {
 		f.Close()
-		return nil, err
+		if errors.Is(err, windows.ERROR_LOCK_VIOLATION) {
+			return nil, fmt.Errorf("%w: %w", ErrBusy, err)
+		}
+		return nil, fmt.Errorf("acquire installation lock: %w", err)
 	}
 	return func() { _ = windows.UnlockFileEx(windows.Handle(f.Fd()), 0, 1, 0, overlapped); _ = f.Close() }, nil
 }

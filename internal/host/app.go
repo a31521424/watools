@@ -3,7 +3,9 @@ package host
 import (
 	"context"
 	"errors"
+
 	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"watools/config"
 	"watools/internal/app"
 )
@@ -41,7 +43,7 @@ func (s *AppService) GetClipboardSnapshotTextApi(id string) (string, error) {
 	}
 	v, e := s.core.GetClipboardSnapshotText(id)
 	if errors.Is(e, app.ErrClipboardSnapshotExpired) {
-		return "", &Error{Code: "UNAVAILABLE", Message: "剪贴板快照已释放或过期，请重新复制文本", Operation: "app.clipboardSnapshot"}
+		return "", &Error{Code: "UNAVAILABLE", Message: "剪贴板快照已释放或过期，请重新复制文本", Operation: "app.clipboardSnapshot", cause: e}
 	}
 	return v, failure("app.clipboardSnapshot", e)
 }
@@ -50,10 +52,11 @@ func (s *AppService) RetainClipboardSnapshotApi(id string) error {
 	if len(id) != 32 {
 		return invalid("剪贴板快照标识无效")
 	}
-	if e := s.core.RetainClipboardSnapshot(id); e != nil {
-		return &Error{Code: "UNAVAILABLE", Message: "剪贴板快照已释放或过期，请重新复制文本", Operation: "app.clipboardSnapshot"}
+	e := s.core.RetainClipboardSnapshot(id)
+	if errors.Is(e, app.ErrClipboardSnapshotExpired) {
+		return &Error{Code: "UNAVAILABLE", Message: "剪贴板快照已释放或过期，请重新复制文本", Operation: "app.clipboardSnapshot", cause: e}
 	}
-	return nil
+	return failure("app.clipboardSnapshot", e)
 }
 func (s *AppService) GetHotkeyEnvironmentStatusApi() app.HotkeyEnvironmentStatus {
 	return s.core.GetHotkeyEnvironmentStatus()

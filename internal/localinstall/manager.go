@@ -71,13 +71,16 @@ func (m *Manager) Configure(value Configuration) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.status.State == "running" {
-		return fmt.Errorf("安装任务执行中，不能修改源码目录")
+		return fmt.Errorf("安装任务执行中，不能修改源码目录: %w", ErrBusy)
 	}
 	if err := os.MkdirAll(m.dataDir, 0700); err != nil {
 		return err
 	}
 	unlock, err := filelock.Acquire(filepath.Join(m.dataDir, ".local-install.lock"))
 	if err != nil {
+		if errors.Is(err, filelock.ErrBusy) {
+			return fmt.Errorf("%w: %w", ErrBusy, err)
+		}
 		return err
 	}
 	defer unlock()
@@ -102,14 +105,17 @@ func (m *Manager) Configure(value Configuration) error {
 func (m *Manager) Start(ctx context.Context, request Request) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if m.status.State == "running" {
-		return fmt.Errorf("已有安装任务在执行")
+		return fmt.Errorf("已有安装任务在执行: %w", ErrBusy)
 	}
 	if request.Scope != "all" && request.Scope != "application" && request.Scope != "plugins" {
-		return fmt.Errorf("未知安装范围")
+		return validation("未知安装范围", nil)
 	}
 	if request.Scope == "application" && len(request.PackageIDs) > 0 {
-		return fmt.Errorf("应用安装不接受插件列表")
+		return validation("应用安装不接受插件列表", nil)
 	}
 	value, err := ReadConfiguration(m.dataDir)
 	if err != nil {
@@ -130,7 +136,7 @@ func (m *Manager) Start(ctx context.Context, request Request) error {
 	seen := map[string]bool{}
 	for _, id := range request.PackageIDs {
 		if !ids[id] || seen[id] {
-			return fmt.Errorf("无效的官方插件: %s", id)
+			return validation("官方插件选择无效或重复", nil)
 		}
 		seen[id] = true
 	}
@@ -284,12 +290,15 @@ func (m *Manager) Cancel() error {
 		return nil
 	}
 	if !m.status.CanCancel {
-		return fmt.Errorf("正在提交安装，需等待完成或恢复")
+		return fmt.Errorf("正在提交安装，需等待完成或恢复: %w", ErrBusy)
+	}
+	if err := stopProcess(m.process); err != nil {
+		return fmt.Errorf("cancel local installation process: %w", err)
 	}
 	m.cancelled = true
 	m.status.CanCancel = false
 	m.status.Message = "正在取消，等待子任务退出"
-	return stopProcess(m.process)
+	return nil
 }
 func (m *Manager) Shutdown() {
 	m.mu.Lock()

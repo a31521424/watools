@@ -2,8 +2,11 @@ package host
 
 import (
 	"context"
-	"github.com/wailsapp/wails/v3/pkg/application"
+	"errors"
 	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"watools/config"
 	"watools/internal/localinstall"
 	"watools/internal/update"
@@ -13,7 +16,17 @@ type UpdateService struct {
 	core  *update.Service
 	quit  func()
 	ctx   context.Context
-	local *localinstall.Manager
+	local localInstallation
+}
+
+// localInstallation is the job boundary; native construction uses Manager while
+// tests can exercise failure mapping without spawning an installer.
+type localInstallation interface {
+	Status() (localinstall.Status, error)
+	Configure(localinstall.Configuration) error
+	Start(context.Context, localinstall.Request) error
+	Cancel() error
+	Shutdown()
 }
 
 func NewUpdateService(core *update.Service, quit func()) *UpdateService {
@@ -59,20 +72,30 @@ func (s *UpdateService) GetLocalInstallationApi() (localinstall.Status, error) {
 	return value, failure("installation.status", err)
 }
 func (s *UpdateService) ConfigureLocalInstallationApi(value localinstall.Configuration) error {
-	if err := s.local.Configure(value); err != nil {
-		return invalid(err.Error())
-	}
-	return nil
+	return installationFailure("installation.configure", s.local.Configure(value))
 }
 func (s *UpdateService) StartLocalInstallationApi(request localinstall.Request) error {
-	if err := s.local.Start(s.ctx, request); err != nil {
-		return invalid(err.Error())
-	}
-	return nil
+	return installationFailure("installation.start", s.local.Start(s.ctx, request))
 }
 func (s *UpdateService) CancelLocalInstallationApi() error {
-	if err := s.local.Cancel(); err != nil {
-		return invalid(err.Error())
+	return installationFailure("installation.cancel", s.local.Cancel())
+}
+
+func installationFailure(operation string, err error) error {
+	if err == nil {
+		return nil
 	}
-	return nil
+	// Cancellation and timeout remain operational context outcomes even if a
+	// future implementation wraps them in a validation or busy error.
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return failure(operation, err)
+	}
+	var validation *localinstall.ValidationError
+	if errors.As(err, &validation) {
+		return &Error{Code: "INVALID_ARGUMENT", Message: validation.Message, Operation: operation, cause: err}
+	}
+	if errors.Is(err, localinstall.ErrBusy) {
+		return &Error{Code: "UNAVAILABLE", Message: "安装任务正在执行或提交，请稍后重试", Operation: operation, cause: err}
+	}
+	return failure(operation, err)
 }
