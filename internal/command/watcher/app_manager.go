@@ -10,9 +10,7 @@ import (
 	"sync"
 	"time"
 	"watools/internal/command/application"
-	"watools/pkg/db"
 	"watools/pkg/logger"
-	"watools/pkg/models"
 )
 
 // appWatchManager app watch manager darwin implementation
@@ -36,6 +34,7 @@ func NewAppWatchManager(handler AppEventHandler, ctx context.Context) (AppWatchM
 
 // NewAppWatchManagerWithConfig create app watch manager with config
 func NewAppWatchManagerWithConfig(handler AppEventHandler, ctx context.Context, config *WatcherConfig) (AppWatchManager, error) {
+	config = config.clone()
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
@@ -45,7 +44,7 @@ func NewAppWatchManagerWithConfig(handler AppEventHandler, ctx context.Context, 
 		return nil, nil
 	}
 
-	fsWatcher, err := NewFSWatcher()
+	fsWatcher, err := NewFSWatcherWithConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create fs watcher: %w", err)
 	}
@@ -80,6 +79,9 @@ func NewAppWatchManagerWithConfig(handler AppEventHandler, ctx context.Context, 
 func (awm *appWatchManager) Start() error {
 	awm.mu.Lock()
 	defer awm.mu.Unlock()
+	if err := awm.ctx.Err(); err != nil {
+		return fmt.Errorf("start app watch manager: %w", err)
+	}
 
 	if awm.running {
 		return fmt.Errorf("app watch manager is already running")
@@ -132,6 +134,9 @@ func (awm *appWatchManager) handleAppEvents() {
 
 // processAppEvent process single app event
 func (awm *appWatchManager) processAppEvent(event AppChangeEvent) {
+	if awm.ctx.Err() != nil {
+		return
+	}
 	startTime := time.Now()
 	defer func() {
 		awm.mu.Lock()
@@ -145,16 +150,7 @@ func (awm *appWatchManager) processAppEvent(event AppChangeEvent) {
 
 	// use retryable operation to process event
 	operation := func() error {
-		switch event.Type {
-		case AppAdded:
-			return awm.handleAppAddedWithRetry(event.Path)
-		case AppRemoved:
-			return awm.handleAppRemovedWithRetry(event.Path)
-		case AppModified:
-			return awm.handleAppModifiedWithRetry(event.Path)
-		default:
-			return fmt.Errorf("unknown event type: %v", event.Type)
-		}
+		return awm.handlePathChange(event)
 	}
 
 	retryableOp := NewRetryableOperation(operation, awm.errorHandler, &awm.config.RetryConfig)
@@ -169,62 +165,80 @@ func (awm *appWatchManager) processAppEvent(event AppChangeEvent) {
 		awm.mu.Unlock()
 	} else {
 		awm.mu.Lock()
-		awm.metrics.IncrementEventsProcessed()
+		if awm.ctx.Err() == nil {
+			awm.metrics.IncrementEventsProcessed()
+		}
 		awm.mu.Unlock()
 	}
 }
 
-// handleAppAddedWithRetry handle app added event with retry
-func (awm *appWatchManager) handleAppAddedWithRetry(path string) error {
-	// delay to ensure app is fully installed
-	if err := awm.wait(awm.config.GetAppAddedDelay()); err != nil {
+// handlePathChange reads the final state after the configured install delay.
+func (awm *appWatchManager) handlePathChange(event AppChangeEvent) error {
+	var delay time.Duration
+	switch event.Type {
+	case AppAdded:
+		delay = awm.config.GetAppAddedDelay()
+	case AppModified:
+		delay = awm.config.GetAppModifiedDelay()
+	case AppRemoved:
+	default:
+		return fmt.Errorf("unknown event type: %v", event.Type)
+	}
+	if err := awm.wait(delay); err != nil {
 		return err
 	}
-
-	command, err := application.ParseApplication(path)
+	if err := awm.ctx.Err(); err != nil {
+		return err
+	}
+	var err error
+	if handler, ok := awm.eventHandler.(PathEventHandler); ok {
+		err = handler.ReconcileApplicationPath(awm.ctx, event.Path)
+	} else {
+		err = awm.handleLegacyPathChange(event)
+	}
+	if cancelErr := awm.ctx.Err(); cancelErr != nil {
+		return cancelErr
+	}
 	if err != nil {
-		return fmt.Errorf("failed to parse added application: %w", err)
+		return fmt.Errorf("reconcile changed application %q: %w", event.Path, err)
 	}
-
-	if err := awm.eventHandler.OnAppAdded(command); err != nil {
-		return fmt.Errorf("failed to handle added application: %w", err)
-	}
-
-	logger.Info(fmt.Sprintf("Successfully handled added application: %s", command.Name))
 	return nil
 }
 
-// handleAppRemovedWithRetry handle app removed event with retry
-func (awm *appWatchManager) handleAppRemovedWithRetry(path string) error {
-	if err := awm.eventHandler.OnAppRemoved(path); err != nil {
-		return fmt.Errorf("failed to handle removed application: %w", err)
-	}
-
-	logger.Info(fmt.Sprintf("Successfully handled removed application: %s", path))
-	return nil
-}
-
-// handleAppModifiedWithRetry handle app modified event with retry
-func (awm *appWatchManager) handleAppModifiedWithRetry(path string) error {
-	// delay to ensure modification is complete
-	if err := awm.wait(awm.config.GetAppModifiedDelay()); err != nil {
-		return err
-	}
-
-	command, err := application.ParseApplication(path)
-	if err != nil {
-		if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-			return awm.handleAppRemovedWithRetry(path)
+// Legacy handlers keep their callbacks, but only a missing root authorizes removal.
+func (awm *appWatchManager) handleLegacyPathChange(event AppChangeEvent) error {
+	if _, err := os.Stat(event.Path); err != nil {
+		if os.IsNotExist(err) {
+			return awm.callRemoved(event.Path)
 		}
+		return fmt.Errorf("inspect application root: %w", err)
+	}
+	if err := awm.ctx.Err(); err != nil {
 		return err
 	}
-
-	if err := awm.eventHandler.OnAppModified(command); err != nil {
-		return fmt.Errorf("failed to handle modified application: %w", err)
+	command, err := application.ParseApplication(event.Path)
+	if cancelErr := awm.ctx.Err(); cancelErr != nil {
+		return cancelErr
 	}
+	if err != nil {
+		// The root may disappear while metadata is being read. Metadata failures
+		// on an existing root preserve the previous valid command.
+		if _, statErr := os.Stat(event.Path); os.IsNotExist(statErr) {
+			return awm.callRemoved(event.Path)
+		}
+		return fmt.Errorf("parse changed application: %w", err)
+	}
+	if event.Type == AppAdded {
+		return awm.eventHandler.OnAppAdded(command)
+	}
+	return awm.eventHandler.OnAppModified(command)
+}
 
-	logger.Info(fmt.Sprintf("Successfully handled modified application: %s", command.Name))
-	return nil
+func (awm *appWatchManager) callRemoved(path string) error {
+	if err := awm.ctx.Err(); err != nil {
+		return err
+	}
+	return awm.eventHandler.OnAppRemoved(path)
 }
 
 // IsRunning check if running
@@ -261,113 +275,7 @@ func (awm *appWatchManager) GetMetrics() *WatcherMetrics {
 
 // GetConfig get config
 func (awm *appWatchManager) GetConfig() *WatcherConfig {
-	return awm.config
-}
-
-// defaultAppEventHandler default app event handler darwin implementation
-type ApplicationRepository interface {
-	GetCommands(context.Context) ([]*models.ApplicationCommand, error)
-	BatchInsertCommands(context.Context, []*models.ApplicationCommand) error
-	BatchUpdateCommands(context.Context, []*models.ApplicationCommand) error
-	DeleteCommands(context.Context, []string) error
-}
-
-type defaultAppEventHandler struct {
-	notify func()
-	db     ApplicationRepository
-	ctx    context.Context
-}
-
-// NewDefaultAppEventHandler create default event handler
-func NewDefaultAppEventHandler(ctx context.Context, notify func()) DefaultAppEventHandler {
-	return NewDefaultAppEventHandlerWithRepository(ctx, notify, db.GetWaDB())
-}
-
-// NewDefaultAppEventHandlerWithRepository shares the command persistence boundary
-// without creating a native watcher or depending on the global database.
-func NewDefaultAppEventHandlerWithRepository(ctx context.Context, notify func(), repository ApplicationRepository) DefaultAppEventHandler {
-	return &defaultAppEventHandler{
-		db:     repository,
-		ctx:    ctx,
-		notify: notify,
-	}
-}
-
-// OnAppAdded handle app added
-func (h *defaultAppEventHandler) OnAppAdded(command *models.ApplicationCommand) error {
-	// check if already exists
-	existingCommands, err := h.db.GetCommands(h.ctx)
-	if err != nil {
-		return fmt.Errorf("read application commands before add: %w", err)
-	}
-	for _, existing := range existingCommands {
-		if existing.Path == command.Path {
-			// if exists, update instead of insert (no event emission here to avoid duplicate)
-			return h.onAppModifiedInternal(command)
-		}
-	}
-
-	// insert new app
-	err = h.db.BatchInsertCommands(h.ctx, []*models.ApplicationCommand{command})
-	if err == nil {
-		h.emitApplicationChanged()
-	}
-	return err
-}
-
-// OnAppRemoved handle app removed
-func (h *defaultAppEventHandler) OnAppRemoved(path string) error {
-	// find and delete command by path
-	commands, err := h.db.GetCommands(h.ctx)
-	if err != nil {
-		return fmt.Errorf("read application commands before remove: %w", err)
-	}
-	for _, command := range commands {
-		if command.Path == path {
-			err := h.db.DeleteCommands(h.ctx, []string{command.ID})
-			if err == nil {
-				h.emitApplicationChanged()
-			}
-			return err
-		}
-	}
-	return nil
-}
-
-// OnAppModified handle app modified
-func (h *defaultAppEventHandler) OnAppModified(command *models.ApplicationCommand) error {
-	err := h.onAppModifiedInternal(command)
-	if err == nil {
-		h.emitApplicationChanged()
-	}
-	return err
-}
-
-// onAppModifiedInternal internal method for handling app modified without emitting events
-func (h *defaultAppEventHandler) onAppModifiedInternal(command *models.ApplicationCommand) error {
-	// find existing command and update
-	commands, err := h.db.GetCommands(h.ctx)
-	if err != nil {
-		return fmt.Errorf("read application commands before modify: %w", err)
-	}
-	for _, existing := range commands {
-		if existing.Path == command.Path {
-			command.ID = existing.ID
-			command.UsedCount = existing.UsedCount
-			command.LastUsedAt = existing.LastUsedAt
-			return h.db.BatchUpdateCommands(h.ctx, []*models.ApplicationCommand{command})
-		}
-	}
-
-	// if not found, treat as new app (no event emission here to avoid duplicate)
-	return h.db.BatchInsertCommands(h.ctx, []*models.ApplicationCommand{command})
-}
-
-// emitApplicationChanged emit application changed event to frontend
-func (h *defaultAppEventHandler) emitApplicationChanged() {
-	if h.notify != nil {
-		h.notify()
-	}
+	return awm.config.clone()
 }
 
 func (awm *appWatchManager) wait(delay time.Duration) error {

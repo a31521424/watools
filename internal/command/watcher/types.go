@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"context"
 	"time"
 	"watools/pkg/models"
 )
@@ -25,6 +26,12 @@ type AppEventHandler interface {
 	OnAppAdded(command *models.ApplicationCommand) error
 	OnAppRemoved(path string) error
 	OnAppModified(command *models.ApplicationCommand) error
+}
+
+// PathEventHandler reconciles the current application state after its path changes.
+// Implementations read and commit under the same coordinator used by periodic scans.
+type PathEventHandler interface {
+	ReconcileApplicationPath(context.Context, string) error
 }
 
 // AppWatchManager interface for app watch manager

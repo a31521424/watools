@@ -19,6 +19,7 @@ type FSWatcher struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	eventCh   chan AppChangeEvent
+	debounce  time.Duration
 	watchDirs []string
 	mu        sync.RWMutex
 	running   bool
@@ -27,12 +28,19 @@ type FSWatcher struct {
 }
 
 func NewFSWatcher() (*FSWatcher, error) {
+	return NewFSWatcherWithConfig(DefaultWatcherConfig())
+}
+
+func NewFSWatcherWithConfig(config *WatcherConfig) (*FSWatcher, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid fs watcher config: %w", err)
+	}
 	native, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	return &FSWatcher{watcher: native, ctx: ctx, cancel: cancel, eventCh: make(chan AppChangeEvent, 100), watchDirs: getDefaultWatchDirs(), done: make(chan struct{})}, nil
+	return &FSWatcher{watcher: native, ctx: ctx, cancel: cancel, eventCh: make(chan AppChangeEvent, config.EventBufferSize), debounce: config.GetDebounceInterval(), watchDirs: getDefaultWatchDirs(), done: make(chan struct{})}, nil
 }
 func (fw *FSWatcher) Start() error {
 	fw.mu.Lock()
@@ -46,7 +54,7 @@ func (fw *FSWatcher) Start() error {
 		}
 	}
 	fw.running = true
-	go fw.handleEvents()
+	go fw.handleEvents(fw.watcher.Events, fw.watcher.Errors)
 	return nil
 }
 func (fw *FSWatcher) Stop() error {
@@ -71,7 +79,7 @@ func (fw *FSWatcher) Stop() error {
 	return err
 }
 func (fw *FSWatcher) EventChannel() <-chan AppChangeEvent { return fw.eventCh }
-func (fw *FSWatcher) handleEvents() {
+func (fw *FSWatcher) handleEvents(events <-chan fsnotify.Event, watcherErrors <-chan error) {
 	defer close(fw.done)
 	defer close(fw.eventCh)
 	type pendingEvent struct {
@@ -79,14 +87,38 @@ func (fw *FSWatcher) handleEvents() {
 		due   time.Time
 	}
 	pending := make(map[string]pendingEvent)
-	ticker := time.NewTicker(50 * time.Millisecond)
-	defer ticker.Stop()
+	timer := time.NewTimer(time.Hour)
+	timer.Stop()
+	defer timer.Stop()
+	var due <-chan time.Time
+	resetTimer := func() {
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+		due = nil
+		var next time.Time
+		for _, item := range pending {
+			if next.IsZero() || item.due.Before(next) {
+				next = item.due
+			}
+		}
+		if !next.IsZero() {
+			timer.Reset(time.Until(next))
+			due = timer.C
+		}
+	}
 	for {
 		select {
 		case <-fw.ctx.Done():
 			return
-		case event, ok := <-fw.watcher.Events:
+		case event, ok := <-events:
 			if !ok {
+				return
+			}
+			if fw.ctx.Err() != nil {
 				return
 			}
 			// Newly created Start Menu folders must acquire their own recursive watch.
@@ -100,9 +132,12 @@ func (fw *FSWatcher) handleEvents() {
 			if fw.isAppEvent(event.Name) {
 				path := normalizeAppPath(event.Name)
 				event.Name = path
-				pending[path] = pendingEvent{event, time.Now().Add(500 * time.Millisecond)}
+				// Preserve all observed operations while the path is settling.
+				event.Op |= pending[path].event.Op
+				pending[path] = pendingEvent{event, time.Now().Add(fw.debounce)}
+				resetTimer()
 			}
-		case <-ticker.C:
+		case <-due:
 			for path, item := range pending {
 				if !time.Now().Before(item.due) {
 					if !fw.processEvent(item.event) {
@@ -111,7 +146,8 @@ func (fw *FSWatcher) handleEvents() {
 					delete(pending, path)
 				}
 			}
-		case err, ok := <-fw.watcher.Errors:
+			resetTimer()
+		case err, ok := <-watcherErrors:
 			if !ok {
 				return
 			}
@@ -133,6 +169,9 @@ func (fw *FSWatcher) processEvent(event fsnotify.Event) bool {
 		return true
 	} else if event.Has(fsnotify.Create) {
 		change = AppAdded
+	}
+	if fw.ctx.Err() != nil {
+		return false
 	}
 	select {
 	case fw.eventCh <- AppChangeEvent{Type: change, Path: path}:

@@ -187,30 +187,30 @@ func (q *Queries) GetExpiredApplications(ctx context.Context, updatedAt time.Tim
 	return items, nil
 }
 
-const updateApplicationPartial = `-- name: UpdateApplicationPartial :exec
+const updateApplicationMetadata = `-- name: UpdateApplicationMetadata :exec
 UPDATE application
-SET name           = COALESCE(?1, name),
-    description    = COALESCE(?2, description),
-    category       = COALESCE(?3, category),
-    path           = COALESCE(?4, path),
-    icon_path      = COALESCE(?5, icon_path),
-    dir_updated_at = COALESCE(?6, dir_updated_at),
+SET name           = ?1,
+    description    = ?2,
+    category       = ?3,
+    path           = ?4,
+    icon_path      = ?5,
+    dir_updated_at = ?6,
     updated_at     = datetime('now', 'localtime')
 WHERE id = ?7
 `
 
-type UpdateApplicationPartialParams struct {
-	Name         mo.Option[string]
+type UpdateApplicationMetadataParams struct {
+	Name         string
 	Description  mo.Option[string]
-	Category     mo.Option[string]
-	Path         mo.Option[string]
+	Category     string
+	Path         string
 	IconPath     mo.Option[string]
 	DirUpdatedAt time.Time
 	ID           string
 }
 
-func (q *Queries) UpdateApplicationPartial(ctx context.Context, arg UpdateApplicationPartialParams) error {
-	_, err := q.db.ExecContext(ctx, updateApplicationPartial,
+func (q *Queries) UpdateApplicationMetadata(ctx context.Context, arg UpdateApplicationMetadataParams) error {
+	_, err := q.db.ExecContext(ctx, updateApplicationMetadata,
 		arg.Name,
 		arg.Description,
 		arg.Category,

@@ -16,7 +16,6 @@ import (
 	"watools/pkg/utils"
 
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 	_ "modernc.org/sqlite"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -193,13 +192,13 @@ func (d *WaDB) BatchUpdateCommands(ctx context.Context, commands []*models.Appli
 	return d.withTx(ctx, func(tx *sql.Tx) error {
 		txQuery := d.query.WithTx(tx)
 		for _, command := range commands {
-			if err := txQuery.UpdateApplicationPartial(ctx, UpdateApplicationPartialParams{
+			if err := txQuery.UpdateApplicationMetadata(ctx, UpdateApplicationMetadataParams{
 				ID:           command.ID,
 				DirUpdatedAt: command.DirUpdatedAt,
-				Name:         mo.Some(command.Name),
+				Name:         command.Name,
 				Description:  command.Description,
-				Category:     mo.Some(string(command.Category)),
-				Path:         mo.Some(command.Path),
+				Category:     string(command.Category),
+				Path:         command.Path,
 				IconPath:     command.IconPath,
 			}); err != nil {
 				return fmt.Errorf("failed to update command: %w", err)

@@ -2,6 +2,7 @@ package application
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -85,20 +86,24 @@ func runPowerShell(script string) (string, error) {
 }
 
 func getShortcutInfo(lnkPath string) (*shortcutInfo, error) {
+	return getShortcutInfoWithRunner(lnkPath, runPowerShell)
+}
+
+func getShortcutInfoWithRunner(lnkPath string, run func(string) (string, error)) (*shortcutInfo, error) {
 	script := "$s=(New-Object -ComObject WScript.Shell).CreateShortcut('" + escapePowerShellSingleQuoted(lnkPath) + "'); " +
 		"$o=[pscustomobject]@{TargetPath=$s.TargetPath;IconLocation=$s.IconLocation;Description=$s.Description}; " +
 		"$o | ConvertTo-Json -Compress"
 
-	out, err := runPowerShell(script)
+	out, err := run(script)
 	if err != nil {
-		return nil, err
+		return nil, applicationError(ErrApplicationUnreadable, "read shortcut metadata", lnkPath, err)
 	}
 	if out == "" {
-		return nil, fmt.Errorf("empty shortcut info")
+		return nil, applicationError(ErrInvalidMetadata, "decode shortcut metadata", lnkPath, fmt.Errorf("empty shortcut info"))
 	}
 	var info shortcutInfo
 	if err := json.Unmarshal([]byte(out), &info); err != nil {
-		return nil, fmt.Errorf("failed to parse shortcut info: %w", err)
+		return nil, applicationError(ErrInvalidMetadata, "decode shortcut metadata", lnkPath, err)
 	}
 	return &info, nil
 }
@@ -134,10 +139,8 @@ func normalizeIconPath(iconLocation string, fallback string) string {
 	return iconPath
 }
 
-func normalizePathKey(path string) string {
-	if path == "" {
-		return ""
-	}
+// PathKey gives the platform's application identity without touching the disk.
+func PathKey(path string) string {
 	return strings.ToLower(filepath.Clean(path))
 }
 
@@ -176,24 +179,25 @@ func extractExecutablePath(value string) string {
 	return strings.TrimSpace(value)
 }
 
-func findFirstExecutable(dir string) string {
+func findFirstExecutable(dir string) (string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return ""
+		return "", applicationError(ErrApplicationUnreadable, "scan installed executables", dir, err)
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
 		if strings.EqualFold(filepath.Ext(entry.Name()), ".exe") {
-			return filepath.Join(dir, entry.Name())
+			return filepath.Join(dir, entry.Name()), nil
 		}
 	}
-	return ""
+	return "", nil
 }
 
-func getRegistryAppInfos() []AppPathInfo {
+func getRegistryAppInfos() ([]AppPathInfo, error) {
 	var infos []AppPathInfo
+	var scanErrors []error
 
 	type regRoot struct {
 		key  registry.Key
@@ -213,29 +217,37 @@ func getRegistryAppInfos() []AppPathInfo {
 	for _, root := range roots {
 		baseKey, err := registry.OpenKey(root.key, root.path, registry.READ|root.flag)
 		if err != nil {
+			if !errors.Is(err, registry.ErrNotExist) {
+				scanErrors = append(scanErrors, applicationError(ErrApplicationUnreadable, "open application registry", root.path, err))
+			}
 			continue
 		}
 		subKeys, err := baseKey.ReadSubKeyNames(-1)
-		baseKey.Close()
+		baseKey.Close() // Read-only handle cleanup does not affect the scan result.
 		if err != nil {
+			scanErrors = append(scanErrors, applicationError(ErrApplicationUnreadable, "read application registry keys", root.path, err))
 			continue
 		}
 
 		for _, sub := range subKeys {
 			subKey, err := registry.OpenKey(root.key, root.path+`\`+sub, registry.READ|root.flag)
 			if err != nil {
+				scanErrors = append(scanErrors, applicationError(ErrApplicationUnreadable, "open application registry entry", root.path+`\`+sub, err))
 				continue
 			}
 
-			displayName, _, _ := subKey.GetStringValue("DisplayName")
+			displayName, _, nameErr := subKey.GetStringValue("DisplayName")
+			if nameErr != nil && !errors.Is(nameErr, registry.ErrNotExist) {
+				scanErrors = append(scanErrors, applicationError(ErrInvalidMetadata, "read application display name", root.path+`\`+sub, nameErr))
+			}
 			if strings.TrimSpace(displayName) == "" {
 				subKey.Close()
 				continue
 			}
 
-			displayIcon, _, _ := subKey.GetStringValue("DisplayIcon")
-			installLocation, _, _ := subKey.GetStringValue("InstallLocation")
-			description, _, _ := subKey.GetStringValue("Publisher")
+			displayIcon := optionalRegistryString(subKey, "DisplayIcon", sub)
+			installLocation := optionalRegistryString(subKey, "InstallLocation", sub)
+			description := optionalRegistryString(subKey, "Publisher", sub)
 
 			subKey.Close()
 
@@ -245,7 +257,11 @@ func getRegistryAppInfos() []AppPathInfo {
 			if targetPath == "" || !isExecutablePath(targetPath) {
 				installLocation = expandWindowsEnv(strings.TrimSpace(installLocation))
 				if installLocation != "" && filepath.IsAbs(installLocation) {
-					if exePath := findFirstExecutable(installLocation); exePath != "" {
+					exePath, err := findFirstExecutable(installLocation)
+					if err != nil {
+						scanErrors = append(scanErrors, err)
+					}
+					if exePath != "" {
 						targetPath = exePath
 					}
 				}
@@ -255,18 +271,19 @@ func getRegistryAppInfos() []AppPathInfo {
 				continue
 			}
 
-			if _, err := os.Stat(targetPath); err != nil {
-				continue
-			}
-
-			key := normalizePathKey(targetPath)
+			key := PathKey(targetPath)
 			if _, exists := seen[key]; exists {
 				continue
 			}
 			seen[key] = struct{}{}
 
-			fi, err := os.Stat(targetPath)
+			fi, err := statApplication(targetPath)
 			if err != nil {
+				scanErrors = append(scanErrors, err)
+				continue
+			}
+			if fi.IsDir() {
+				scanErrors = append(scanErrors, applicationError(ErrNotApplication, "inspect registered executable", targetPath, nil))
 				continue
 			}
 
@@ -280,17 +297,51 @@ func getRegistryAppInfos() []AppPathInfo {
 		}
 	}
 
-	return infos
+	return infos, errors.Join(scanErrors...)
+}
+
+func optionalRegistryString(key registry.Key, name, entry string) string {
+	value, _, err := key.GetStringValue(name)
+	if err != nil && !errors.Is(err, registry.ErrNotExist) {
+		logger.Warning(fmt.Sprintf("Application registry entry %q omits optional %s: %v", entry, name, err))
+	}
+	return value
+}
+
+func statApplication(path string) (os.FileInfo, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		kind := ErrApplicationUnreadable
+		if errors.Is(err, os.ErrNotExist) {
+			kind = ErrApplicationNotFound
+		}
+		return nil, applicationError(kind, "stat application", path, err)
+	}
+	return fi, nil
 }
 
 func parseShortcut(lnkPath string) (*models.ApplicationCommand, error) {
-	fi, err := os.Stat(lnkPath)
+	return parseShortcutWithReader(lnkPath, getShortcutInfo)
+}
+
+func parseShortcutWithReader(lnkPath string, readInfo func(string) (*shortcutInfo, error)) (*models.ApplicationCommand, error) {
+	fi, err := statApplication(lnkPath)
 	if err != nil {
 		return nil, err
 	}
-	info, err := getShortcutInfo(lnkPath)
+	if fi.IsDir() {
+		return nil, applicationError(ErrNotApplication, "inspect shortcut", lnkPath, nil)
+	}
+	info, err := readInfo(lnkPath)
 	if err != nil {
-		return nil, err
+		kind := ErrApplicationUnreadable
+		if errors.Is(err, ErrInvalidMetadata) {
+			kind = ErrInvalidMetadata
+		}
+		return nil, applicationError(kind, "read shortcut metadata", lnkPath, err)
+	}
+	if info == nil {
+		return nil, applicationError(ErrInvalidMetadata, "read shortcut metadata", lnkPath, fmt.Errorf("missing shortcut metadata"))
 	}
 
 	commandName := strings.TrimSuffix(filepath.Base(lnkPath), filepath.Ext(lnkPath))
@@ -309,8 +360,10 @@ func parseShortcut(lnkPath string) (*models.ApplicationCommand, error) {
 	iconPath := normalizeIconPath(info.IconLocation, targetPath)
 	var commandIconPath mo.Option[string]
 	if iconPath != "" {
-		if _, err := os.Stat(iconPath); err == nil {
+		if fi, err := os.Stat(iconPath); err == nil && !fi.IsDir() {
 			commandIconPath = mo.Some(iconPath)
+		} else {
+			logger.Warning(fmt.Sprintf("Shortcut %q uses default icon: %v", lnkPath, err))
 		}
 	}
 
@@ -320,12 +373,12 @@ func parseShortcut(lnkPath string) (*models.ApplicationCommand, error) {
 }
 
 func parseExecutable(exePath string) (*models.ApplicationCommand, error) {
-	fi, err := os.Stat(exePath)
+	fi, err := statApplication(exePath)
 	if err != nil {
 		return nil, err
 	}
 	if fi.IsDir() {
-		return nil, fmt.Errorf("path is directory: %s", exePath)
+		return nil, applicationError(ErrNotApplication, "inspect executable", exePath, nil)
 	}
 	commandName := strings.TrimSuffix(filepath.Base(exePath), filepath.Ext(exePath))
 	return models.NewApplicationCommand(commandName, mo.None[string](), exePath, mo.Some(exePath), mo.None[string](), fi.ModTime()), nil
@@ -344,82 +397,68 @@ func getStartMenuDirs() []string {
 	return dirs
 }
 
-func scanStartMenuShortcuts(seen map[string]struct{}) []AppPathInfo {
-	var appPathInfos []AppPathInfo
-
-	for _, root := range getStartMenuDirs() {
-		if _, err := os.Stat(root); err != nil {
-			continue
-		}
-		_ = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if d.IsDir() {
-				return nil
-			}
-			if !strings.EqualFold(filepath.Ext(d.Name()), ".lnk") {
-				return nil
-			}
-			key := normalizePathKey(path)
-			if _, exists := seen[key]; exists {
-				return nil
-			}
-			fi, err := os.Stat(path)
-			if err != nil {
-				return nil
-			}
-			appPathInfos = append(appPathInfos, AppPathInfo{Path: path, UpdateAt: fi.ModTime()})
-			seen[key] = struct{}{}
-			return nil
-		})
-	}
-
-	return appPathInfos
+func scanStartMenuShortcuts(seen map[string]struct{}) ([]AppPathInfo, error) {
+	return scanWindowsPaths(getStartMenuDirs(), ".lnk", seen)
 }
 
-func scanExecutablesInDirs(dirs []string, seen map[string]struct{}) []AppPathInfo {
+func scanExecutablesInDirs(dirs []string, seen map[string]struct{}) ([]AppPathInfo, error) {
+	return scanWindowsPaths(dirs, ".exe", seen)
+}
+
+func scanWindowsPaths(dirs []string, extension string, seen map[string]struct{}) ([]AppPathInfo, error) {
 	var infos []AppPathInfo
+	var scanErrors []error
 	for _, root := range dirs {
 		if root == "" {
 			continue
 		}
-		if _, err := os.Stat(root); err != nil {
+		// An absent optional scan root is normal, but a failure below it is not.
+		if fi, err := os.Stat(root); errors.Is(err, os.ErrNotExist) {
+			continue
+		} else if err != nil {
+			scanErrors = append(scanErrors, applicationError(ErrApplicationUnreadable, "stat application scan folder", root, err))
+			continue
+		} else if !fi.IsDir() {
+			scanErrors = append(scanErrors, applicationError(ErrApplicationUnreadable, "inspect application scan folder", root, fmt.Errorf("scan root is not a directory")))
 			continue
 		}
-		_ = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		walkErr := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
+				scanErrors = append(scanErrors, applicationError(ErrApplicationUnreadable, "walk application folder", path, err))
 				return nil
 			}
-			if d.IsDir() {
+			if d.IsDir() || !strings.EqualFold(filepath.Ext(d.Name()), extension) {
 				return nil
 			}
-			if !strings.EqualFold(filepath.Ext(d.Name()), ".exe") {
-				return nil
-			}
-			key := normalizePathKey(path)
+			key := PathKey(path)
 			if _, exists := seen[key]; exists {
 				return nil
 			}
-			fi, err := os.Stat(path)
+			fi, err := statApplication(path)
 			if err != nil {
+				scanErrors = append(scanErrors, err)
 				return nil
 			}
 			infos = append(infos, AppPathInfo{Path: path, UpdateAt: fi.ModTime()})
 			seen[key] = struct{}{}
 			return nil
 		})
+		if walkErr != nil {
+			scanErrors = append(scanErrors, applicationError(ErrApplicationUnreadable, "walk application folder", root, walkErr))
+		}
 	}
-	return infos
+	return infos, errors.Join(scanErrors...)
 }
 
-func getWindowsApplicationPath() []AppPathInfo {
+func getWindowsApplicationPath() ([]AppPathInfo, error) {
+	var scanErrors []error
 	var appPathInfos []AppPathInfo
 	seen := make(map[string]struct{})
 
-	registryInfos := getRegistryAppInfos()
+	registryInfos, registryErr := getRegistryAppInfos()
+	scanErrors = append(scanErrors, registryErr)
 	for _, info := range registryInfos {
-		key := normalizePathKey(info.Path)
+		key := PathKey(info.Path)
 		if key == "" {
 			continue
 		}
@@ -430,68 +469,80 @@ func getWindowsApplicationPath() []AppPathInfo {
 		appPathInfos = append(appPathInfos, info)
 	}
 
-	startMenuInfos := scanStartMenuShortcuts(seen)
+	startMenuInfos, startMenuErr := scanStartMenuShortcuts(seen)
+	scanErrors = append(scanErrors, startMenuErr)
 	appPathInfos = append(appPathInfos, startMenuInfos...)
 
 	extraDirs := getExtraSearchDirs()
 	if len(extraDirs) > 0 {
-		appPathInfos = append(appPathInfos, scanExecutablesInDirs(extraDirs, seen)...)
+		extraInfos, extraErr := scanExecutablesInDirs(extraDirs, seen)
+		appPathInfos = append(appPathInfos, extraInfos...)
+		scanErrors = append(scanErrors, extraErr)
 	}
 
 	logger.Info(fmt.Sprintf("Scanning registry, start menu, extra dirs: %v", extraDirs))
-	return appPathInfos
+	return appPathInfos, errors.Join(scanErrors...)
 }
 
 func newApplicationFromInfo(info AppPathInfo) (*models.ApplicationCommand, error) {
 	if info.Name == "" {
-		return nil, fmt.Errorf("missing display name")
+		return nil, applicationError(ErrInvalidMetadata, "read registered display name", info.Path, fmt.Errorf("missing display name"))
+	}
+	fi, err := statApplication(info.Path)
+	if err != nil {
+		return nil, err
+	}
+	if fi.IsDir() || !isExecutablePath(info.Path) {
+		return nil, applicationError(ErrNotApplication, "inspect registered executable", info.Path, nil)
 	}
 	desc := mo.TupleToOption(info.Desc, info.Desc != "")
 	var iconPath mo.Option[string]
 	if info.IconPath != "" {
-		if _, err := os.Stat(info.IconPath); err == nil {
+		if fi, err := os.Stat(info.IconPath); err == nil && !fi.IsDir() {
 			iconPath = mo.Some(info.IconPath)
+		} else {
+			logger.Warning(fmt.Sprintf("Application %q uses default icon: %v", info.Path, err))
 		}
 	}
 	return models.NewApplicationCommand(info.Name, desc, info.Path, iconPath, mo.None[string](), info.UpdateAt), nil
 }
 
+// GetApplications returns valid applications even when other paths fail to scan or parse.
 func GetApplications() ([]*models.ApplicationCommand, error) {
+	infos, err := GetAppPathInfosWithError()
+	return applicationsFromPathInfos(infos, err)
+}
+
+func applicationsFromPathInfos(infos []AppPathInfo, scanErr error) ([]*models.ApplicationCommand, error) {
 	var commands []*models.ApplicationCommand
 	seen := make(map[string]struct{})
-
-	for _, appPathInfo := range getWindowsApplicationPath() {
-		if appPathInfo.Name != "" {
-			command, err := newApplicationFromInfo(appPathInfo)
-			if err == nil {
-				key := normalizePathKey(command.Path)
-				if key != "" {
-					if _, exists := seen[key]; !exists {
-						seen[key] = struct{}{}
-						commands = append(commands, command)
-					}
-				}
-				continue
-			}
+	errs := []error{scanErr}
+	for _, info := range infos {
+		var command *models.ApplicationCommand
+		var err error
+		if info.Name != "" {
+			command, err = newApplicationFromInfo(info)
+		} else {
+			command, err = ParseApplication(info.Path)
 		}
-		command, err := ParseApplication(appPathInfo.Path)
 		if err != nil {
-			logger.Error(err, fmt.Sprintf("Failed to parse application for '%s'", appPathInfo.Path))
+			errs = append(errs, err)
 			continue
 		}
-		key := normalizePathKey(command.Path)
-		if key != "" {
-			if _, exists := seen[key]; exists {
-				continue
-			}
-			seen[key] = struct{}{}
+		key := PathKey(command.Path)
+		if _, exists := seen[key]; exists {
+			continue
 		}
+		seen[key] = struct{}{}
 		commands = append(commands, command)
 	}
-	return commands, nil
+	return commands, errors.Join(errs...)
 }
 
 func ParseApplication(appPath string) (*models.ApplicationCommand, error) {
+	if _, err := statApplication(appPath); err != nil {
+		return nil, err
+	}
 	ext := strings.ToLower(filepath.Ext(appPath))
 	if ext == ".lnk" {
 		return parseShortcut(appPath)
@@ -499,7 +550,7 @@ func ParseApplication(appPath string) (*models.ApplicationCommand, error) {
 	if ext == ".exe" {
 		return parseExecutable(appPath)
 	}
-	return nil, fmt.Errorf("unsupported application path: %s", appPath)
+	return nil, applicationError(ErrNotApplication, "inspect application extension", appPath, nil)
 }
 
 func GetDefaultIconPath() string {
@@ -510,6 +561,17 @@ func GetDefaultIconPath() string {
 	return filepath.Join(systemRoot, "System32", "shell32.dll")
 }
 
+// GetAppPathInfos is a compatibility wrapper that logs partial scan failures.
+// Call GetAppPathInfosWithError when failures affect reconciliation decisions.
 func GetAppPathInfos() []AppPathInfo {
+	infos, err := GetAppPathInfosWithError()
+	if err != nil {
+		logger.Error(err, "Application scan returned partial paths")
+	}
+	return infos
+}
+
+// GetAppPathInfosWithError returns discovered paths and any scan failures.
+func GetAppPathInfosWithError() ([]AppPathInfo, error) {
 	return getWindowsApplicationPath()
 }
