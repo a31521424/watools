@@ -15,7 +15,7 @@
 | [macOS 自用原生验收](./native-self-use-acceptance.md) | P0 | in-progress | v3 原生回归已推进；物理输入法、快捷键及完整场景待验 |
 | [插件加载与 SDK](./plugin-loading-and-sdk.md) | P1 | planned | 宿主接口、会话与调用边界 |
 | [日志诊断与 Agent 工具](./diagnostics-and-agent-tools.md) | P1 | planned | 日志约定可先做；MCP 与窗口诊断依赖 v3 |
-| [架构精简与编码实践](./architecture-simplification.md) | P1 | in-progress | 前四轮已实施：错误透传、扫描解析/路径协调、watcher 配置、热键恢复、必需清理与停止；显式初始化另轮推进，检查与原生/Windows 限制见实施记录 |
+| [架构精简与编码实践](./architecture-simplification.md) | P1 | in-progress | 2026-10-09 前四轮阶段结案，代码基线 `7faa2fa`；自动化验证通过，原生验收与 E08 等后续批次保留待办，Windows 行为工作须另行授权 |
 | [插件信任与权限边界](./plugin-trust-and-permissions.md) | P1 | planned | 威胁模型可先明确；执行依赖 SDK 与会话边界 |
 | [Windows 兼容与实机验收](./windows-compatibility.md) | P2 | deferred | 有明确 Windows 使用需求后恢复 |
 | [对外分发与自更新验收](./distribution-and-update-acceptance.md) | P2 | deferred | 有对外发布或自动升级需求后恢复 |
@@ -23,6 +23,8 @@
 P0 为当前自用阶段核心目标，P1 为自用开发体验增强，P2 为延期的平台与分发任务。`planned` 是待办；`in-progress` 是实施中；`deferred` 是主动延期，记录恢复条件；`blocked` 必须记录具体阻碍；`done` 必须有实际验收证据。服务与宿主接口整理已完成；其他项目按表中状态推进。权限目标本阶段按可信自用插件验收，面向不可信第三方的完整隔离另列延期范围。
 
 ## 分阶段推进
+
+2026-10-09 用户要求提交工作区并阶段结案。前四轮可靠性优化实现已提交，结案与验证边界见 [实施计划](./architecture-simplification.md#2026-10-09-阶段结案)。后续以 macOS 为范围；Windows 仅做共享接口变化必需的编译适配，行为修复、新功能、专属测试和实机验收另行授权。整体架构、原生及其他 backlog 保持各自状态，本次结案不自动启动下一轮。
 
 2026-10-07 用户授权按架构与编码实践报告制定计划并使用多个 subagent 开始实施，范围与后续依赖见 [实施计划](./architecture-simplification.md)。本目标不改变既有原生、Windows 或公开发布目标的验收状态。
 
